@@ -1,12 +1,12 @@
-export interface NoteTypeField {
+export type NoteTypeField = {
   name: string;
-}
+};
 
-export interface NoteTypeTemplate {
+export type NoteTypeTemplate = {
   name: string;
   qfmt: string;
   afmt: string;
-}
+};
 
 export interface ParsedNoteType {
   ankiId: bigint;
