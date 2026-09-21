@@ -1,0 +1,233 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Algorithm {
+  SM2
+  FSRS
+}
+
+enum LeechAction {
+  SUSPEND
+  TAG
+}
+
+enum NewCardOrder {
+  SEQUENTIAL
+  RANDOM
+}
+
+enum NoteTypeKind {
+  STANDARD
+  CLOZE
+}
+
+enum CardState {
+  NEW
+  LEARNING
+  REVIEW
+  RELEARNING
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  timezone     String   @default("UTC")
+  dayStartHour Int      @default(4)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions    Session[]
+  decks       Deck[]
+  deckConfigs DeckConfig[]
+  noteTypes   NoteType[]
+  notes       Note[]
+  cards       Card[]
+  reviews     ReviewLog[]
+  media       Media[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model DeckConfig {
+  id               String       @id @default(uuid())
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  algorithm        Algorithm    @default(SM2)
+  newPerDay        Int          @default(20)
+  reviewsPerDay    Int          @default(200)
+  learningSteps    Float[]      @default([1, 10])
+  relearningSteps  Float[]      @default([10])
+  graduatingInterval Int        @default(1)
+  easyInterval     Int          @default(4)
+  startingEase     Int          @default(2500)
+  easyBonus        Float        @default(1.3)
+  hardMultiplier   Float        @default(1.2)
+  intervalModifier Float        @default(1.0)
+  lapseMultiplier  Float        @default(0.0)
+  minLapseInterval Int          @default(1)
+  maxInterval      Int          @default(36500)
+  leechThreshold   Int          @default(8)
+  leechAction      LeechAction  @default(TAG)
+  newCardOrder     NewCardOrder @default(SEQUENTIAL)
+  desiredRetention Float        @default(0.9)
+  fsrsWeights      Float[]      @default([])
+  isDefault        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  decks Deck[]
+
+  @@index([userId])
+}
+
+model Deck {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String   @default("")
+  parentId    String?
+  parent      Deck?    @relation("DeckTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Deck[]   @relation("DeckTree")
+  configId    String
+  config      DeckConfig @relation(fields: [configId], references: [id])
+  ankiId      BigInt?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cards   Card[]
+  reviews ReviewLog[]
+
+  @@index([userId, parentId])
+  @@index([userId, ankiId])
+}
+
+model NoteType {
+  id           String       @id @default(uuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  kind         NoteTypeKind @default(STANDARD)
+  css          String       @default("")
+  fields       Json
+  templates    Json
+  sortFieldIdx Int          @default(0)
+  latexPre     String       @default("")
+  latexPost    String       @default("")
+  ankiId       BigInt?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  notes Note[]
+
+  @@index([userId])
+}
+
+model Note {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  noteTypeId String
+  noteType   NoteType @relation(fields: [noteTypeId], references: [id], onDelete: Cascade)
+  fields     String[]
+  tags       String[]
+  sortField  String   @default("")
+  ankiGuid   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  cards Card[]
+
+  @@index([userId, noteTypeId])
+  @@index([userId, ankiGuid])
+}
+
+model Card {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  noteId      String
+  note        Note      @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  deckId      String
+  deck        Deck      @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  ord         Int       @default(0)
+  state       CardState @default(NEW)
+  due         DateTime  @default(now())
+  newPosition Int       @default(0)
+  interval    Float     @default(0)
+  ease        Int       @default(2500)
+  reps        Int       @default(0)
+  lapses      Int       @default(0)
+  step        Int       @default(0)
+  stability   Float?
+  difficulty  Float?
+  lastReview  DateTime?
+  suspended   Boolean   @default(false)
+  buriedUntil DateTime?
+  flag        Int       @default(0)
+  ankiId      BigInt?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  reviews ReviewLog[]
+
+  @@index([userId, deckId, state, due])
+  @@index([userId, deckId, newPosition])
+  @@index([noteId])
+}
+
+model ReviewLog {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId       String
+  card         Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  deckId       String
+  deck         Deck      @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  rating       Int
+  prevState    CardState
+  newState     CardState
+  prevInterval Float
+  newInterval  Float
+  elapsedDays  Float     @default(0)
+  durationMs   Int       @default(0)
+  snapshot     Json
+  reviewedAt   DateTime  @default(now())
+
+  @@index([userId, reviewedAt])
+  @@index([cardId, reviewedAt])
+  @@index([deckId, reviewedAt])
+}
+
+model Media {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  path      String
+  size      Int
+  sha1      String?
+  mimeType  String   @default("application/octet-stream")
+  createdAt DateTime @default(now())
+
+  @@unique([userId, name])
+}
