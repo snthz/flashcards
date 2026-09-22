@@ -11,8 +11,9 @@ interface CardFrameProps {
 }
 
 const BASE_CSS = `
-:host { display: block; color: inherit; }
-.fc-root { padding: 1.5rem 1rem; min-height: 8rem; word-break: break-word; overflow-wrap: anywhere; }
+:host { display: flex; flex-direction: column; flex: 1; color: inherit; }
+.fc-root { display: flex; flex: 1; flex-direction: column; word-break: break-word; overflow-wrap: anywhere; }
+.fc-root > .card { flex: 1; padding: 1.5rem 1rem; }
 .fc-root img { max-width: 100%; height: auto; }
 .fc-root .cloze { color: var(--fc-accent, #4f46e5); font-weight: 600; }
 .fc-root .fc-audio { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; margin: 0 .25rem; padding: .25rem .5rem; border-radius: .5rem; background: var(--fc-muted, rgba(127,127,127,.15)); font-size: .9em; user-select: none; }
@@ -71,5 +72,5 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
     };
   }, [html, css, ord, side, autoplay]);
 
-  return <div ref={hostRef} className="text-lg leading-relaxed" />;
+  return <div ref={hostRef} className="flex flex-1 flex-col text-lg leading-relaxed" />;
 }

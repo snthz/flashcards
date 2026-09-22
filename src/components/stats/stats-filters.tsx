@@ -43,7 +43,7 @@ export function StatsFilters({ deckId, period, decks }: { deckId: string; period
             aria-selected={period === p.value}
             onClick={() => navigate({ period: p.value })}
             className={cn(
-              "flex-1 rounded-md px-3 py-1.5 text-sm transition-colors",
+              "flex-1 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors",
               period === p.value ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >

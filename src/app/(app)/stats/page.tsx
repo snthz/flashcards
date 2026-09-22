@@ -5,7 +5,8 @@ import { getDeckOptions } from "@/lib/notes/queries";
 import { getStats, type StatsPeriod } from "@/lib/stats/queries";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatsFilters } from "@/components/stats/stats-filters";
-import { ChartCard, DataTable, Heatmap, HorizontalBars, Legend, SERIES, StackedBar, StackedColumns, StatTile } from "@/components/stats/charts";
+import { ChartCard, DataTable, Heatmap, HorizontalBars, Legend, StackedBar, StackedColumns, StatTile } from "@/components/stats/charts";
+import { SERIES } from "@/lib/stats/palette";
 import { formatDuration, formatNumber } from "@/lib/utils";
 import { StatsSkeleton } from "./loading";
 

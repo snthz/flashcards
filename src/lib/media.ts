@@ -32,8 +32,11 @@ const MIME_TYPES: Record<string, string> = {
   ".txt": "text/plain",
 };
 
+const configuredRoot = process.env.MEDIA_DIR;
+
 export function mediaRoot() {
-  return path.resolve(process.env.MEDIA_DIR ?? "./data/media");
+  if (configuredRoot && configuredRoot.startsWith("/")) return path.normalize(configuredRoot);
+  return path.join(process.cwd(), "data", configuredRoot ? path.basename(configuredRoot) : "media");
 }
 
 export function mimeTypeFor(name: string) {

@@ -6,6 +6,7 @@ import { Input, Select } from "@/components/ui/input";
 import { Field, FormError } from "@/components/ui/field";
 import { changePassword, deleteAccount, updateProfile, type SettingsState } from "@/app/(app)/settings/actions";
 import { logout } from "@/app/(auth)/actions";
+import { useIsClient } from "@/lib/hooks/use-is-client";
 
 const hours = Array.from({ length: 24 }, (_, i) => i);
 
@@ -16,7 +17,8 @@ function SuccessMessage({ message }: { message?: string }) {
 
 export function ProfileForm({ name, timezone, dayStartHour }: { name: string; timezone: string; dayStartHour: number }) {
   const [state, action, pending] = useActionState<SettingsState, FormData>(updateProfile, {});
-  const zones = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [timezone];
+  const isClient = useIsClient();
+  const zones = isClient && typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [timezone];
   return (
     <form action={action} className="flex flex-col gap-4">
       <FormError message={state.error} />

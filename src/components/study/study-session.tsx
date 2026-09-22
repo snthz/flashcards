@@ -90,10 +90,6 @@ export function StudySession({ initial }: { initial: StudyState }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [card, revealed, reveal, rate, undo]);
 
-  useEffect(() => {
-    if (!card) router.refresh();
-  }, [card, router]);
-
   return (
     <div className="flex min-h-[calc(100dvh-2rem)] flex-col md:min-h-0">
       <header className="flex items-center justify-between gap-3 pb-3">
@@ -144,7 +140,7 @@ export function StudySession({ initial }: { initial: StudyState }) {
         <>
           <section
             className={cn(
-              "relative flex-1 overflow-y-auto rounded-2xl border bg-card shadow-sm transition-opacity",
+              "relative flex flex-1 flex-col overflow-y-auto rounded-2xl border bg-card shadow-sm transition-opacity md:min-h-96",
               pending && "opacity-60",
             )}
             onClick={() => {

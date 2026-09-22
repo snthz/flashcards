@@ -13,7 +13,7 @@ import { CreateDeckButton, DeleteDeckDialog, RenameDeckDialog } from "./deck-dia
 function Count({ value, tone }: { value: number; tone: "new" | "learn" | "due" }) {
   const color = tone === "new" ? "text-accent" : tone === "learn" ? "text-danger" : "text-success";
   return (
-    <span className={cn("w-10 text-right text-sm tabular-nums", value > 0 ? color : "text-muted-foreground/50")}>
+    <span className={cn("w-12 text-right text-sm tabular-nums sm:w-16", value > 0 ? color : "text-muted-foreground/50")}>
       {formatNumber(value)}
     </span>
   );
@@ -123,11 +123,11 @@ export function DeckList({ tree }: { tree: DeckNode[] }) {
 
   return (
     <div className="rounded-xl border bg-card p-2 animate-in">
-      <div className="flex items-center gap-1 px-2 pb-2 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="flex items-center gap-1 px-2 pb-2 pt-1 text-[11px] font-medium text-muted-foreground">
         <span className="flex-1 pl-7">Mazo</span>
-        <span className="w-10 text-right">Nuevas</span>
-        <span className="w-10 text-right">Aprend.</span>
-        <span className="w-10 text-right">Repaso</span>
+        <span className="w-12 text-right sm:w-16">Nuevas</span>
+        <span className="w-12 text-right sm:w-16">Aprend.</span>
+        <span className="w-12 text-right sm:w-16">Repaso</span>
         <span className="ml-1 w-8" />
       </div>
       <div className="flex flex-col">

@@ -2,14 +2,7 @@
 
 import { useId, useState, type ReactNode } from "react";
 import { cn, formatNumber } from "@/lib/utils";
-
-export const SERIES = {
-  blue: "var(--viz-1)",
-  orange: "var(--viz-2)",
-  aqua: "var(--viz-3)",
-  yellow: "var(--viz-4)",
-  gray: "var(--viz-muted)",
-} as const;
+import { SERIES } from "@/lib/stats/palette";
 
 export interface Series {
   key: string;
@@ -126,8 +119,8 @@ export function StackedColumns({ data, series, height = 180, valueLabel = "repas
           const y = padTop + plotH - (t / max) * plotH;
           return (
             <g key={t}>
-              <line x1={padLeft} x2={width - 8} y1={y} y2={y} stroke="var(--viz-grid)" strokeWidth={1} />
-              <text x={padLeft - 6} y={y + 3} textAnchor="end" fontSize={10} fill="var(--muted-foreground)">
+              <line x1={padLeft} x2={width - 8} y1={y} y2={y} style={{ stroke: "var(--viz-grid)" }} strokeWidth={1} />
+              <text x={padLeft - 6} y={y + 3} textAnchor="end" fontSize={10} style={{ fill: "var(--muted-foreground)" }}>
                 {formatNumber(t)}
               </text>
             </g>
@@ -153,7 +146,7 @@ export function StackedColumns({ data, series, height = 180, valueLabel = "repas
                     width={barW}
                     height={Math.max(1, h - (isTop ? 0 : 0))}
                     rx={isTop ? 3 : 0}
-                    fill={s.color}
+                    style={{ fill: s.color }}
                     opacity={hover == null || hover === i ? 1 : 0.45}
                   />
                 );
@@ -171,7 +164,7 @@ export function StackedColumns({ data, series, height = 180, valueLabel = "repas
                 tabIndex={-1}
               />
               {i % labelEvery === 0 ? (
-                <text x={padLeft + i * band + band / 2} y={height - 6} textAnchor="middle" fontSize={10} fill="var(--muted-foreground)">
+                <text x={padLeft + i * band + band / 2} y={height - 6} textAnchor="middle" fontSize={10} style={{ fill: "var(--muted-foreground)" }}>
                   {shortDay(d.day)}
                 </text>
               ) : null}
@@ -273,7 +266,7 @@ export function Heatmap({ data }: { data: Array<{ day: string; count: number }> 
               width={cell}
               height={cell}
               rx={2}
-              fill={stepFor(item.count)}
+              style={{ fill: stepFor(item.count) }}
               onMouseEnter={() => setHover(item)}
               onMouseLeave={() => setHover(null)}
             />
