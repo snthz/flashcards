@@ -1,0 +1,27 @@
+services:
+  flashcards:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_REVISION: ${APP_REVISION:-manual}
+    image: flashcards:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      SESSION_SECRET: ${SESSION_SECRET}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://flashcards.example.com}
+      MEDIA_DIR: /app/data/media
+    volumes:
+      - flashcards-media:/app/data/media
+    expose:
+      - "3000"
+    networks:
+      - dokploy-network
+
+volumes:
+  flashcards-media:
+
+networks:
+  dokploy-network:
+    external: true

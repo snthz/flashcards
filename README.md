@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Flashcards
 
-## Getting Started
+Aplicación web progresiva (PWA) de repaso espaciado compatible con Anki. Importa tus mazos `.apkg`, estudia con el mismo algoritmo (SM-2 clásico o FSRS), sincroniza el progreso entre escritorio y móvil, y consulta estadísticas detalladas.
 
-First, run the development server:
+## Características
+
+- Importación de paquetes `.apkg` (formato legado y formato moderno comprimido con zstd de Anki 2.1.50+), incluyendo tipos de nota, plantillas, CSS, multimedia, opciones de mazo y el estado de programación de cada tarjeta.
+- Programador SM-2 estilo Anki (pasos de aprendizaje, facilidad, intervalos, olvidos, sanguijuelas) y FSRS mediante `ts-fsrs`, configurable por preajuste de mazo.
+- Mazos jerárquicos con límites diarios, submazos, opciones por preajuste y descripciones.
+- Sesión de estudio con cuatro botones de respuesta e intervalos previstos, deshacer, enterrar, suspender, marcar, audio y atajos de teclado.
+- Editor de notas (tipos Básico, Básico invertido y Cloze incluidos) y explorador con búsqueda, filtros y acciones masivas.
+- Estadísticas: repasos por día, previsión, retención, racha, mapa de actividad anual, distribución de tarjetas e intervalos.
+- Cuentas con sesiones persistentes en base de datos, zona horaria y hora de inicio del día configurables.
+- PWA instalable en iOS, Android y escritorio, con service worker y página offline.
+
+## Stack
+
+Next.js 16 (App Router, Turbopack), React 19, TypeScript, Tailwind CSS 4, Prisma 7 con PostgreSQL, Serwist, sql.js, fflate y fzstd.
+
+## Desarrollo
 
 ```bash
+cp .env.example .env
+npm install
+npx prisma migrate deploy
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Variables de entorno:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Descripción |
+| --- | --- |
+| `DATABASE_URL` | Cadena de conexión de PostgreSQL. Usa `?schema=flashcards` para aislar las tablas dentro de una base de datos compartida. |
+| `SESSION_SECRET` | Cadena aleatoria larga para firmar los tokens de sesión. |
+| `MEDIA_DIR` | Carpeta donde se guardan imágenes y audios importados. |
+| `NEXT_PUBLIC_APP_URL` | URL pública de la aplicación. |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Scripts útiles:
 
-## Learn More
+```bash
+npm run test        # tests unitarios (scheduler, parser de Anki, plantillas)
+npm run typecheck   # tsc
+npm run lint        # eslint
+npm run db:diff     # genera SQL a partir de cambios en prisma/schema.prisma
+```
 
-To learn more about Next.js, take a look at the following resources:
+Para crear una nueva migración tras modificar el esquema:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+mkdir prisma/migrations/$(date +%Y%m%d%H%M%S)_nombre
+npm run db:diff > prisma/migrations/<carpeta>/migration.sql
+npx prisma migrate deploy
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Despliegue en Dokploy
 
-## Deploy on Vercel
+La imagen no levanta base de datos propia: se conecta al PostgreSQL que ya existe en el VPS a través de la red `dokploy-network`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. En Dokploy crea un servicio de tipo Compose apuntando a este repositorio.
+2. Define las variables de entorno:
+   - `DATABASE_URL=postgresql://USUARIO:CONTRASEÑA@NOMBRE_DEL_SERVICIO_POSTGRES:5432/BASE?schema=flashcards`
+   - `SESSION_SECRET` (por ejemplo `openssl rand -base64 48`)
+   - `NEXT_PUBLIC_APP_URL=https://tu-dominio`
+3. Añade el dominio al servicio `flashcards` en el puerto `3000`.
+4. Despliega. El contenedor ejecuta `prisma migrate deploy` al arrancar y crea el esquema `flashcards` en la base de datos existente sin tocar el resto de tablas.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Los archivos multimedia se guardan en el volumen `flashcards-media`.
+
+## Exportar desde Anki
+
+En Anki: engranaje del mazo → Exportar → formato “Paquete de mazo de Anki (*.apkg)”, con “Incluir información de programación” e “Incluir multimedia” activados. Al reimportar un mismo mazo se actualizan las notas existentes y se conservan las tarjetas ya programadas.
