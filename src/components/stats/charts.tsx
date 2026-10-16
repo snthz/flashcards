@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { cn, formatNumber } from "@/lib/utils";
 import { SERIES } from "@/lib/stats/palette";
 
@@ -9,6 +9,9 @@ export interface Series {
   label: string;
   color: string;
 }
+
+const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const WEEKDAYS = ["L", "", "X", "", "V", "", ""];
 
 function shortDay(day: string) {
   const [, m, d] = day.split("-");
@@ -28,6 +31,21 @@ function niceMax(value: number) {
   return step * magnitude;
 }
 
+function useContainerWidth<T extends HTMLElement>(fallback: number) {
+  const ref = useRef<T>(null);
+  const [width, setWidth] = useState(fallback);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const update = () => setWidth(Math.max(1, Math.round(node.getBoundingClientRect().width)));
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, width] as const;
+}
+
 export function Legend({ series }: { series: Series[] }) {
   if (series.length < 2) return null;
   return (
@@ -44,12 +62,12 @@ export function Legend({ series }: { series: Series[] }) {
 
 export function ChartCard({ title, subtitle, children, table }: { title: string; subtitle?: string; children: ReactNode; table?: ReactNode }) {
   return (
-    <section className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+    <section className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:p-5">
       <div className="flex flex-col gap-0.5">
         <h2 className="text-sm font-semibold">{title}</h2>
         {subtitle ? <p className="text-xs text-muted-foreground">{subtitle}</p> : null}
       </div>
-      {children}
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">{children}</div>
       {table ? (
         <details className="text-xs text-muted-foreground">
           <summary className="cursor-pointer select-none">Ver tabla</summary>
@@ -94,33 +112,34 @@ interface StackedColumnsProps {
   valueLabel?: string;
 }
 
-export function StackedColumns({ data, series, height = 180, valueLabel = "repasos" }: StackedColumnsProps) {
+export function StackedColumns({ data, series, height = 220, valueLabel = "repasos" }: StackedColumnsProps) {
   const [hover, setHover] = useState<number | null>(null);
   const id = useId();
-  const width = 600;
+  const [ref, width] = useContainerWidth<HTMLDivElement>(600);
   const padLeft = 36;
+  const padRight = 8;
   const padBottom = 22;
   const padTop = 8;
-  const plotW = width - padLeft - 8;
+  const plotW = Math.max(1, width - padLeft - padRight);
   const plotH = height - padBottom - padTop;
   const totals = data.map((d) => series.reduce((sum, s) => sum + (d.values[s.key] ?? 0), 0));
   const max = niceMax(Math.max(...totals, 0));
   const band = plotW / Math.max(1, data.length);
-  const barW = Math.min(24, Math.max(2, band - 2));
+  const barW = Math.min(28, Math.max(2, band - 3));
   const ticks = [0, max / 2, max];
-  const labelEvery = Math.max(1, Math.ceil(data.length / 8));
+  const labelEvery = Math.max(1, Math.ceil(data.length / Math.max(2, Math.floor(plotW / 72))));
   const active = hover != null ? data[hover] : null;
 
   return (
-    <div className="relative">
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full" role="img" aria-labelledby={id}>
+    <div ref={ref} className="relative w-full">
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="block max-w-full" role="img" aria-labelledby={id}>
         <title id={id}>Gráfico de columnas</title>
         {ticks.map((t) => {
           const y = padTop + plotH - (t / max) * plotH;
           return (
             <g key={t}>
-              <line x1={padLeft} x2={width - 8} y1={y} y2={y} style={{ stroke: "var(--viz-grid)" }} strokeWidth={1} />
-              <text x={padLeft - 6} y={y + 3} textAnchor="end" fontSize={10} style={{ fill: "var(--muted-foreground)" }}>
+              <line x1={padLeft} x2={width - padRight} y1={y} y2={y} style={{ stroke: "var(--viz-grid)" }} strokeWidth={1} />
+              <text x={padLeft - 8} y={y + 3} textAnchor="end" fontSize={11} style={{ fill: "var(--muted-foreground)" }}>
                 {formatNumber(t)}
               </text>
             </g>
@@ -144,7 +163,7 @@ export function StackedColumns({ data, series, height = 180, valueLabel = "repas
                     x={x}
                     y={y}
                     width={barW}
-                    height={Math.max(1, h - (isTop ? 0 : 0))}
+                    height={Math.max(1, h)}
                     rx={isTop ? 3 : 0}
                     style={{ fill: s.color }}
                     opacity={hover == null || hover === i ? 1 : 0.45}
@@ -164,7 +183,7 @@ export function StackedColumns({ data, series, height = 180, valueLabel = "repas
                 tabIndex={-1}
               />
               {i % labelEvery === 0 ? (
-                <text x={padLeft + i * band + band / 2} y={height - 6} textAnchor="middle" fontSize={10} style={{ fill: "var(--muted-foreground)" }}>
+                <text x={padLeft + i * band + band / 2} y={height - 6} textAnchor="middle" fontSize={11} style={{ fill: "var(--muted-foreground)" }}>
                   {shortDay(d.day)}
                 </text>
               ) : null}
@@ -192,7 +211,7 @@ export function StackedColumns({ data, series, height = 180, valueLabel = "repas
   );
 }
 
-export function HorizontalBars({ data, color = SERIES.blue }: { data: Array<{ label: string; value: number; hint?: string }>; color?: string }) {
+export function HorizontalBars({ data, color = SERIES.primary }: { data: Array<{ label: string; value: number; hint?: string }>; color?: string }) {
   const max = Math.max(...data.map((d) => d.value), 1);
   return (
     <ul className="flex flex-col gap-2">
@@ -242,43 +261,77 @@ export function Heatmap({ data }: { data: Array<{ day: string; count: number }> 
   const firstDow = (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
   const cell = 11;
   const gap = 2;
+  const step = cell + gap;
+  const padLeft = 18;
+  const padTop = 16;
   const weeks = Math.ceil((data.length + firstDow) / 7);
-  const width = weeks * (cell + gap);
-  const height = 7 * (cell + gap);
+  const width = padLeft + weeks * step;
+  const height = padTop + 7 * step;
   const steps = ["var(--viz-seq-1)", "var(--viz-seq-2)", "var(--viz-seq-3)", "var(--viz-seq-4)", "var(--viz-seq-5)"];
   const stepFor = (count: number) => {
     if (count === 0) return "var(--viz-empty)";
     const ratio = count / max;
     return steps[Math.min(steps.length - 1, Math.floor(ratio * steps.length))];
   };
+  const monthLabels: Array<{ col: number; label: string }> = [];
+  data.forEach((item, i) => {
+    const [, month, dayOfMonth] = item.day.split("-").map(Number);
+    if (dayOfMonth !== 1) return;
+    const col = Math.floor((i + firstDow) / 7);
+    const last = monthLabels[monthLabels.length - 1];
+    if (last && col - last.col < 3) return;
+    monthLabels.push({ col, label: MONTHS[month - 1] });
+  });
+
   return (
-    <div className="relative overflow-x-auto">
-      <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} className="block" role="img" aria-label="Actividad diaria">
-        {data.map((item, i) => {
-          const index = i + firstDow;
-          const col = Math.floor(index / 7);
-          const row = index % 7;
-          return (
-            <rect
-              key={item.day}
-              x={col * (cell + gap)}
-              y={row * (cell + gap)}
-              width={cell}
-              height={cell}
-              rx={2}
-              style={{ fill: stepFor(item.count) }}
-              onMouseEnter={() => setHover(item)}
-              onMouseLeave={() => setHover(null)}
-            />
-          );
-        })}
-      </svg>
-      {hover ? (
-        <div className="pointer-events-none absolute left-2 top-2 rounded-md border bg-card px-2.5 py-1.5 text-xs shadow-md">
-          <p className="font-medium">{longDay(hover.day)}</p>
-          <p className="text-muted-foreground">{formatNumber(hover.count)} repasos</p>
-        </div>
-      ) : null}
+    <div className="flex flex-col gap-3">
+      <div className="relative overflow-x-auto">
+        <svg viewBox={`0 0 ${width} ${height}`} className="block h-auto w-full min-w-[540px]" role="img" aria-label="Actividad diaria">
+          {monthLabels.map((l) => (
+            <text key={`${l.col}-${l.label}`} x={padLeft + l.col * step} y={10} fontSize={9} style={{ fill: "var(--muted-foreground)" }}>
+              {l.label}
+            </text>
+          ))}
+          {WEEKDAYS.map((label, row) =>
+            label ? (
+              <text key={row} x={0} y={padTop + row * step + cell - 2} fontSize={9} style={{ fill: "var(--muted-foreground)" }}>
+                {label}
+              </text>
+            ) : null,
+          )}
+          {data.map((item, i) => {
+            const index = i + firstDow;
+            const col = Math.floor(index / 7);
+            const row = index % 7;
+            return (
+              <rect
+                key={item.day}
+                x={padLeft + col * step}
+                y={padTop + row * step}
+                width={cell}
+                height={cell}
+                rx={2}
+                style={{ fill: stepFor(item.count) }}
+                onMouseEnter={() => setHover(item)}
+                onMouseLeave={() => setHover(null)}
+              />
+            );
+          })}
+        </svg>
+        {hover ? (
+          <div className="pointer-events-none absolute left-2 top-2 rounded-md border bg-card px-2.5 py-1.5 text-xs shadow-md">
+            <p className="font-medium">{longDay(hover.day)}</p>
+            <p className="text-muted-foreground">{formatNumber(hover.count)} repasos</p>
+          </div>
+        ) : null}
+      </div>
+      <div className="flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
+        <span className="mr-1">Menos</span>
+        {["var(--viz-empty)", ...steps].map((color) => (
+          <span key={color} className="inline-block size-2.5 rounded-[2px]" style={{ background: color }} aria-hidden />
+        ))}
+        <span className="ml-1">Más</span>
+      </div>
     </div>
   );
 }

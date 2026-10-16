@@ -16,7 +16,7 @@ const RATING_META: Record<Rating, { label: string; tone: string; key: string }> 
   1: { label: "Otra vez", tone: "text-danger border-danger/40 hover:bg-danger-soft", key: "1" },
   2: { label: "Difícil", tone: "text-warning border-warning/40 hover:bg-warning-soft", key: "2" },
   3: { label: "Bien", tone: "text-success border-success/40 hover:bg-success-soft", key: "3" },
-  4: { label: "Fácil", tone: "text-accent border-accent/40 hover:bg-accent-soft", key: "4" },
+  4: { label: "Fácil", tone: "text-info border-info/40 hover:bg-info-soft", key: "4" },
 };
 
 const FLAG_COLORS = ["", "#ef4444", "#f97316", "#22c55e", "#3b82f6", "#ec4899", "#14b8a6", "#a855f7"];
@@ -101,7 +101,7 @@ export function StudySession({ initial }: { initial: StudyState }) {
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 text-sm tabular-nums" aria-label="Pendientes">
-            <span className={cn("text-accent", card?.state === "NEW" && "underline underline-offset-4")}>{state.counts.fresh}</span>
+            <span className={cn("text-info", card?.state === "NEW" && "underline underline-offset-4")}>{state.counts.fresh}</span>
             <span className={cn("text-danger", (card?.state === "LEARNING" || card?.state === "RELEARNING") && "underline underline-offset-4")}>
               {state.counts.learning}
             </span>

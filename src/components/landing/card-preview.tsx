@@ -4,7 +4,7 @@ const ratings = [
   ["10m", "Otra vez", "text-danger border-danger/40"],
   ["2d", "Difícil", "text-warning border-warning/40"],
   ["6d", "Bien", "text-success border-success/40"],
-  ["12d", "Fácil", "text-accent border-accent/40"],
+  ["12d", "Fácil", "text-info border-info/40"],
 ] as const;
 
 export function CardPreview({ className }: { className?: string }) {
@@ -13,7 +13,7 @@ export function CardPreview({ className }: { className?: string }) {
       <div className="flex items-center justify-between px-1 pb-3 text-xs text-muted-foreground">
         <span className="font-medium text-foreground">Idiomas::Inglés</span>
         <span className="flex gap-2 tabular-nums">
-          <span className="text-accent">12</span>
+          <span className="text-info">12</span>
           <span className="text-danger">3</span>
           <span className="text-success">28</span>
         </span>

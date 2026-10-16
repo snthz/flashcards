@@ -56,10 +56,10 @@ export default async function HomePage() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4 md:px-6">
-          <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-            <span className="flex size-7 items-center justify-center rounded-md bg-accent text-accent-foreground">
+      <header className="sticky top-0 z-20 border-b bg-background/75 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4 md:px-6">
+          <Link href="/" className="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow-sm">
               <Layers className="size-4" />
             </span>
             Flashcards

@@ -9,7 +9,7 @@ const tones: Record<Tone, string> = {
   success: "bg-success-soft text-success",
   warning: "bg-warning-soft text-warning",
   danger: "bg-danger-soft text-danger",
-  info: "bg-accent-soft text-info",
+  info: "bg-info-soft text-info",
 };
 
 export function Badge({ className, tone = "neutral", ...props }: HTMLAttributes<HTMLSpanElement> & { tone?: Tone }) {

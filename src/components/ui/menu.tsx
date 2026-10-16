@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
+
+const itemStyles = "flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors hover:bg-muted";
 
 interface MenuProps {
   trigger: ReactNode;
@@ -88,14 +91,20 @@ export function MenuItem({ children, onSelect, tone = "default", icon }: MenuIte
         onSelect?.();
         (event.currentTarget.closest("[role=menu]") as HTMLElement | null)?.click();
       }}
-      className={cn(
-        "flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors hover:bg-muted",
-        tone === "danger" ? "text-danger" : "text-foreground",
-      )}
+      className={cn(itemStyles, tone === "danger" ? "text-danger" : "text-foreground")}
     >
       {icon ? <span className="text-muted-foreground [&>svg]:size-4">{icon}</span> : null}
       {children}
     </button>
+  );
+}
+
+export function MenuLink({ href, children, icon }: { href: string; children: ReactNode; icon?: ReactNode }) {
+  return (
+    <Link href={href} role="menuitem" className={cn(itemStyles, "text-foreground")}>
+      {icon ? <span className="text-muted-foreground [&>svg]:size-4">{icon}</span> : null}
+      {children}
+    </Link>
   );
 }
 

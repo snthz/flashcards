@@ -1,19 +1,31 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input, Textarea } from "@/components/ui/input";
 import { Field, FormError } from "@/components/ui/field";
 import { createDeck, deleteDeck, renameDeck, type ActionState } from "@/lib/decks/actions";
 import type { DeckNode } from "@/lib/decks/queries";
 
-export function CreateDeckButton({ children, parentId }: { children: ReactNode; parentId?: string }) {
+export function CreateDeckButton({
+  children,
+  parentId,
+  variant,
+  size,
+}: {
+  children: ReactNode;
+  parentId?: string;
+  variant?: ButtonProps["variant"];
+  size?: ButtonProps["size"];
+}) {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState<ActionState, FormData>(createDeck, {});
   return (
     <>
-      <Button onClick={() => setOpen(true)}>{children}</Button>
+      <Button variant={variant} size={size} onClick={() => setOpen(true)}>
+        {children}
+      </Button>
       <Dialog open={open} onClose={() => setOpen(false)} title={parentId ? "Nuevo submazo" : "Nuevo mazo"}>
         <form action={action} className="flex flex-col gap-4">
           <FormError message={state.error} />

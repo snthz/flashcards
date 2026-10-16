@@ -21,7 +21,7 @@ export default async function AuthLayout({ children }: LayoutProps<"/">) {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,var(--accent-soft),transparent_60%)]"
         />
         <Link href="/" className="relative flex items-center gap-2 font-semibold tracking-tight">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow-sm">
             <Layers className="size-4" />
           </span>
           Flashcards
@@ -53,7 +53,7 @@ export default async function AuthLayout({ children }: LayoutProps<"/">) {
             Inicio
           </Link>
           <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight lg:hidden">
-            <span className="flex size-7 items-center justify-center rounded-md bg-accent text-accent-foreground">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow-sm">
               <Layers className="size-4" />
             </span>
             Flashcards

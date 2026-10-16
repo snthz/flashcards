@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Estadísticas" };
 
 const PERIOD_VALUES: StatsPeriod[] = ["month", "quarter", "year", "all"];
 const REVIEW_SERIES = [
-  { key: "fresh", label: "Nuevas", color: SERIES.blue },
+  { key: "fresh", label: "Nuevas", color: SERIES.primary },
   { key: "learning", label: "Aprendizaje", color: SERIES.orange },
   { key: "review", label: "Repaso", color: SERIES.aqua },
 ];
@@ -64,8 +64,8 @@ async function StatsContent({ deckId, period }: { deckId: string; period: StatsP
         >
           <StackedColumns
             data={stats.forecast.map((d) => ({ day: d.day, values: { due: d.count } }))}
-            series={[{ key: "due", label: "Repasos", color: SERIES.blue }]}
-            height={160}
+            series={[{ key: "due", label: "Repasos", color: SERIES.primary }]}
+            height={200}
           />
         </ChartCard>
         <ChartCard
@@ -86,7 +86,7 @@ async function StatsContent({ deckId, period }: { deckId: string; period: StatsP
         >
           <StackedBar
             segments={[
-              { label: "Nuevas", value: stats.cardStates.fresh, color: SERIES.blue },
+              { label: "Nuevas", value: stats.cardStates.fresh, color: SERIES.primary },
               { label: "Aprendiendo", value: stats.cardStates.learning, color: SERIES.orange },
               { label: "Jóvenes", value: stats.cardStates.young, color: SERIES.aqua },
               { label: "Maduras", value: stats.cardStates.mature, color: SERIES.yellow },

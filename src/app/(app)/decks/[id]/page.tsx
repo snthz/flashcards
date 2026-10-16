@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth/user";
 import { findNode, getDeckTree } from "@/lib/decks/queries";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonStyles } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CreateDeckButton } from "@/components/decks/deck-dialogs";
 import { formatNumber } from "@/lib/utils";
 
@@ -49,33 +49,33 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
         }
       />
       <div className="grid grid-cols-3 gap-3">
-        <CountTile label="Nuevas" value={deck.counts.fresh} tone="text-accent" />
+        <CountTile label="Nuevas" value={deck.counts.fresh} tone="text-info" />
         <CountTile label="Aprendiendo" value={deck.counts.learning} tone="text-danger" />
         <CountTile label="Repaso" value={deck.counts.review} tone="text-success" />
       </div>
       <div className="flex flex-col gap-3 sm:flex-row">
         <Link
           href={`/decks/${deck.id}/study`}
-          className={buttonStyles("primary", "lg", `flex-1 ${pending === 0 ? "pointer-events-none opacity-50" : ""}`)}
+          className={buttonStyles("primary", "lg", `h-14 sm:flex-1 ${pending === 0 ? "pointer-events-none opacity-50" : ""}`)}
           aria-disabled={pending === 0}
         >
           <Play className="size-5" />
           {pending > 0 ? "Estudiar ahora" : "Nada pendiente por hoy"}
         </Link>
-        <Link href={`/notes/new?deck=${deck.id}`} className={buttonStyles("outline", "lg")}>
+        <Link href={`/notes/new?deck=${deck.id}`} className={buttonStyles("outline", "lg", "h-14")}>
           <Plus className="size-5" />
           Añadir tarjeta
         </Link>
       </div>
       <Card>
-        <CardContent className="flex flex-col gap-3 p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">Submazos</p>
-            <CreateDeckButton parentId={deck.id}>
-              <Plus className="size-4" />
-              Submazo
-            </CreateDeckButton>
-          </div>
+        <CardHeader className="flex-row items-center justify-between gap-3 p-6 pb-4">
+          <p className="text-sm font-medium">Submazos</p>
+          <CreateDeckButton parentId={deck.id} variant="outline" size="sm">
+            <Plus className="size-3.5" />
+            Submazo
+          </CreateDeckButton>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 p-6 pt-0">
           {deck.children.length === 0 ? (
             <p className="text-sm text-muted-foreground">Este mazo no tiene submazos.</p>
           ) : (
@@ -85,7 +85,7 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
                   <Link href={`/decks/${child.id}`} className="flex items-center justify-between py-2.5 text-sm hover:text-accent">
                     <span className="truncate font-medium">{child.name}</span>
                     <span className="flex gap-3 tabular-nums text-muted-foreground">
-                      <span className="text-accent">{child.counts.fresh}</span>
+                      <span className="text-info">{child.counts.fresh}</span>
                       <span className="text-danger">{child.counts.learning}</span>
                       <span className="text-success">{child.counts.review}</span>
                     </span>

@@ -11,7 +11,7 @@ import type { DeckNode } from "@/lib/decks/queries";
 import { CreateDeckButton, DeleteDeckDialog, RenameDeckDialog } from "./deck-dialogs";
 
 function Count({ value, tone }: { value: number; tone: "new" | "learn" | "due" }) {
-  const color = tone === "new" ? "text-accent" : tone === "learn" ? "text-danger" : "text-success";
+  const color = tone === "new" ? "text-info" : tone === "learn" ? "text-danger" : "text-success";
   return (
     <span className={cn("w-12 text-right text-sm tabular-nums sm:w-16", value > 0 ? color : "text-muted-foreground/50")}>
       {formatNumber(value)}
