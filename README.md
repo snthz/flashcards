@@ -31,6 +31,7 @@ Variables de entorno:
 | Variable | Descripción |
 | --- | --- |
 | `DATABASE_URL` | Cadena de conexión de PostgreSQL. Usa `?schema=flashcards` para aislar las tablas dentro de una base de datos compartida. |
+| `SHADOW_DATABASE_URL` | Solo para `npm run db:diff`: base de datos vacía donde Prisma reproduce las migraciones. Debe usar el mismo `?schema=` que `DATABASE_URL`. |
 | `SESSION_SECRET` | Cadena aleatoria larga para firmar los tokens de sesión. |
 | `MEDIA_DIR` | Carpeta donde se guardan imágenes y audios importados. |
 | `NEXT_PUBLIC_APP_URL` | URL pública de la aplicación. |
@@ -44,7 +45,7 @@ npm run lint        # eslint
 npm run db:diff     # genera SQL a partir de cambios en prisma/schema.prisma
 ```
 
-Para crear una nueva migración tras modificar el esquema:
+Para crear una nueva migración tras modificar el esquema (necesita `SHADOW_DATABASE_URL` apuntando a una base de datos vacía con el mismo `?schema=`):
 
 ```bash
 mkdir prisma/migrations/$(date +%Y%m%d%H%M%S)_nombre
@@ -52,19 +53,78 @@ npm run db:diff > prisma/migrations/<carpeta>/migration.sql
 npx prisma migrate deploy
 ```
 
+CI comprueba con `prisma migrate diff --exit-code` que `prisma/migrations` y `prisma/schema.prisma` describen lo mismo, así que una migración olvidada se detecta antes de llegar al VPS.
+
+## Docker
+
+La imagen se construye en varias etapas y arranca desde la salida `standalone` de Next.js. No levanta base de datos propia: se conecta al PostgreSQL que ya existe en el VPS.
+
+| Variable | Momento | Descripción |
+| --- | --- | --- |
+| `DATABASE_URL` | ejecución | Conexión a PostgreSQL. Usa `?schema=flashcards`. |
+| `SESSION_SECRET` | ejecución | Secreto de firma de sesiones. |
+| `MEDIA_DIR` | ejecución | Por defecto `/app/data/media` (volumen). |
+| `SKIP_MIGRATIONS` | ejecución | `1` para no ejecutar `prisma migrate deploy` al arrancar. |
+| `TZ` | ejecución | Zona horaria del contenedor. |
+| `APP_REVISION` | build | Revisión que expone `/api/health` y usa el service worker. |
+| `NEXT_PUBLIC_APP_URL` | build | Las variables `NEXT_PUBLIC_*` se incrustan en el bundle, por eso es un `build-arg` y no una variable de ejecución. |
+
+El contenedor ejecuta `prisma migrate deploy` al arrancar (con una copia aislada del CLI de Prisma en `/app/migrator`) y después `node server.js`. Expone `/api/health`, que es también el `HEALTHCHECK` de la imagen.
+
+Probar la imagen en local:
+
+```bash
+docker build --build-arg APP_REVISION=$(git rev-parse HEAD) -t flashcards:ci .
+DATABASE_URL="postgresql://user:password@host.docker.internal:5432/database?schema=flashcards" \
+  ./scripts/smoke-test.sh flashcards:ci
+```
+
+El script arranca el contenedor, espera a `/api/health`, comprueba las rutas públicas y lo elimina. Es el mismo que usa CI.
+
 ## Despliegue en Dokploy
 
-La imagen no levanta base de datos propia: se conecta al PostgreSQL que ya existe en el VPS a través de la red `dokploy-network`.
+GitHub Actions construye y publica la imagen en `ghcr.io/snthz/flashcards`; Dokploy solo la descarga. El VPS no compila nada.
 
-1. En Dokploy crea un servicio de tipo Compose apuntando a este repositorio.
-2. Define las variables de entorno:
+1. **Paquete de GHCR**: en `https://github.com/users/snthz/packages/container/flashcards/settings` ponlo como público, o en Dokploy → *Settings* → *Registry* añade `ghcr.io` con tu usuario y un PAT con permiso `read:packages`.
+2. **Servicio en Dokploy**: crea un servicio de tipo *Compose* apuntando a este repositorio (rama `main`, archivo `docker-compose.yml`).
+3. **Variables de entorno** del servicio:
    - `DATABASE_URL=postgresql://USUARIO:CONTRASEÑA@NOMBRE_DEL_SERVICIO_POSTGRES:5432/BASE?schema=flashcards`
    - `SESSION_SECRET` (por ejemplo `openssl rand -base64 48`)
-   - `NEXT_PUBLIC_APP_URL=https://tu-dominio`
-3. Añade el dominio al servicio `flashcards` en el puerto `3000`.
-4. Despliega. El contenedor ejecuta `prisma migrate deploy` al arrancar y crea el esquema `flashcards` en la base de datos existente sin tocar el resto de tablas.
+   - `FLASHCARDS_IMAGE=ghcr.io/snthz/flashcards:latest` (opcional; fija un tag `sha-<commit>` para desplegar una revisión concreta)
+   - `TZ` (opcional)
+4. **Dominio**: añádelo al servicio `flashcards` en el puerto `3000`.
+5. **Red**: el servicio se une a `dokploy-network`, que ya existe en el VPS y es donde está Traefik.
+6. **Webhook**: copia la URL de despliegue del servicio y guárdala en el repositorio como secreto `DOKPLOY_WEBHOOK_URL`.
 
-Los archivos multimedia se guardan en el volumen `flashcards-media`.
+El esquema `flashcards` se crea dentro de la base de datos existente sin tocar el resto de tablas. Los archivos multimedia se guardan en el volumen `flashcards-media`.
+
+## CI/CD
+
+`.github/workflows/ci.yml` se ejecuta en cada pull request y en cada push a `main`, con tres trabajos en cadena:
+
+| Trabajo | Qué hace |
+| --- | --- |
+| `verify` | `npm run lint`, `npm run typecheck`, `npm run test`, aplica las migraciones sobre un PostgreSQL limpio y comprueba con `prisma migrate diff --exit-code` que `prisma/migrations` y `prisma/schema.prisma` no han divergido. |
+| `build` | Construye la imagen con caché de buildx, la somete al smoke test y la publica en GHCR con los tags `sha-<commit>` y `latest` (en pull requests se construye y se prueba, pero no se publica). |
+| `deploy` | Solo en `main`: llama al webhook de Dokploy y espera hasta que `/api/health` devuelva el commit desplegado. |
+
+Configuración necesaria en GitHub:
+
+| Nombre | Tipo | Uso |
+| --- | --- | --- |
+| `DOKPLOY_WEBHOOK_URL` | secreto | Dispara el despliegue en Dokploy. |
+| `NEXT_PUBLIC_APP_URL` | variable | URL pública; se incrusta en el build y se usa para verificar el despliegue. |
+
+No hace falta ningún token de registro: el push a GHCR usa el `GITHUB_TOKEN` del propio workflow.
+
+Si prefieres la API de Dokploy en lugar del webhook, sustituye el paso *Trigger Dokploy deployment* por:
+
+```bash
+curl -fsS -X POST "$DOKPLOY_URL/api/compose.deploy" \
+  -H "x-api-key: $DOKPLOY_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d "{\"composeId\":\"$DOKPLOY_COMPOSE_ID\"}"
+```
 
 ## Exportar desde Anki
 
