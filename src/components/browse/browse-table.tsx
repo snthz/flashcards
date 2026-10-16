@@ -66,7 +66,7 @@ export function BrowseTable({ rows, total, page, pages, decks }: Props) {
   return (
     <div className="flex flex-col gap-3 animate-in">
       {ids.length > 0 ? (
-        <div className="sticky top-14 z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2 shadow-sm md:top-16">
+        <div className="sticky top-[calc(3.5rem_+_var(--safe-top))] z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2 shadow-sm md:top-[calc(4rem_+_var(--safe-top))]">
           <span className="px-2 text-sm text-muted-foreground">{ids.length} seleccionadas</span>
           <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => setCardsSuspended(ids, !selectedRows.every((r) => r.suspended)))}>
             {selectedRows.every((r) => r.suspended) ? "Reactivar" : "Suspender"}

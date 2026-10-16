@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Check, Layers } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/user";
 import { CardPreview } from "@/components/landing/card-preview";
+import { StatusBarScrim } from "@/components/layout/status-bar-scrim";
 
 const highlights = [
   "Importa tus mazos .apkg con multimedia y progreso",
@@ -15,6 +16,7 @@ export default async function AuthLayout({ children }: LayoutProps<"/">) {
   if (user) redirect("/decks");
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
+      <StatusBarScrim />
       <aside className="relative hidden overflow-hidden border-r bg-muted/50 lg:flex lg:flex-col lg:justify-between lg:p-12">
         <div
           aria-hidden
@@ -46,7 +48,7 @@ export default async function AuthLayout({ children }: LayoutProps<"/">) {
         <p className="relative text-xs text-muted-foreground">Gratis, sin anuncios, sin tienda de aplicaciones.</p>
       </aside>
 
-      <main className="flex flex-col px-5 py-6 sm:px-10">
+      <main className="flex flex-col px-5 pb-6 pt-[calc(1.5rem_+_var(--safe-top))] sm:px-10">
         <div className="flex items-center justify-between">
           <Link href="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
             <ArrowLeft className="size-4" />

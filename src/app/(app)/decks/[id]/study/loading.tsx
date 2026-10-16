@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <div className="flex min-h-[calc(100dvh-2rem)] flex-col md:min-h-0" aria-busy>
+    <div className="flex min-h-[calc(100dvh_-_2rem_-_var(--safe-top))] flex-col md:min-h-0" aria-busy>
       <div className="flex items-center justify-between pb-3">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-5 w-20" />

@@ -109,7 +109,7 @@ function UserMenu({ name, settingsActive }: { name: string; settingsActive: bool
 export function TopNav({ name }: { name: string }) {
   const pathname = usePathname();
   return (
-    <header className="sticky top-0 z-20 hidden border-b bg-background/75 backdrop-blur-xl md:block">
+    <header className="safe-top sticky top-0 z-20 hidden border-b bg-background/75 backdrop-blur-xl md:block">
       <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-6 px-6">
         <Brand />
         <Tabs pathname={pathname} />

@@ -91,7 +91,7 @@ export function StudySession({ initial }: { initial: StudyState }) {
   }, [card, revealed, reveal, rate, undo]);
 
   return (
-    <div className="flex min-h-[calc(100dvh-2rem)] flex-col md:min-h-0">
+    <div className="flex min-h-[calc(100dvh_-_2rem_-_var(--safe-top))] flex-col md:min-h-0">
       <header className="flex items-center justify-between gap-3 pb-3">
         <div className="flex min-w-0 items-center gap-2">
           <Link href={`/decks/${state.deckId}`} aria-label="Salir" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
