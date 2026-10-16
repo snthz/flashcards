@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 :root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
   --background: oklch(98.5% 0.003 80);
   --foreground: oklch(20% 0.01 80);
   --muted: oklch(95% 0.005 80);
@@ -131,11 +133,11 @@ body {
 
 @layer utilities {
   .safe-bottom {
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    padding-bottom: max(1rem, var(--safe-bottom));
   }
 
   .safe-top {
-    padding-top: env(safe-area-inset-top);
+    padding-top: var(--safe-top);
   }
 
   .animate-in {
