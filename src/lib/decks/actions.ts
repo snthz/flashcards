@@ -8,6 +8,29 @@ import { createDeckSchema, deckConfigSchema, renameDeckSchema } from "@/lib/vali
 
 export type ActionState = { error?: string; success?: string };
 
+const CONFIG_LABELS: Record<string, string> = {
+  name: "Nombre del preajuste",
+  algorithm: "Algoritmo",
+  newPerDay: "Tarjetas nuevas por día",
+  reviewsPerDay: "Repasos máximos por día",
+  learningSteps: "Pasos de aprendizaje",
+  relearningSteps: "Pasos de reaprendizaje",
+  graduatingInterval: "Intervalo de graduación",
+  easyInterval: "Intervalo fácil",
+  startingEase: "Facilidad inicial",
+  easyBonus: "Bonificación fácil",
+  hardMultiplier: "Multiplicador difícil",
+  intervalModifier: "Modificador de intervalo",
+  lapseMultiplier: "Nuevo intervalo tras olvido",
+  minLapseInterval: "Intervalo mínimo tras olvido",
+  maxInterval: "Intervalo máximo",
+  leechThreshold: "Umbral de sanguijuela",
+  leechAction: "Acción con sanguijuelas",
+  newCardOrder: "Orden de tarjetas nuevas",
+  desiredRetention: "Retención deseada",
+  fsrsWeights: "Parámetros FSRS",
+};
+
 export async function createDeck(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
   const parsed = createDeckSchema.safeParse({ name: formData.get("name"), parentId: formData.get("parentId") ?? "" });
@@ -82,7 +105,8 @@ export async function saveDeckConfig(configId: string, _prev: ActionState, formD
   const parsed = deckConfigSchema.safeParse(raw);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
-    return { error: issue ? `${String(issue.path[0] ?? "")}: ${issue.message}` : "Datos inválidos" };
+    const field = String(issue?.path[0] ?? "");
+    return { error: issue ? `${CONFIG_LABELS[field] ?? field}: ${issue.message}` : "Datos inválidos" };
   }
   const data = parsed.data;
   await prisma.deckConfig.update({

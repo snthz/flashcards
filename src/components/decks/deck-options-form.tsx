@@ -105,9 +105,7 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
         </CardContent>
       </Card>
 
-      <form action={action} className="flex flex-col gap-6" key={config.id}>
-        <FormError message={state.error} />
-        {state.success ? <p className="rounded-lg bg-success-soft px-3 py-2 text-sm text-success">{state.success}</p> : null}
+      <form action={action} className="flex flex-col gap-6" key={config.id} noValidate>
 
         <Card>
           <CardHeader>
@@ -229,6 +227,8 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
           </CardContent>
         </Card>
 
+        <FormError message={state.error} />
+        {state.success ? <p className="rounded-lg bg-success-soft px-3 py-2 text-sm text-success">{state.success}</p> : null}
         <div className="flex justify-end">
           <Button type="submit" size="lg" loading={pending}>
             Guardar opciones

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./zod";
 
 export const noteInputSchema = z.object({
   deckId: z.string().uuid("Selecciona un mazo"),
