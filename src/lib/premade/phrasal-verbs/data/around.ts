@@ -1,0 +1,27 @@
+import type { PhrasalVerb } from "../types";
+
+export const around: PhrasalVerb[] = [
+  ["turn around", "darse la vuelta; mejorar (una situación)", "to face the opposite direction; to make something successful again", "Turn around and look at me.", "Date la vuelta y mírame.", "turn back, reverse", "n"],
+  ["look around", "echar un vistazo; mirar alrededor", "to explore a place; to look in different directions", "We looked around the market.", "Echamos un vistazo por el mercado.", "browse, explore", "n"],
+  ["come around", "cambiar de opinión; visitar; volver en sí", "to change your opinion; to visit; to wake up", "She'll come around eventually.", "Al final va a cambiar de opinión.", "relent, visit", "n"],
+  ["get around", "desplazarse; evitar (un problema); difundirse", "to travel from place to place; to avoid a problem", "It's easy to get around by bike.", "Es fácil moverse en bicicleta.", "travel, avoid, circulate", "n", "«Get around to»: encontrar tiempo para."],
+  ["hang around", "quedarse; andar por ahí", "to wait or spend time somewhere doing nothing", "We hung around after class.", "Nos quedamos después de clase.", "linger, loiter", "n"],
+  ["mess around", "perder el tiempo; hacer tonterías", "to behave in a silly way; to waste time", "Stop messing around and get to work.", "Deja de hacer tonterías y ponte a trabajar.", "fool around, goof off", "n"],
+  ["show around", "mostrar (un lugar); dar un recorrido", "to guide someone through a place", "Let me show you around the office.", "Déjame mostrarte la oficina.", "give a tour", "s"],
+  ["shop around", "comparar precios", "to compare prices in different stores", "It's worth shopping around for insurance.", "Vale la pena comparar precios de seguros.", "compare prices", "n"],
+  ["boss around", "mandonear", "to tell someone what to do all the time", "Stop bossing me around!", "¡Deja de mandonearme!", "order around", "s"],
+  ["fool around", "hacer payasadas; tontear", "to behave in a silly way", "The kids were fooling around in the pool.", "Los niños estaban haciendo payasadas en la piscina.", "mess around", "n"],
+  ["run around", "correr de un lado a otro; andar ocupado", "to be very busy doing many things", "I've been running around all day.", "He estado de un lado a otro todo el día.", "rush around", "n"],
+  ["stick around", "quedarse (un rato más)", "to stay somewhere for a while", "Stick around, the party's just starting.", "Quédate, la fiesta apenas empieza.", "stay, remain", "n"],
+  ["get around to", "encontrar tiempo para", "to finally do something you have been planning", "I never got around to calling her.", "Nunca encontré tiempo para llamarla.", "find time to", "i"],
+  ["go around", "dar la vuelta; alcanzar (para todos); circular", "to be enough for everyone; to spread", "Is there enough cake to go around?", "¿Alcanza el pastel para todos?", "suffice, circulate", "n"],
+  ["lie around", "estar tirado; holgazanear", "to be left somewhere untidily; to be lazy", "Don't leave your clothes lying around.", "No dejes tu ropa tirada.", "lounge, laze", "n"],
+  ["come about", "suceder; ocurrir", "to happen, especially by chance", "How did this situation come about?", "¿Cómo se dio esta situación?", "happen, occur", "n"],
+  ["bring about", "provocar; ocasionar", "to cause something to happen", "The new law brought about many changes.", "La nueva ley provocó muchos cambios.", "cause, produce", "s"],
+  ["set about", "ponerse a; emprender", "to start doing something", "She set about cleaning the house.", "Ella se puso a limpiar la casa.", "begin, undertake", "i"],
+  ["go about", "abordar; ocuparse de", "to start dealing with something", "How do I go about getting a visa?", "¿Cómo hago para sacar una visa?", "approach, tackle", "i"],
+  ["think about", "pensar en; considerar", "to consider something", "I'm thinking about changing jobs.", "Estoy pensando en cambiar de trabajo.", "consider", "i"],
+  ["care about", "importarle a uno", "to feel that something is important", "I really care about you.", "Me importas mucho.", "be concerned about", "i"],
+  ["bring around", "convencer; hacer volver en sí", "to persuade someone; to make conscious again", "We finally brought him around to our idea.", "Por fin lo convencimos de nuestra idea.", "persuade, revive", "s"],
+  ["horse around", "hacer payasadas; jugar brusco", "to play in a rough, noisy way", "Stop horsing around near the pool.", "Dejen de hacer payasadas cerca de la piscina.", "fool around", "n", "Informal."],
+];

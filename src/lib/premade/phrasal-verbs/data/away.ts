@@ -1,0 +1,27 @@
+import type { PhrasalVerb } from "../types";
+
+export const away: PhrasalVerb[] = [
+  ["go away", "irse; desaparecer", "to leave a place or person; to disappear", "Go away, I'm busy!", "¡Vete, estoy ocupado!", "leave, disappear", "n"],
+  ["throw away", "tirar; botar", "to put something in the trash", "Don't throw away the receipt.", "No botes el recibo.", "discard, throw out", "s"],
+  ["put away", "guardar; ordenar", "to put something in its usual place", "Put your toys away.", "Guarda tus juguetes.", "store, tidy away", "s"],
+  ["give away", "regalar; revelar", "to give something for free; to reveal a secret", "They're giving away free tickets.", "Están regalando boletos.", "donate, reveal", "s", "«Don't give away the ending»: no cuentes el final."],
+  ["take away", "quitar; llevar (comida)", "to remove something; to subtract", "The police took away his license.", "La policía le quitó la licencia.", "remove, confiscate", "s"],
+  ["run away", "huir; escaparse", "to leave a place secretly or quickly", "The dog ran away again.", "El perro se volvió a escapar.", "escape, flee", "n"],
+  ["get away", "escaparse; irse de vacaciones", "to escape; to go on vacation", "The thief got away.", "El ladrón se escapó.", "escape, flee", "n"],
+  ["get away with", "salirse con la suya", "to do something wrong without being punished", "He thinks he can get away with anything.", "Cree que puede salirse con la suya en todo.", "escape punishment", "i"],
+  ["pass away", "fallecer", "to die (polite)", "His grandfather passed away last year.", "Su abuelo falleció el año pasado.", "die", "n", "Forma amable de decir «die»."],
+  ["walk away", "alejarse; marcharse", "to leave a situation or person", "Sometimes it's best to walk away.", "A veces lo mejor es alejarse.", "leave, abandon", "n"],
+  ["stay away", "mantenerse alejado", "to not go near someone or something", "Stay away from my sister.", "Aléjate de mi hermana.", "keep away, avoid", "n"],
+  ["keep away", "mantener(se) alejado", "to not go near; to prevent from coming near", "Keep away from the edge.", "Aléjate de la orilla.", "stay away", "n"],
+  ["turn away", "rechazar; apartar la vista", "to refuse to let someone enter; to look away", "They turned us away at the door.", "Nos rechazaron en la puerta.", "reject, refuse entry", "s"],
+  ["back away", "retroceder; alejarse", "to move backwards from something dangerous", "She slowly backed away from the dog.", "Ella retrocedió despacio del perro.", "retreat", "n"],
+  ["break away", "separarse; escaparse", "to escape from someone; to leave a group", "The region wants to break away from the country.", "La región quiere separarse del país.", "separate, secede", "n"],
+  ["fade away", "desvanecerse", "to gradually disappear", "The sound slowly faded away.", "El sonido se desvaneció poco a poco.", "vanish, disappear", "n"],
+  ["move away", "mudarse lejos; alejarse", "to go to live in another place", "My best friend moved away when I was ten.", "Mi mejor amigo se mudó lejos cuando yo tenía diez años.", "relocate", "n"],
+  ["wash away", "llevarse (el agua); arrastrar", "to remove by water", "The rain washed away the bridge.", "La lluvia se llevó el puente.", "sweep away, erode", "s"],
+  ["wipe away", "secar; limpiar", "to remove by rubbing", "She wiped away her tears.", "Ella se secó las lágrimas.", "wipe off", "s"],
+  ["do away with", "eliminar; abolir", "to get rid of something", "They want to do away with the old rules.", "Quieren eliminar las reglas viejas.", "abolish, scrap", "i"],
+  ["blow away", "impresionar; llevarse (el viento)", "to impress greatly; to be moved by wind", "The concert blew me away.", "El concierto me dejó impresionado.", "amaze, impress", "s"],
+  ["shy away from", "evitar; rehuir", "to avoid something because you are nervous", "Don't shy away from challenges.", "No rehúyas los retos.", "avoid", "i"],
+  ["slip away", "escabullirse; escaparse", "to leave quietly without being noticed", "We slipped away before dessert.", "Nos escabullimos antes del postre.", "sneak away", "n"],
+];

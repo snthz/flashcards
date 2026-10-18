@@ -1,0 +1,27 @@
+import type { PhrasalVerb } from "../types";
+
+export const back: PhrasalVerb[] = [
+  ["come back", "regresar; volver", "to return to a place", "When are you coming back?", "¿Cuándo regresas?", "return", "n"],
+  ["go back", "volver; regresar", "to return to a place or time", "I'd love to go back to Italy.", "Me encantaría volver a Italia.", "return", "n"],
+  ["get back", "regresar; recuperar", "to return; to receive something again", "What time did you get back?", "¿A qué hora regresaste?", "return, recover", "n", "«Get your money back»: recuperar tu dinero."],
+  ["call back", "devolver la llamada", "to phone someone who called you", "I'll call you back in five minutes.", "Te devuelvo la llamada en cinco minutos.", "return a call, ring back", "s"],
+  ["give back", "devolver", "to return something to its owner", "Give me back my phone!", "¡Devuélveme mi teléfono!", "return", "s"],
+  ["pay back", "devolver (dinero); vengarse", "to return money you borrowed; to get revenge", "I'll pay you back next week.", "Te pago la próxima semana.", "repay, reimburse", "s"],
+  ["bring back", "traer de vuelta; evocar", "to return something; to make you remember", "This song brings back memories.", "Esta canción me trae recuerdos.", "return, evoke", "s"],
+  ["hold back", "contenerse; retener", "to stop yourself from doing or showing something", "She couldn't hold back her tears.", "Ella no pudo contener las lágrimas.", "restrain, suppress", "s"],
+  ["take back", "retractarse; devolver (a la tienda)", "to say you didn't mean something; to return an item", "I take it back, I'm sorry.", "Retiro lo dicho, perdón.", "retract, return", "s"],
+  ["look back", "recordar; mirar atrás", "to think about the past", "Looking back, I should have studied more.", "Mirando atrás, debí haber estudiado más.", "reflect, recall", "n", "«Look back on»: recordar algo."],
+  ["cut back", "recortar; reducir", "to reduce spending or an amount", "The company had to cut back.", "La empresa tuvo que hacer recortes.", "reduce, cut down", "n"],
+  ["fall back on", "recurrir a", "to use something when other plans fail", "It's good to have savings to fall back on.", "Es bueno tener ahorros a los que recurrir.", "rely on, resort to", "i"],
+  ["get back to", "volver a contactar; retomar", "to reply later; to return to an activity", "I'll get back to you tomorrow.", "Te respondo mañana.", "reply, return to", "i"],
+  ["talk back", "contestar (de mala manera)", "to answer rudely to someone in authority", "Don't talk back to your mother.", "No le contestes así a tu mamá.", "answer back", "n"],
+  ["write back", "contestar (por escrito)", "to reply to a letter or message", "She never wrote back.", "Ella nunca contestó.", "reply, respond", "n"],
+  ["sit back", "relajarse; ponerse cómodo", "to relax and not get involved", "Sit back and enjoy the show.", "Relájate y disfruta el espectáculo.", "relax", "n"],
+  ["bounce back", "recuperarse", "to return to normal after a problem", "She bounced back quickly after the injury.", "Ella se recuperó rápido de la lesión.", "recover, rebound", "n"],
+  ["set back", "retrasar; costar", "to delay progress; to cost someone money", "The rain set us back two days.", "La lluvia nos retrasó dos días.", "delay, hinder", "s", "«Setback»: contratiempo."],
+  ["hit back", "contraatacar; responder", "to attack or criticize in return", "The company hit back at its critics.", "La empresa respondió a sus críticos.", "retaliate", "n"],
+  ["turn back", "dar la vuelta; regresar", "to return the way you came", "It's too late to turn back now.", "Ya es muy tarde para dar marcha atrás.", "go back, retreat", "n"],
+  ["move back", "mudarse de vuelta; echarse atrás", "to return to live somewhere; to move backwards", "He moved back to his hometown.", "Regresó a vivir a su pueblo natal.", "return", "n"],
+  ["play back", "reproducir (una grabación)", "to play a recording", "Can you play back the last part?", "¿Puedes reproducir la última parte?", "replay", "s"],
+  ["think back", "recordar; hacer memoria", "to think about something in the past", "Think back to your first day at school.", "Recuerda tu primer día de escuela.", "recall, remember", "n"],
+];
