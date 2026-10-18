@@ -2,7 +2,7 @@ import { forwardRef, type InputHTMLAttributes, type SelectHTMLAttributes, type T
 import { cn } from "@/lib/utils";
 
 const base =
-  "w-full rounded-lg border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground transition-shadow focus:border-accent focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60";
+  "w-full rounded-lg border bg-card px-3 text-base text-foreground sm:text-sm placeholder:text-muted-foreground transition-shadow focus:border-accent focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input(
   { className, ...props },

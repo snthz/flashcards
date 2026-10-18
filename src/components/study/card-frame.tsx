@@ -19,7 +19,7 @@ const BASE_CSS = `
 .fc-root .fc-audio { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; margin: 0 .25rem; padding: .25rem .5rem; border-radius: .5rem; background: var(--fc-muted, rgba(127,127,127,.15)); font-size: .9em; user-select: none; }
 .fc-root .fc-audio:hover { background: var(--fc-muted-hover, rgba(127,127,127,.3)); }
 .fc-root details.hint summary { cursor: pointer; color: var(--fc-accent, #4f46e5); }
-.fc-root .typeans { font: inherit; width: 100%; max-width: 24rem; padding: .5rem .75rem; border: 1px solid rgba(127,127,127,.4); border-radius: .5rem; background: transparent; color: inherit; }
+.fc-root .typeans { font: inherit; font-size: max(16px, 1em); width: 100%; max-width: 24rem; padding: .5rem .75rem; border: 1px solid rgba(127,127,127,.4); border-radius: .5rem; background: transparent; color: inherit; }
 .fc-root .typeans-answer { margin-top: .5rem; font-weight: 600; }
 .fc-root hr#answer { border: 0; border-top: 1px solid rgba(127,127,127,.35); margin: 1rem 0; }
 `;

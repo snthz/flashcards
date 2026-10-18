@@ -55,7 +55,7 @@ function AuthInput({ name, label, type = "text", autoComplete, icon, error, requ
           inputMode={inputMode}
           defaultValue={defaultValue}
           aria-invalid={Boolean(error)}
-          className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          className="h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none sm:text-sm placeholder:text-muted-foreground"
         />
         {trailing}
       </div>
