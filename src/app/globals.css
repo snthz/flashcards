@@ -131,6 +131,17 @@ body {
   }
 }
 
+/* Installed app: native-feeling scrolling without visible scrollbars. */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  * {
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer utilities {
   .safe-bottom {
     padding-bottom: max(1rem, var(--safe-bottom));
