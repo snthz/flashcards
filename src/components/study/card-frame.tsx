@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { usePrefersDark } from "@/lib/hooks/use-is-client";
 import { AUDIO_PLAYER_CSS, AudioPlayer, PLAYBACK_RATES } from "./audio-player";
 
 interface CardFrameProps {
@@ -52,13 +53,14 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const shadowRef = useRef<ShadowRoot | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
+  const dark = usePrefersDark();
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
     if (!shadowRef.current) shadowRef.current = host.attachShadow({ mode: "open" });
     const root = shadowRef.current;
-    root.innerHTML = `<style>${BASE_CSS}${css}</style><div class="fc-root"><div class="card card${ord + 1} ${side}">${html}</div></div>`;
+    root.innerHTML = `<style>${BASE_CSS}${css}</style><div class="fc-root"><div class="card card${ord + 1} ${side}${dark ? " nightMode night_mode" : ""}">${html}</div></div>`;
 
     const rate = readRate();
     const items: Player[] = Array.from(root.querySelectorAll<HTMLElement>(".fc-audio[data-src]"), (mount) => {
@@ -114,7 +116,7 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
         audio.load();
       });
     };
-  }, [html, css, ord, side, autoplay]);
+  }, [html, css, ord, side, autoplay, dark]);
 
   const changeRate = useCallback(
     (rate: number) => {
