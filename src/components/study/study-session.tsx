@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, EyeOff, Flag, MoreHorizontal, Pencil, PauseCircle, Undo2, X } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, Flag, MoreHorizontal, Pencil, PauseCircle, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { cn } from "@/lib/utils";
@@ -182,8 +182,17 @@ export function StudySession({ initial }: { initial: StudyState }) {
                 ))}
               </div>
             ) : (
-              <Button size="lg" className="h-16 w-full text-base" onClick={reveal} disabled={pending}>
+              <Button
+                size="lg"
+                className="h-16 w-full gap-2.5 rounded-xl text-base font-semibold shadow-md active:scale-[0.98]"
+                onClick={reveal}
+                disabled={pending}
+              >
+                <Eye className="size-5" aria-hidden />
                 Mostrar respuesta
+                <kbd className="ml-1 hidden rounded-md border border-current/25 px-1.5 py-0.5 font-sans text-xs font-medium opacity-60 md:inline">
+                  Espacio
+                </kbd>
               </Button>
             )}
             <p className="mt-2 hidden text-center text-xs text-muted-foreground md:block">
