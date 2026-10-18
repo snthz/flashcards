@@ -91,7 +91,7 @@ export function StudySession({ initial }: { initial: StudyState }) {
   }, [card, revealed, reveal, rate, undo]);
 
   return (
-    <div className="flex min-h-[calc(100dvh_-_2rem_-_var(--safe-top))] flex-col md:min-h-0">
+    <div className="-mb-24 flex h-[calc(100dvh_-_1rem_-_var(--safe-top))] flex-col md:mb-0 md:h-auto">
       <header className="flex items-center justify-between gap-3 pb-3">
         <div className="flex min-w-0 items-center gap-2">
           <Link href={`/decks/${state.deckId}`} aria-label="Salir" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
@@ -140,7 +140,7 @@ export function StudySession({ initial }: { initial: StudyState }) {
         <>
           <section
             className={cn(
-              "relative flex flex-1 flex-col overflow-y-auto rounded-2xl border bg-card shadow-sm transition-opacity md:min-h-96",
+              "relative flex min-h-0 flex-1 flex-col overflow-y-auto rounded-2xl border bg-card shadow-sm transition-opacity md:min-h-96",
               pending && "opacity-60",
             )}
             onClick={() => {
