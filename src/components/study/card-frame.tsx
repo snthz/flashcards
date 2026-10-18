@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePrefersDark } from "@/lib/hooks/use-is-client";
-import { AUDIO_PLAYER_CSS, AudioPlayer, PLAYBACK_RATES } from "./audio-player";
+import { AUDIO_MOUNT_CSS, AUDIO_PLAYER_CSS, AudioPlayer, PLAYBACK_RATES } from "./audio-player";
 
 interface CardFrameProps {
   html: string;
@@ -15,6 +15,7 @@ interface CardFrameProps {
 
 interface Player {
   mount: HTMLElement;
+  target: ShadowRoot;
   audio: HTMLAudioElement;
 }
 
@@ -39,7 +40,7 @@ function saveRate(rate: number) {
 
 const BASE_CSS = `
 :host { display: flex; flex-direction: column; flex: 1; color: inherit; }
-.fc-root { display: flex; flex: 1; flex-direction: column; word-break: break-word; overflow-wrap: anywhere; }
+.fc-root { display: flex; flex: 1; flex-direction: column; overflow-wrap: break-word; }
 .fc-root > .card { flex: 1; padding: 1.5rem 1rem; }
 .fc-root img { max-width: 100%; height: auto; }
 .fc-root .cloze { color: var(--fc-accent, #4f46e5); font-weight: 600; }
@@ -47,7 +48,7 @@ const BASE_CSS = `
 .fc-root .typeans { font: inherit; font-size: max(16px, 1em); width: 100%; max-width: 24rem; padding: .5rem .75rem; border: 1px solid rgba(127,127,127,.4); border-radius: .5rem; background: transparent; color: inherit; }
 .fc-root .typeans-answer { margin-top: .5rem; font-weight: 600; }
 .fc-root hr#answer { border: 0; border-top: 1px solid rgba(127,127,127,.35); margin: 1rem 0; }
-${AUDIO_PLAYER_CSS}`;
+${AUDIO_MOUNT_CSS}`;
 
 export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -68,7 +69,9 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
       audio.preload = "auto";
       audio.defaultPlaybackRate = rate;
       audio.playbackRate = rate;
-      return { mount, audio };
+      const target = mount.shadowRoot ?? mount.attachShadow({ mode: "open" });
+      target.innerHTML = `<style>${AUDIO_PLAYER_CSS}</style>`;
+      return { mount, target, audio };
     });
 
     let cancelled = false;
@@ -131,8 +134,8 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
 
   return (
     <div ref={hostRef} className="flex flex-1 flex-col text-lg leading-relaxed">
-      {players.map(({ mount, audio }, index) =>
-        createPortal(<AudioPlayer audio={audio} onRateChange={changeRate} />, mount, String(index)),
+      {players.map(({ target, audio }, index) =>
+        createPortal(<AudioPlayer audio={audio} onRateChange={changeRate} />, target, String(index)),
       )}
     </div>
   );

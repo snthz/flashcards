@@ -6,24 +6,27 @@ import { Pause, Play, RotateCcw } from "lucide-react";
 export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5] as const;
 const SKIP_SECONDS = 3;
 
+export const AUDIO_MOUNT_CSS = `
+.fc-root .fc-audio { display: inline-flex; vertical-align: middle; max-width: 100%; min-width: 0; margin: .25rem; }
+`;
+
+// Lives in the player's own shadow root, so deck CSS (e.g. global button rules) cannot restyle it.
 export const AUDIO_PLAYER_CSS = `
-.fc-root .fc-audio { display: inline-flex; vertical-align: middle; max-width: calc(100% - .5rem); margin: .25rem; }
-.fc-player { box-sizing: border-box; display: inline-flex; align-items: center; gap: .25rem; width: 22rem; max-width: 100%; padding: .25rem .5rem .25rem .25rem; border: 1px solid var(--border, rgba(127,127,127,.3)); border-radius: 999px; background: var(--muted, rgba(127,127,127,.12)); color: var(--foreground, inherit); font: 500 .8125rem/1 system-ui, sans-serif; text-align: left; user-select: none; -webkit-user-select: none; }
-.fc-player button { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; flex: none; height: 2rem; min-width: 2rem; border-radius: 999px; cursor: pointer; color: inherit; -webkit-tap-highlight-color: transparent; }
-.fc-player button:hover { background: var(--accent-soft, rgba(127,127,127,.2)); }
+.fc-player { position: relative; box-sizing: border-box; display: inline-flex; align-items: center; gap: .125rem; max-width: 100%; height: 2.5rem; padding: 0 .625rem 0 .25rem; overflow: hidden; border: 1px solid var(--border, rgba(127,127,127,.3)); border-radius: 999px; background: var(--card, transparent); color: var(--foreground, inherit); font: 500 .8125rem/1 system-ui, sans-serif; text-align: left; white-space: nowrap; user-select: none; -webkit-user-select: none; }
+.fc-player button { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; flex: none; height: 2rem; min-width: 2rem; border-radius: 999px; cursor: pointer; color: inherit; opacity: .8; transition: opacity .15s; -webkit-tap-highlight-color: transparent; }
+.fc-player button:hover { opacity: 1; }
 .fc-player button:focus-visible, .fc-player input:focus-visible { outline: 2px solid var(--ring, rgba(127,127,127,.5)); outline-offset: 1px; }
-.fc-player button svg { width: 1rem; height: 1rem; }
-.fc-player .fc-play { background: var(--accent, #222); color: var(--accent-foreground, #fff); }
-.fc-player .fc-play:hover { background: var(--accent-hover, #000); }
-.fc-player .fc-play svg { width: .875rem; height: .875rem; fill: currentColor; }
-.fc-player .fc-rate { padding: 0 .375rem; font-variant-numeric: tabular-nums; font-weight: 600; }
-.fc-player .fc-time { flex: none; white-space: nowrap; color: var(--muted-foreground, inherit); font-variant-numeric: tabular-nums; font-size: .75rem; }
-.fc-player input[type=range] { -webkit-appearance: none; appearance: none; flex: 1; min-width: 1.5rem; height: 1.5rem; margin: 0 .25rem; background: transparent; cursor: pointer; }
-.fc-player input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: linear-gradient(to right, var(--accent, #222) var(--fc-progress, 0%), var(--border, rgba(127,127,127,.35)) var(--fc-progress, 0%)); }
-.fc-player input[type=range]::-moz-range-track { height: 4px; border-radius: 999px; background: var(--border, rgba(127,127,127,.35)); }
-.fc-player input[type=range]::-moz-range-progress { height: 4px; border-radius: 999px; background: var(--accent, #222); }
-.fc-player input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; margin-top: -4px; border: 0; border-radius: 50%; background: var(--accent, #222); }
-.fc-player input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--accent, #222); }
+.fc-player button svg { width: 1.125rem; height: 1.125rem; }
+.fc-player .fc-play { opacity: 1; }
+.fc-player .fc-play svg { fill: currentColor; }
+.fc-player .fc-rate { padding: 0 .25rem; font-variant-numeric: tabular-nums; font-weight: 600; font-size: .75rem; }
+.fc-player .fc-time { flex: none; padding: 0 .25rem; color: var(--muted-foreground, inherit); font-variant-numeric: tabular-nums; font-size: .75rem; }
+.fc-player input[type=range] { -webkit-appearance: none; appearance: none; position: absolute; left: 1.25rem; right: 1.25rem; bottom: 1px; height: 8px; margin: 0; background: transparent; cursor: pointer; }
+.fc-player input[type=range]::-webkit-slider-runnable-track { height: 2px; border-radius: 999px; background: linear-gradient(to right, var(--foreground, #222) var(--fc-progress, 0%), var(--border, rgba(127,127,127,.35)) var(--fc-progress, 0%)); }
+.fc-player input[type=range]::-moz-range-track { height: 2px; border-radius: 999px; background: var(--border, rgba(127,127,127,.35)); }
+.fc-player input[type=range]::-moz-range-progress { height: 2px; border-radius: 999px; background: var(--foreground, #222); }
+.fc-player input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 8px; height: 8px; margin-top: -3px; border: 0; border-radius: 50%; background: var(--foreground, #222); }
+.fc-player input[type=range]::-moz-range-thumb { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--foreground, #222); }
 `;
 
 const subscribeEvents = (audio: HTMLAudioElement, events: string[]) => (callback: () => void) => {
@@ -133,9 +136,17 @@ export function AudioPlayer({ audio, onRateChange }: AudioPlayerProps) {
       <button type="button" className="fc-play" onMouseDown={keepFocus} onClick={() => toggle(audio)} aria-label={paused ? "Reproducir" : "Pausar"}>
         {paused ? <Play /> : <Pause />}
       </button>
-      <button type="button" onMouseDown={keepFocus} onClick={() => seek(audio, audio.currentTime - SKIP_SECONDS)} aria-label={`Retroceder ${SKIP_SECONDS} segundos`} title={`Retroceder ${SKIP_SECONDS} s`}>
-        <RotateCcw />
-      </button>
+      {duration > SKIP_SECONDS * 2 ? (
+        <button
+          type="button"
+          onMouseDown={keepFocus}
+          onClick={() => seek(audio, audio.currentTime - SKIP_SECONDS)}
+          aria-label={`Retroceder ${SKIP_SECONDS} segundos`}
+          title={`Retroceder ${SKIP_SECONDS} s`}
+        >
+          <RotateCcw />
+        </button>
+      ) : null}
       <input
         type="range"
         min={0}
