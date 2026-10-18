@@ -25,6 +25,9 @@ const SRC_RE = /(<(?:img|audio|video|source)\b[^>]*?\s(?:src|data-src))=(?:"([^"
 const SCRIPT_RE = /<script\b[^>]*>[\s\S]*?<\/script>/gi;
 const EVENT_ATTR_RE = /\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi;
 const TAG_RE = /<[^>]+>/g;
+const HIDDEN_BLOCK_RE = /<(style|script)\b[^>]*>[\s\S]*?<\/\1>|<!--[\s\S]*?-->/gi;
+const BLOCK_TAG_RE = /<\/?(?:p|div|h[1-6]|ul|ol|table|tr|blockquote|pre|section|article|header|footer)\b[^>]*>/gi;
+const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
 
 function stripHtml(value: string) {
   return value.replace(TAG_RE, "");
@@ -215,4 +218,28 @@ export function plainText(html: string, maxLength = 120) {
     .replace(/\s+/g, " ")
     .trim();
   return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+}
+
+function decodeEntities(value: string) {
+  return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity: string) => {
+    if (entity[0] !== "#") return ENTITIES[entity.toLowerCase()] ?? match;
+    const code = entity[1].toLowerCase() === "x" ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
+    return code <= 0x10ffff ? String.fromCodePoint(code) : match;
+  });
+}
+
+export function htmlToText(html: string) {
+  const text = html
+    .replace(HIDDEN_BLOCK_RE, "")
+    .replace(SOUND_RE, "")
+    .replace(/\s+/g, " ")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<li\b[^>]*>/gi, "\n• ")
+    .replace(BLOCK_TAG_RE, "\n")
+    .replace(TAG_RE, "");
+  return decodeEntities(text)
+    .replace(/[^\S\n]+/g, " ")
+    .replace(/ *\n */g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }

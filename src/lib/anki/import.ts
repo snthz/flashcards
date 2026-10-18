@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { safeMediaName, sha1, writeMediaFile, mimeTypeFor } from "@/lib/media";
+import { toDeckDescription } from "@/lib/decks/description";
 import { plainText } from "./render";
 import type { ParsedCollection, ParsedDeckConfig } from "./types";
 
@@ -57,6 +58,7 @@ async function ensureDeckConfig(userId: string, parsed: ParsedDeckConfig, defaul
 }
 
 async function ensureDeckPath(userId: string, fullName: string, configId: string, ankiId: bigint | null, description: string) {
+  const text = toDeckDescription(description);
   const parts = fullName
     .split("::")
     .map((p) => p.trim())
@@ -75,7 +77,7 @@ async function ensureDeckPath(userId: string, fullName: string, configId: string
       if (isLeaf) {
         await prisma.deck.update({
           where: { id: existing.id },
-          data: { ankiId: ankiId ?? undefined, description: description || undefined },
+          data: { ankiId: ankiId ?? undefined, description: text || undefined },
         });
       }
     } else {
@@ -86,7 +88,7 @@ async function ensureDeckPath(userId: string, fullName: string, configId: string
           parentId,
           configId,
           ankiId: isLeaf ? ankiId : null,
-          description: isLeaf ? description : "",
+          description: isLeaf ? text : "",
         },
         select: { id: true },
       });

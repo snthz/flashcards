@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { buttonStyles } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CreateDeckButton } from "@/components/decks/deck-dialogs";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import { formatNumber } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Mazo" };
@@ -33,7 +34,7 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={deck.fullName}
-        description={deck.description || undefined}
+        description={deck.description ? <ExpandableText text={deck.description} /> : undefined}
         backHref={deck.parentId ? `/decks/${deck.parentId}` : "/decks"}
         actions={
           <>

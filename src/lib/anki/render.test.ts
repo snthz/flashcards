@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clozeOrdinals, isQuestionEmpty, plainText, renderCard, rewriteMedia, type RenderInput } from "./render";
+import { clozeOrdinals, htmlToText, isQuestionEmpty, plainText, renderCard, rewriteMedia, type RenderInput } from "./render";
 
 function input(overrides: Partial<RenderInput> = {}): RenderInput {
   return {
@@ -87,5 +87,14 @@ describe("helpers", () => {
 
   it("produces plain text previews", () => {
     expect(plainText("<b>Hola</b>&nbsp;<br>mundo [sound:a.mp3]")).toBe("Hola mundo");
+  });
+});
+
+describe("htmlToText", () => {
+  it("drops styles and keeps paragraphs and list items readable", () => {
+    const html = `<style> h1 { font-size: 24px; } </style>
+      <h1 class="center">Inglés 1K</h1> <p>Lee <a href="https://x">este&nbsp;artículo</a> &amp; más.</p>
+      <ul> <li>Uno</li> <li>Dos</li> </ul> <p>Fin<br/>línea</p>`;
+    expect(htmlToText(html)).toBe("Inglés 1K\n\nLee este artículo & más.\n\n• Uno\n• Dos\n\nFin\nlínea");
   });
 });

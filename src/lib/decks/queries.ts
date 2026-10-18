@@ -2,6 +2,7 @@ import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { dayStart, nextDayStart } from "@/lib/scheduler";
 import type { CurrentUser } from "@/lib/auth/user";
+import { toDeckDescription } from "./description";
 
 export interface DeckCounts {
   fresh: number;
@@ -124,7 +125,7 @@ function buildTree(rows: DeckRow[], counts: Awaited<ReturnType<typeof countsByDe
       id: row.id,
       name: row.name,
       fullName,
-      description: row.description,
+      description: toDeckDescription(row.description),
       parentId: row.parentId,
       configId: row.configId,
       depth,

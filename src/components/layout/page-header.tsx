@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 
 interface PageHeaderProps {
   title: string;
-  description?: string;
+  description?: ReactNode;
   backHref?: string;
   actions?: ReactNode;
 }
@@ -20,7 +20,7 @@ export function PageHeader({ title, description, backHref, actions }: PageHeader
           </Link>
         ) : null}
         <h1 className="truncate text-2xl font-semibold tracking-tight">{title}</h1>
-        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+        {description ? <div className="text-sm text-muted-foreground">{description}</div> : null}
       </div>
       {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
     </div>
