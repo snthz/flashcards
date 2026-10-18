@@ -1,4 +1,5 @@
-import { prisma } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
+import { dbSchema, prisma } from "@/lib/db";
 import type { CurrentUser } from "@/lib/auth/user";
 import { dayWindow, getDeckSubtreeIds } from "@/lib/decks/queries";
 import { DAY_MS, dayKey } from "@/lib/scheduler";
@@ -58,7 +59,7 @@ export async function getStreak(user: CurrentUser): Promise<Streak> {
       (("reviewedAt" AT TIME ZONE 'UTC') AT TIME ZONE ${user.timezone}) - make_interval(hours => ${user.dayStartHour}::int),
       'YYYY-MM-DD'
     ) AS day
-    FROM "ReviewLog"
+    FROM ${Prisma.raw(`"${dbSchema.replace(/"/g, '""')}"."ReviewLog"`)}
     WHERE "userId" = ${user.id}
   `;
   const days = new Set(rows.map((row) => row.day));

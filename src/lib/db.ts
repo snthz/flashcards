@@ -12,6 +12,9 @@ function schemaFromUrl(url: string | undefined) {
   }
 }
 
+// Raw SQL doesn't get the adapter's schema, so it has to qualify tables with this.
+export const dbSchema = schemaFromUrl(process.env.DATABASE_URL) ?? "public";
+
 function createClient() {
   const connectionString = process.env.DATABASE_URL;
   const adapter = new PrismaPg({ connectionString }, { schema: schemaFromUrl(connectionString) });
