@@ -173,6 +173,51 @@ body {
   }
 }
 
+/* Seek bar of the study audio dock: thin track, thumb big enough to grab on touch. */
+.fc-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2.75rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.fc-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--foreground) var(--fc-progress, 0%), var(--border) var(--fc-progress, 0%));
+}
+
+.fc-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--foreground);
+}
+
+.fc-range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.fc-range::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--foreground);
+}
+
+.fc-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--foreground);
+}
+
 @keyframes flicker {
   0%,
   100% {

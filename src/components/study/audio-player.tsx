@@ -1,32 +1,22 @@
 "use client";
 
 import { useCallback, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
-import { Pause, Play, RotateCcw } from "lucide-react";
+import { Pause, Play, RotateCcw, Volume2 } from "lucide-react";
 
 export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5] as const;
 const SKIP_SECONDS = 3;
 
 export const AUDIO_MOUNT_CSS = `
-.fc-root .fc-audio { display: inline-flex; vertical-align: middle; max-width: 100%; min-width: 0; margin: .25rem; }
+.fc-root .fc-audio { display: inline-flex; vertical-align: middle; margin: 0 .125rem; }
 `;
 
-// Lives in the player's own shadow root, so deck CSS (e.g. global button rules) cannot restyle it.
-export const AUDIO_PLAYER_CSS = `
-.fc-player { position: relative; box-sizing: border-box; display: inline-flex; align-items: center; gap: .125rem; max-width: 100%; height: 2.5rem; padding: 0 .625rem 0 .25rem; overflow: hidden; border: 1px solid var(--border, rgba(127,127,127,.3)); border-radius: 999px; background: var(--card, transparent); color: var(--foreground, inherit); font: 500 .8125rem/1 system-ui, sans-serif; text-align: left; white-space: nowrap; user-select: none; -webkit-user-select: none; }
-.fc-player button { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; flex: none; height: 2rem; min-width: 2rem; border-radius: 999px; cursor: pointer; color: inherit; opacity: .8; transition: opacity .15s; -webkit-tap-highlight-color: transparent; }
-.fc-player button:hover { opacity: 1; }
-.fc-player button:focus-visible, .fc-player input:focus-visible { outline: 2px solid var(--ring, rgba(127,127,127,.5)); outline-offset: 1px; }
-.fc-player button svg { width: 1.125rem; height: 1.125rem; }
-.fc-player .fc-play { opacity: 1; }
-.fc-player .fc-play svg { fill: currentColor; }
-.fc-player .fc-rate { padding: 0 .25rem; font-variant-numeric: tabular-nums; font-weight: 600; font-size: .75rem; }
-.fc-player .fc-time { flex: none; padding: 0 .25rem; color: var(--muted-foreground, inherit); font-variant-numeric: tabular-nums; font-size: .75rem; }
-.fc-player input[type=range] { -webkit-appearance: none; appearance: none; position: absolute; left: 1.25rem; right: 1.25rem; bottom: 1px; height: 8px; margin: 0; background: transparent; cursor: pointer; }
-.fc-player input[type=range]::-webkit-slider-runnable-track { height: 2px; border-radius: 999px; background: linear-gradient(to right, var(--foreground, #222) var(--fc-progress, 0%), var(--border, rgba(127,127,127,.35)) var(--fc-progress, 0%)); }
-.fc-player input[type=range]::-moz-range-track { height: 2px; border-radius: 999px; background: var(--border, rgba(127,127,127,.35)); }
-.fc-player input[type=range]::-moz-range-progress { height: 2px; border-radius: 999px; background: var(--foreground, #222); }
-.fc-player input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 8px; height: 8px; margin-top: -3px; border: 0; border-radius: 50%; background: var(--foreground, #222); }
-.fc-player input[type=range]::-moz-range-thumb { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--foreground, #222); }
+// Lives in each inline button's own shadow root, so deck CSS (e.g. global button rules) cannot restyle it.
+export const AUDIO_TOGGLE_CSS = `
+button { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: 999px; cursor: pointer; color: inherit; opacity: .85; transition: opacity .15s, transform .1s; -webkit-tap-highlight-color: transparent; }
+button:hover, button[aria-pressed=true] { opacity: 1; }
+button:active { transform: scale(.9); }
+button:focus-visible { outline: 2px solid var(--ring, rgba(127,127,127,.5)); outline-offset: 1px; }
+svg { width: 1.5rem; height: 1.5rem; }
 `;
 
 const subscribeEvents = (audio: HTMLAudioElement, events: string[]) => (callback: () => void) => {
@@ -100,53 +90,85 @@ function formatRate(rate: number) {
   return `${String(rate).replace(".", ",")}×`;
 }
 
-interface AudioPlayerProps {
+interface AudioControlsProps {
   audio: HTMLAudioElement;
-  onRateChange: (rate: number) => void;
 }
 
-export function AudioPlayer({ audio, onRateChange }: AudioPlayerProps) {
+function useAudioState(audio: HTMLAudioElement) {
   const subscribeState = useCallback(
     (callback: () => void) => subscribeEvents(audio, ["play", "pause", "ended", "durationchange", "loadedmetadata", "ratechange"])(callback),
     [audio],
   );
-  const subscribeProgress = useCallback((callback: () => void) => subscribeTime(audio)(callback), [audio]);
-
   const paused = useAudioValue(subscribeState, () => audio.paused);
   const duration = useAudioValue(subscribeState, () => (Number.isFinite(audio.duration) ? audio.duration : 0));
   const rate = useAudioValue(subscribeState, () => audio.playbackRate);
+  return { paused, duration, rate };
+}
+
+// Keep clicks from revealing the card, and keep focus off the buttons so Space/Enter still drive the study session.
+const stopClick = (event: MouseEvent) => event.stopPropagation();
+const keepFocus = (event: MouseEvent) => event.preventDefault();
+const stopKeys = (event: KeyboardEvent) => {
+  if (event.key === " " || event.key === "Enter") event.stopPropagation();
+};
+
+// The small speaker button that replaces [sound:…] inside the card, sized for touch like Anki's replay button.
+export function AudioToggle({ audio }: AudioControlsProps) {
+  const { paused } = useAudioState(audio);
+  return (
+    <button
+      type="button"
+      onMouseDown={keepFocus}
+      onClick={(event) => {
+        stopClick(event);
+        toggle(audio);
+      }}
+      onKeyDown={stopKeys}
+      aria-label={paused ? "Reproducir audio" : "Pausar audio"}
+      aria-pressed={!paused}
+    >
+      {paused ? <Volume2 /> : <Pause fill="currentColor" />}
+    </button>
+  );
+}
+
+const dockButton =
+  "flex size-11 shrink-0 items-center justify-center rounded-full text-foreground transition-[opacity,transform] hover:opacity-100 active:scale-90";
+
+// Full controls for the clip that played last, docked under the card where there is room for touch targets.
+export function AudioDock({ audio, onRateChange }: AudioControlsProps & { onRateChange: (rate: number) => void }) {
+  const { paused, duration, rate } = useAudioState(audio);
+  const subscribeProgress = useCallback((callback: () => void) => subscribeTime(audio)(callback), [audio]);
   const currentTime = useAudioValue(subscribeProgress, () => readTime(audio));
+  const progress = duration > 0 ? Math.min(currentTime / duration, 1) * 100 : 0;
 
   const cycleRate = () => {
     const index = PLAYBACK_RATES.findIndex((value) => value === rate);
     onRateChange(PLAYBACK_RATES[(index + 1) % PLAYBACK_RATES.length]);
   };
 
-  const progress = duration > 0 ? Math.min(currentTime / duration, 1) * 100 : 0;
-
-  // Keep clicks from revealing the card, and keep focus off the buttons so Space/Enter still drive the study session.
-  const stop = (event: MouseEvent) => event.stopPropagation();
-  const keepFocus = (event: MouseEvent) => event.preventDefault();
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (event.key === " " || event.key === "Enter") event.stopPropagation();
-  };
-
   return (
-    <span className="fc-player" role="group" aria-label="Reproductor de audio" onClick={stop} onKeyDown={onKeyDown}>
-      <button type="button" className="fc-play" onMouseDown={keepFocus} onClick={() => toggle(audio)} aria-label={paused ? "Reproducir" : "Pausar"}>
-        {paused ? <Play /> : <Pause />}
+    <div
+      role="group"
+      aria-label="Reproductor de audio"
+      className="sticky bottom-0 z-10 flex items-center gap-0.5 border-t bg-card/90 px-1.5 py-1 backdrop-blur-xl"
+      onClick={stopClick}
+      onKeyDown={stopKeys}
+    >
+      <button type="button" className={dockButton} onMouseDown={keepFocus} onClick={() => toggle(audio)} aria-label={paused ? "Reproducir" : "Pausar"}>
+        {paused ? <Play className="size-5 fill-current" /> : <Pause className="size-5 fill-current" />}
       </button>
-      {duration > SKIP_SECONDS * 2 ? (
-        <button
-          type="button"
-          onMouseDown={keepFocus}
-          onClick={() => seek(audio, audio.currentTime - SKIP_SECONDS)}
-          aria-label={`Retroceder ${SKIP_SECONDS} segundos`}
-          title={`Retroceder ${SKIP_SECONDS} s`}
-        >
-          <RotateCcw />
-        </button>
-      ) : null}
+      <button
+        type="button"
+        className={`${dockButton} opacity-70`}
+        onMouseDown={keepFocus}
+        onClick={() => seek(audio, audio.currentTime - SKIP_SECONDS)}
+        aria-label={`Retroceder ${SKIP_SECONDS} segundos`}
+        title={`Retroceder ${SKIP_SECONDS} s`}
+      >
+        <RotateCcw className="size-5" />
+      </button>
+      <span className="w-9 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{formatTime(currentTime)}</span>
       <input
         type="range"
         min={0}
@@ -157,14 +179,20 @@ export function AudioPlayer({ audio, onRateChange }: AudioPlayerProps) {
         onPointerUp={(event) => event.currentTarget.blur()}
         aria-label="Posición"
         aria-valuetext={`${formatTime(currentTime)} de ${formatTime(duration)}`}
+        className="fc-range mx-2 min-w-0 flex-1"
         style={{ "--fc-progress": `${progress}%` } as CSSProperties}
       />
-      <span className="fc-time">
-        {formatTime(currentTime)} / {formatTime(duration)}
-      </span>
-      <button type="button" className="fc-rate" onMouseDown={keepFocus} onClick={cycleRate} aria-label={`Velocidad ${formatRate(rate)}`} title="Cambiar velocidad">
+      <span className="w-9 shrink-0 text-xs tabular-nums text-muted-foreground">{formatTime(duration)}</span>
+      <button
+        type="button"
+        className="flex h-11 min-w-11 shrink-0 items-center justify-center rounded-full px-2 text-sm font-semibold tabular-nums text-foreground active:scale-90"
+        onMouseDown={keepFocus}
+        onClick={cycleRate}
+        aria-label={`Velocidad ${formatRate(rate)}`}
+        title="Cambiar velocidad"
+      >
         {formatRate(rate)}
       </button>
-    </span>
+    </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePrefersDark } from "@/lib/hooks/use-is-client";
-import { AUDIO_MOUNT_CSS, AUDIO_PLAYER_CSS, AudioPlayer, PLAYBACK_RATES } from "./audio-player";
+import { AUDIO_MOUNT_CSS, AUDIO_TOGGLE_CSS, AudioDock, AudioToggle, PLAYBACK_RATES } from "./audio-player";
 
 interface CardFrameProps {
   html: string;
@@ -54,6 +54,7 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const shadowRef = useRef<ShadowRoot | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [active, setActive] = useState(0);
   const dark = usePrefersDark();
 
   useEffect(() => {
@@ -70,7 +71,7 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
       audio.defaultPlaybackRate = rate;
       audio.playbackRate = rate;
       const target = mount.shadowRoot ?? mount.attachShadow({ mode: "open" });
-      target.innerHTML = `<style>${AUDIO_PLAYER_CSS}</style>`;
+      target.innerHTML = `<style>${AUDIO_TOGGLE_CSS}</style>`;
       return { mount, target, audio };
     });
 
@@ -90,8 +91,9 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
       current?.play().catch(() => undefined);
     };
 
-    const listeners = items.map(({ audio }) => {
+    const listeners = items.map(({ audio }, index) => {
       const onPlay = () => {
+        setActive(index);
         // Only one clip at a time; playing anything by hand stops the autoplay sequence.
         if (audio !== current) cancelled = true;
         items.forEach((other) => other.audio !== audio && other.audio.pause());
@@ -108,6 +110,7 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
     });
 
     setPlayers(items);
+    setActive(0);
     playNext();
 
     return () => {
@@ -132,11 +135,14 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
     [players],
   );
 
+  const docked = players[active] ?? players[0];
+
   return (
-    <div ref={hostRef} className="flex flex-1 flex-col text-lg leading-relaxed">
-      {players.map(({ target, audio }, index) =>
-        createPortal(<AudioPlayer audio={audio} onRateChange={changeRate} />, target, String(index)),
-      )}
-    </div>
+    <>
+      <div ref={hostRef} className="flex flex-1 flex-col text-lg leading-relaxed">
+        {players.map(({ target, audio }, index) => createPortal(<AudioToggle audio={audio} />, target, String(index)))}
+      </div>
+      {docked ? <AudioDock key={active} audio={docked.audio} onRateChange={changeRate} /> : null}
+    </>
   );
 }
