@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePrefersDark } from "@/lib/hooks/use-is-client";
 import { AUDIO_MOUNT_CSS, AUDIO_TOGGLE_CSS, AudioDock, AudioToggle, PLAYBACK_RATES } from "./audio-player";
+import { isSpeechSrc, SpeechClip, type Clip } from "./speech-clip";
 
 interface CardFrameProps {
   html: string;
@@ -16,7 +17,7 @@ interface CardFrameProps {
 interface Player {
   mount: HTMLElement;
   target: ShadowRoot;
-  audio: HTMLAudioElement;
+  audio: Clip;
 }
 
 const RATE_KEY = "fc-audio-rate";
@@ -66,8 +67,8 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
 
     const rate = readRate();
     const items: Player[] = Array.from(root.querySelectorAll<HTMLElement>(".fc-audio[data-src]"), (mount) => {
-      const audio = new Audio(mount.dataset.src);
-      audio.preload = "auto";
+      const src = mount.dataset.src ?? "";
+      const audio: Clip = isSpeechSrc(src) ? SpeechClip.fromSrc(src) : Object.assign(new Audio(src), { preload: "auto" });
       audio.defaultPlaybackRate = rate;
       audio.playbackRate = rate;
       const target = mount.shadowRoot ?? mount.attachShadow({ mode: "open" });
@@ -76,8 +77,8 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
     });
 
     let cancelled = false;
-    let current: HTMLAudioElement | null = null;
-    const used = new Set<HTMLAudioElement>();
+    let current: Clip | null = null;
+    const used = new Set<Clip>();
     const queue = autoplay.flatMap((src) => {
       const match = items.find((item) => !used.has(item.audio) && item.mount.dataset.src === src);
       if (!match) return [];
@@ -118,8 +119,10 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
       listeners.forEach((remove) => remove());
       items.forEach(({ audio }) => {
         audio.pause();
-        audio.removeAttribute("src");
-        audio.load();
+        if (audio instanceof HTMLAudioElement) {
+          audio.removeAttribute("src");
+          audio.load();
+        }
       });
     };
   }, [html, css, ord, side, autoplay, dark]);

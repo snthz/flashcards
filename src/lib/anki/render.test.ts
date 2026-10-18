@@ -98,3 +98,17 @@ describe("htmlToText", () => {
     expect(htmlToText(html)).toBe("Inglés 1K\n\nLee este artículo & más.\n\n• Uno\n• Dos\n\nFin\nlínea");
   });
 });
+
+describe("tts filter", () => {
+  it("turns {{tts}} into a speakable clip in play order", () => {
+    const result = renderCard(
+      input({
+        fields: { Anverso: "give <b>up</b>", Reverso: "rendirse" },
+        template: { name: "T", qfmt: "{{Anverso}} {{tts en_US:Anverso}}", afmt: "{{FrontSide}}<hr id=answer>{{Reverso}}" },
+      }),
+    );
+    expect(result.audio.question).toEqual(["tts:en-US:give%20up"]);
+    expect(result.question).toContain('data-src="tts:en-US:give%20up"');
+    expect(result.question).not.toContain("[sound:");
+  });
+});

@@ -33,6 +33,23 @@ function stripHtml(value: string) {
   return value.replace(TAG_RE, "");
 }
 
+export const TTS_PREFIX = "tts:";
+
+// Anki writes languages as en_US; speech synthesis wants BCP 47 (en-US). Filters arrive lowercased.
+function normalizeLang(lang: string) {
+  const [language = "en", region] = lang.split(/[_-]/);
+  return region ? `${language.toLowerCase()}-${region.toUpperCase()}` : language.toLowerCase();
+}
+
+// {{tts en_US:Field}} becomes a sound tag the player speaks with the device voice instead of a file.
+function ttsSound(filter: string, value: string) {
+  const lang = filter.split(/\s+/)[1] ?? "en_US";
+  const text = decodeEntities(stripHtml(value.replace(SOUND_RE, "").replace(/<br\s*\/?>/gi, " ")))
+    .replace(/\s+/g, " ")
+    .trim();
+  return text ? `[sound:${TTS_PREFIX}${normalizeLang(lang)}:${encodeURIComponent(text)}]` : "";
+}
+
 function isExternal(url: string) {
   return /^(?:https?:|data:|blob:|\/|#)/i.test(url);
 }
@@ -54,7 +71,7 @@ export function rewriteMedia(html: string, mediaBase: string) {
 function extractAudio(html: string, mediaBase: string) {
   const files: string[] = [];
   const replaced = html.replace(SOUND_RE, (_m, file: string) => {
-    const url = isExternal(file) ? file : `${mediaBase}${encodeURIComponent(file.trim())}`;
+    const url = isExternal(file) || file.startsWith(TTS_PREFIX) ? file : `${mediaBase}${encodeURIComponent(file.trim())}`;
     files.push(url);
     const index = files.length;
     return `<span class="fc-audio" data-src="${url}" data-index="${index}"></span>`;
@@ -103,7 +120,7 @@ export function clozeOrdinals(text: string) {
 function applyFilters(filters: string[], value: string, fieldName: string, input: RenderInput, side: "question" | "answer") {
   let result = value;
   for (const filter of [...filters].reverse()) {
-    switch (filter) {
+    switch (filter.split(/\s+/)[0]) {
       case "cloze":
         result = renderCloze(result, input.ord, side);
         break;
@@ -124,10 +141,12 @@ function applyFilters(filters: string[], value: string, fieldName: string, input
       case "type-cloze":
         result = side === "question" ? `<input class="typeans" type="text" autocomplete="off">` : `<div class="typeans-answer">${clozeOnlyText(result, input.ord)}</div>`;
         break;
+      case "tts":
+        result = ttsSound(filter, result);
+        break;
       case "furigana":
       case "kanji":
       case "kana":
-      case "tts":
       case "tts-voices":
         break;
       default:

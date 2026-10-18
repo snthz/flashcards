@@ -2,6 +2,7 @@
 
 import { useCallback, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
 import { Pause, Play, RotateCcw, Volume2 } from "lucide-react";
+import { SpeechClip, type Clip } from "./speech-clip";
 
 export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5] as const;
 const SKIP_SECONDS = 3;
@@ -19,22 +20,22 @@ button:focus-visible { outline: 2px solid var(--ring, rgba(127,127,127,.5)); out
 svg { width: 1.5rem; height: 1.5rem; }
 `;
 
-const subscribeEvents = (audio: HTMLAudioElement, events: string[]) => (callback: () => void) => {
+const subscribeEvents = (audio: Clip, events: string[]) => (callback: () => void) => {
   events.forEach((name) => audio.addEventListener(name, callback));
   return () => events.forEach((name) => audio.removeEventListener(name, callback));
 };
 
 // Safari returns a new currentTime on every read while playing; useSyncExternalStore needs a stable
 // snapshot or it re-renders forever, so reads come from this cache, refreshed only by the subscription.
-const times = new WeakMap<HTMLAudioElement, number>();
+const times = new WeakMap<Clip, number>();
 
-function readTime(audio: HTMLAudioElement) {
+function readTime(audio: Clip) {
   if (!times.has(audio)) times.set(audio, audio.currentTime);
   return times.get(audio) ?? 0;
 }
 
 // Polls on animation frames while playing so the progress bar moves smoothly on short clips.
-const subscribeTime = (audio: HTMLAudioElement) => (notify: () => void) => {
+const subscribeTime = (audio: Clip) => (notify: () => void) => {
   const callback = () => {
     times.set(audio, audio.currentTime);
     notify();
@@ -69,12 +70,12 @@ function useAudioValue<T>(subscribe: (callback: () => void) => () => void, read:
 }
 
 // Media elements are external mutable objects; keep writes out of the component so the compiler treats props as read-only.
-function seek(audio: HTMLAudioElement, time: number) {
+function seek(audio: Clip, time: number) {
   const end = Number.isFinite(audio.duration) ? audio.duration : time;
   audio.currentTime = Math.min(Math.max(time, 0), end);
 }
 
-function toggle(audio: HTMLAudioElement) {
+function toggle(audio: Clip) {
   if (!audio.paused) return audio.pause();
   if (audio.ended) audio.currentTime = 0;
   audio.play().catch(() => undefined);
@@ -91,10 +92,10 @@ function formatRate(rate: number) {
 }
 
 interface AudioControlsProps {
-  audio: HTMLAudioElement;
+  audio: Clip;
 }
 
-function useAudioState(audio: HTMLAudioElement) {
+function useAudioState(audio: Clip) {
   const subscribeState = useCallback(
     (callback: () => void) => subscribeEvents(audio, ["play", "pause", "ended", "durationchange", "loadedmetadata", "ratechange"])(callback),
     [audio],
@@ -138,9 +139,6 @@ const dockButton =
 // Full controls for the clip that played last, docked under the card where there is room for touch targets.
 export function AudioDock({ audio, onRateChange }: AudioControlsProps & { onRateChange: (rate: number) => void }) {
   const { paused, duration, rate } = useAudioState(audio);
-  const subscribeProgress = useCallback((callback: () => void) => subscribeTime(audio)(callback), [audio]);
-  const currentTime = useAudioValue(subscribeProgress, () => readTime(audio));
-  const progress = duration > 0 ? Math.min(currentTime / duration, 1) * 100 : 0;
 
   const cycleRate = () => {
     const index = PLAYBACK_RATES.findIndex((value) => value === rate);
@@ -158,6 +156,32 @@ export function AudioDock({ audio, onRateChange }: AudioControlsProps & { onRate
       <button type="button" className={dockButton} onMouseDown={keepFocus} onClick={() => toggle(audio)} aria-label={paused ? "Reproducir" : "Pausar"}>
         {paused ? <Play className="size-5 fill-current" /> : <Pause className="size-5 fill-current" />}
       </button>
+      {audio instanceof SpeechClip ? (
+        <span className="min-w-0 flex-1 truncate px-2 text-xs text-muted-foreground">Voz del dispositivo</span>
+      ) : (
+        <SeekControls audio={audio} duration={duration} />
+      )}
+      <button
+        type="button"
+        className="flex h-11 min-w-11 shrink-0 items-center justify-center rounded-full px-2 text-sm font-semibold tabular-nums text-foreground active:scale-90"
+        onMouseDown={keepFocus}
+        onClick={cycleRate}
+        aria-label={`Velocidad ${formatRate(rate)}`}
+        title="Cambiar velocidad"
+      >
+        {formatRate(rate)}
+      </button>
+    </div>
+  );
+}
+
+function SeekControls({ audio, duration }: { audio: Clip; duration: number }) {
+  const subscribeProgress = useCallback((callback: () => void) => subscribeTime(audio)(callback), [audio]);
+  const currentTime = useAudioValue(subscribeProgress, () => readTime(audio));
+  const progress = duration > 0 ? Math.min(currentTime / duration, 1) * 100 : 0;
+
+  return (
+    <>
       <button
         type="button"
         className={`${dockButton} opacity-70`}
@@ -183,16 +207,6 @@ export function AudioDock({ audio, onRateChange }: AudioControlsProps & { onRate
         style={{ "--fc-progress": `${progress}%` } as CSSProperties}
       />
       <span className="w-9 shrink-0 text-xs tabular-nums text-muted-foreground">{formatTime(duration)}</span>
-      <button
-        type="button"
-        className="flex h-11 min-w-11 shrink-0 items-center justify-center rounded-full px-2 text-sm font-semibold tabular-nums text-foreground active:scale-90"
-        onMouseDown={keepFocus}
-        onClick={cycleRate}
-        aria-label={`Velocidad ${formatRate(rate)}`}
-        title="Cambiar velocidad"
-      >
-        {formatRate(rate)}
-      </button>
-    </div>
+    </>
   );
 }
