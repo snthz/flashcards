@@ -36,6 +36,36 @@ function shiftKey(key: string, days: number) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
+function countStreak(days: Set<string>, todayKey: string) {
+  let streak = 0;
+  let cursor = days.has(todayKey) ? todayKey : shiftKey(todayKey, -1);
+  while (days.has(cursor)) {
+    streak += 1;
+    cursor = shiftKey(cursor, -1);
+  }
+  return streak;
+}
+
+export interface Streak {
+  days: number;
+  activeToday: boolean;
+}
+
+export async function getStreak(user: CurrentUser): Promise<Streak> {
+  // Same day boundaries as dayKey: the user's timezone, shifted back by the hour the day starts.
+  const rows = await prisma.$queryRaw<Array<{ day: string }>>`
+    SELECT DISTINCT to_char(
+      (("reviewedAt" AT TIME ZONE 'UTC') AT TIME ZONE ${user.timezone}) - make_interval(hours => ${user.dayStartHour}::int),
+      'YYYY-MM-DD'
+    ) AS day
+    FROM "ReviewLog"
+    WHERE "userId" = ${user.id}
+  `;
+  const days = new Set(rows.map((row) => row.day));
+  const todayKey = dayKey(new Date(), user.timezone, user.dayStartHour);
+  return { days: countStreak(days, todayKey), activeToday: days.has(todayKey) };
+}
+
 export async function getStats(user: CurrentUser, options: { deckId?: string; period: StatsPeriod }): Promise<StatsData> {
   const window = dayWindow(user);
   const days = PERIOD_DAYS[options.period];
@@ -89,12 +119,7 @@ export async function getStats(user: CurrentUser, options: { deckId?: string; pe
   }
 
   const today = byDay.get(todayKey) ?? { reviews: 0, durationMs: 0, total: 0 };
-  let streak = 0;
-  let cursor = heat.has(todayKey) ? todayKey : shiftKey(todayKey, -1);
-  while (heat.has(cursor)) {
-    streak += 1;
-    cursor = shiftKey(cursor, -1);
-  }
+  const streak = countStreak(new Set(heat.keys()), todayKey);
 
   const reviewsByDay: DailyReviews[] = [];
   const spanDays = days ?? Math.max(1, Math.round((window.start.getTime() - (logs[0]?.reviewedAt.getTime() ?? window.start.getTime())) / DAY_MS) + 1);
