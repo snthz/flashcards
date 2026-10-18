@@ -57,7 +57,7 @@ function extractAudio(html: string, mediaBase: string) {
     const url = isExternal(file) ? file : `${mediaBase}${encodeURIComponent(file.trim())}`;
     files.push(url);
     const index = files.length;
-    return `<span class="fc-audio" data-src="${url}" data-index="${index}">🔊</span>`;
+    return `<span class="fc-audio" data-src="${url}" data-index="${index}"></span>`;
   });
   return { html: replaced, files };
 }

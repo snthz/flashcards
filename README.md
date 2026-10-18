@@ -1,77 +1,113 @@
 # Flashcards
 
-Aplicación web progresiva (PWA) de repaso espaciado compatible con Anki. Importa tus mazos `.apkg`, estudia con el mismo algoritmo (SM-2 clásico o FSRS), sincroniza el progreso entre escritorio y móvil, y consulta estadísticas detalladas.
+An Anki-compatible spaced repetition app, built as an installable Progressive Web App. Import your existing `.apkg` decks, review them with the same scheduling algorithms Anki uses (classic SM-2 or FSRS), keep progress in sync across desktop and mobile, and track your learning with detailed statistics.
 
-## Características
+> The user interface is in Spanish.
 
-- Importación de paquetes `.apkg` (formato legado y formato moderno comprimido con zstd de Anki 2.1.50+), incluyendo tipos de nota, plantillas, CSS, multimedia, opciones de mazo y el estado de programación de cada tarjeta.
-- Programador SM-2 estilo Anki (pasos de aprendizaje, facilidad, intervalos, olvidos, sanguijuelas) y FSRS mediante `ts-fsrs`, configurable por preajuste de mazo.
-- Mazos jerárquicos con límites diarios, submazos, opciones por preajuste y descripciones.
-- Sesión de estudio con cuatro botones de respuesta e intervalos previstos, deshacer, enterrar, suspender, marcar, audio y atajos de teclado.
-- Editor de notas (tipos Básico, Básico invertido y Cloze incluidos) y explorador con búsqueda, filtros y acciones masivas.
-- Estadísticas: repasos por día, previsión, retención, racha, mapa de actividad anual, distribución de tarjetas e intervalos.
-- Cuentas con sesiones persistentes en base de datos, zona horaria y hora de inicio del día configurables.
-- PWA instalable en iOS, Android y escritorio, con service worker y página offline.
+## Table of Contents
 
-## Stack
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Configuration](#configuration)
+- [Scripts](#scripts)
+- [Database Migrations](#database-migrations)
+- [Docker](#docker)
+- [Deployment (Dokploy)](#deployment-dokploy)
+- [CI/CD](#cicd)
+- [Exporting Decks from Anki](#exporting-decks-from-anki)
 
-Next.js 16 (App Router, Turbopack), React 19, TypeScript, Tailwind CSS 4, Prisma 7 con PostgreSQL, Serwist, sql.js, fflate y fzstd.
+## Features
 
-## Desarrollo
+- **Anki import** — Reads `.apkg` packages in both the legacy format and the zstd-compressed format introduced in Anki 2.1.50+, including note types, templates, CSS, media, deck options, and each card's scheduling state.
+- **Scheduling** — An Anki-style SM-2 scheduler (learning steps, ease, intervals, lapses, leeches) and FSRS via [`ts-fsrs`](https://github.com/open-spaced-repetition/ts-fsrs), selectable per deck preset.
+- **Deck management** — Hierarchical decks with subdecks, daily limits, option presets, and descriptions.
+- **Study sessions** — Four answer buttons with predicted intervals, undo, bury, suspend, flag, audio playback, and keyboard shortcuts.
+- **Notes and browser** — A note editor with built-in Basic, Basic (and reversed card), and Cloze note types, plus a card browser with search, filters, and bulk actions.
+- **Statistics** — Daily reviews, forecast, retention, streaks, a yearly activity heatmap, and card and interval distributions.
+- **Accounts** — Database-backed persistent sessions, with configurable time zone and day rollover hour.
+- **PWA** — Installable on iOS, Android, and desktop, with a service worker and an offline fallback page.
+
+## Tech Stack
+
+| Area | Technology |
+| --- | --- |
+| Framework | Next.js 16 (App Router, Turbopack), React 19, TypeScript |
+| Styling | Tailwind CSS 4 |
+| Database | PostgreSQL with Prisma 7 |
+| PWA | Serwist |
+| Anki parsing | sql.js, fflate, fzstd |
+| Scheduling | Custom SM-2 implementation, ts-fsrs |
+| Testing | Vitest |
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 24
+- A PostgreSQL database
+
+### Installation
 
 ```bash
-cp .env.example .env
+cp .env.example .env    # then fill in the values
 npm install
 npx prisma migrate deploy
 npm run dev
 ```
 
-Variables de entorno:
+The app is then available at [http://localhost:3000](http://localhost:3000).
 
-| Variable | Descripción |
+## Configuration
+
+| Variable | Description |
 | --- | --- |
-| `DATABASE_URL` | Cadena de conexión de PostgreSQL. Usa `?schema=flashcards` para aislar las tablas dentro de una base de datos compartida. |
-| `SHADOW_DATABASE_URL` | Solo para `npm run db:diff`: base de datos vacía donde Prisma reproduce las migraciones. Debe usar el mismo `?schema=` que `DATABASE_URL`. |
-| `SESSION_SECRET` | Cadena aleatoria larga para firmar los tokens de sesión. |
-| `MEDIA_DIR` | Carpeta donde se guardan imágenes y audios importados. |
-| `NEXT_PUBLIC_APP_URL` | URL pública de la aplicación. |
+| `DATABASE_URL` | PostgreSQL connection string. Append `?schema=flashcards` to isolate the tables inside a shared database. |
+| `SHADOW_DATABASE_URL` | Only required for `npm run db:diff`: an empty database where Prisma replays the migrations. Must use the same `?schema=` as `DATABASE_URL`. |
+| `SESSION_SECRET` | A long random string used to sign session tokens. |
+| `MEDIA_DIR` | Directory where imported images and audio files are stored. |
+| `NEXT_PUBLIC_APP_URL` | Public URL of the application. |
 
-Scripts útiles:
+## Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the development server. |
+| `npm run build` | Create a production build. |
+| `npm run test` | Run the unit tests (scheduler, Anki parser, templates). |
+| `npm run typecheck` | Generate Next.js route types and run `tsc`. |
+| `npm run lint` | Run ESLint. |
+| `npm run db:diff` | Generate SQL from changes to `prisma/schema.prisma`. |
+
+## Database Migrations
+
+To create a new migration after changing the schema (requires `SHADOW_DATABASE_URL` to point to an empty database with the same `?schema=`):
 
 ```bash
-npm run test        # tests unitarios (scheduler, parser de Anki, plantillas)
-npm run typecheck   # tsc
-npm run lint        # eslint
-npm run db:diff     # genera SQL a partir de cambios en prisma/schema.prisma
-```
-
-Para crear una nueva migración tras modificar el esquema (necesita `SHADOW_DATABASE_URL` apuntando a una base de datos vacía con el mismo `?schema=`):
-
-```bash
-mkdir prisma/migrations/$(date +%Y%m%d%H%M%S)_nombre
-npm run db:diff > prisma/migrations/<carpeta>/migration.sql
+mkdir prisma/migrations/$(date +%Y%m%d%H%M%S)_migration_name
+npm run db:diff > prisma/migrations/<folder>/migration.sql
 npx prisma migrate deploy
 ```
 
-CI comprueba con `prisma migrate diff --exit-code` que `prisma/migrations` y `prisma/schema.prisma` describen lo mismo, así que una migración olvidada se detecta antes de llegar al VPS.
+CI runs `prisma migrate diff --exit-code` to verify that `prisma/migrations` and `prisma/schema.prisma` are in sync, so a missing migration is caught before it reaches production.
 
 ## Docker
 
-La imagen se construye en varias etapas y arranca desde la salida `standalone` de Next.js. No levanta base de datos propia: se conecta al PostgreSQL que ya existe en el VPS.
+The image uses a multi-stage build and runs from Next.js's `standalone` output. It does not bundle its own database; it connects to an existing PostgreSQL instance.
 
-| Variable | Momento | Descripción |
+| Variable | Stage | Description |
 | --- | --- | --- |
-| `DATABASE_URL` | ejecución | Conexión a PostgreSQL. Usa `?schema=flashcards`. |
-| `SESSION_SECRET` | ejecución | Secreto de firma de sesiones. |
-| `MEDIA_DIR` | ejecución | Por defecto `/app/data/media` (volumen). |
-| `SKIP_MIGRATIONS` | ejecución | `1` para no ejecutar `prisma migrate deploy` al arrancar. |
-| `TZ` | ejecución | Zona horaria del contenedor. |
-| `APP_REVISION` | build | Revisión que expone `/api/health` y usa el service worker. |
-| `NEXT_PUBLIC_APP_URL` | build | Las variables `NEXT_PUBLIC_*` se incrustan en el bundle, por eso es un `build-arg` y no una variable de ejecución. |
+| `DATABASE_URL` | runtime | PostgreSQL connection string. Use `?schema=flashcards`. |
+| `SESSION_SECRET` | runtime | Session signing secret. |
+| `MEDIA_DIR` | runtime | Defaults to `/app/data/media` (mounted as a volume). |
+| `SKIP_MIGRATIONS` | runtime | Set to `1` to skip `prisma migrate deploy` on startup. |
+| `TZ` | runtime | Container time zone. |
+| `APP_REVISION` | build | Revision reported by `/api/health` and used by the service worker. |
+| `NEXT_PUBLIC_APP_URL` | build | `NEXT_PUBLIC_*` variables are inlined into the client bundle, so this must be passed as a `build-arg` rather than at runtime. |
 
-El contenedor ejecuta `prisma migrate deploy` al arrancar (con una copia aislada del CLI de Prisma en `/app/migrator`) y después `node server.js`. Expone `/api/health`, que es también el `HEALTHCHECK` de la imagen.
+On startup, the container runs `prisma migrate deploy` (using an isolated copy of the Prisma CLI in `/app/migrator`) and then `node server.js`. It exposes `/api/health`, which also serves as the image's `HEALTHCHECK`.
 
-Probar la imagen en local:
+To test the image locally:
 
 ```bash
 docker build --build-arg APP_REVISION=$(git rev-parse HEAD) -t flashcards:ci .
@@ -79,45 +115,45 @@ DATABASE_URL="postgresql://user:password@host.docker.internal:5432/database?sche
   ./scripts/smoke-test.sh flashcards:ci
 ```
 
-El script arranca el contenedor, espera a `/api/health`, comprueba las rutas públicas y lo elimina. Es el mismo que usa CI.
+The smoke test starts the container, waits for `/api/health`, checks the public routes, and removes the container. CI runs the same script.
 
-## Despliegue en Dokploy
+## Deployment (Dokploy)
 
-GitHub Actions construye y publica la imagen en `ghcr.io/snthz/flashcards`; Dokploy solo la descarga. El VPS no compila nada.
+GitHub Actions builds the image and publishes it to `ghcr.io/snthz/flashcards`; Dokploy only pulls it. Nothing is compiled on the server.
 
-1. **Paquete de GHCR**: en `https://github.com/users/snthz/packages/container/flashcards/settings` ponlo como público, o en Dokploy → *Settings* → *Registry* añade `ghcr.io` con tu usuario y un PAT con permiso `read:packages`.
-2. **Servicio en Dokploy**: crea un servicio de tipo *Compose* apuntando a este repositorio (rama `main`, archivo `docker-compose.yml`).
-3. **Variables de entorno** del servicio:
-   - `DATABASE_URL=postgresql://USUARIO:CONTRASEÑA@NOMBRE_DEL_SERVICIO_POSTGRES:5432/BASE?schema=flashcards`
-   - `SESSION_SECRET` (por ejemplo `openssl rand -base64 48`)
-   - `FLASHCARDS_IMAGE=ghcr.io/snthz/flashcards:latest` (opcional; fija un tag `sha-<commit>` para desplegar una revisión concreta)
-   - `TZ` (opcional)
-4. **Dominio**: añádelo al servicio `flashcards` en el puerto `3000`.
-5. **Red**: el servicio se une a `dokploy-network`, que ya existe en el VPS y es donde está Traefik.
-6. **Webhook**: copia la URL de despliegue del servicio y guárdala en el repositorio como secreto `DOKPLOY_WEBHOOK_URL`.
+1. **GHCR package** — Make the package public at `https://github.com/users/snthz/packages/container/flashcards/settings`, or add `ghcr.io` under Dokploy → *Settings* → *Registry* with your username and a personal access token with the `read:packages` scope.
+2. **Dokploy service** — Create a *Compose* service pointing to this repository (branch `main`, file `docker-compose.yml`).
+3. **Environment variables** for the service:
+   - `DATABASE_URL=postgresql://USER:PASSWORD@POSTGRES_SERVICE_NAME:5432/DATABASE?schema=flashcards`
+   - `SESSION_SECRET` (for example, `openssl rand -base64 48`)
+   - `FLASHCARDS_IMAGE=ghcr.io/snthz/flashcards:latest` (optional; pin a `sha-<commit>` tag to deploy a specific revision)
+   - `TZ` (optional)
+4. **Domain** — Attach it to the `flashcards` service on port `3000`.
+5. **Network** — The service joins `dokploy-network`, the existing network where Traefik runs.
+6. **Webhook** — Copy the service's deployment webhook URL and store it as the `DOKPLOY_WEBHOOK_URL` repository secret.
 
-El esquema `flashcards` se crea dentro de la base de datos existente sin tocar el resto de tablas. Los archivos multimedia se guardan en el volumen `flashcards-media`.
+The `flashcards` schema is created inside the existing database without affecting any other tables. Media files are stored in the `flashcards-media` volume.
 
 ## CI/CD
 
-`.github/workflows/ci.yml` se ejecuta en cada pull request y en cada push a `main`, con tres trabajos en cadena:
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`, with three sequential jobs:
 
-| Trabajo | Qué hace |
+| Job | Description |
 | --- | --- |
-| `verify` | `npm run lint`, `npm run typecheck`, `npm run test`, aplica las migraciones sobre un PostgreSQL limpio y comprueba con `prisma migrate diff --exit-code` que `prisma/migrations` y `prisma/schema.prisma` no han divergido. |
-| `build` | Construye la imagen con caché de buildx, la somete al smoke test y la publica en GHCR con los tags `sha-<commit>` y `latest` (en pull requests se construye y se prueba, pero no se publica). |
-| `deploy` | Solo en `main`: llama al webhook de Dokploy y espera hasta que `/api/health` devuelva el commit desplegado. |
+| `verify` | Runs `npm run lint`, `npm run typecheck`, and `npm run test`, applies the migrations to a clean PostgreSQL instance, and checks with `prisma migrate diff --exit-code` that `prisma/migrations` and `prisma/schema.prisma` have not diverged. |
+| `build` | Builds the image with the buildx cache, runs the smoke test, and publishes it to GHCR tagged `sha-<commit>` and `latest`. Pull requests are built and tested but not published. |
+| `deploy` | `main` only: calls the Dokploy webhook and waits until `/api/health` reports the deployed commit. |
 
-Configuración necesaria en GitHub:
+Required GitHub configuration:
 
-| Nombre | Tipo | Uso |
+| Name | Type | Purpose |
 | --- | --- | --- |
-| `DOKPLOY_WEBHOOK_URL` | secreto | Dispara el despliegue en Dokploy. |
-| `NEXT_PUBLIC_APP_URL` | variable | URL pública; se incrusta en el build y se usa para verificar el despliegue. |
+| `DOKPLOY_WEBHOOK_URL` | Secret | Triggers the Dokploy deployment. |
+| `NEXT_PUBLIC_APP_URL` | Variable | Public URL; inlined into the build and used to verify the deployment. |
 
-No hace falta ningún token de registro: el push a GHCR usa el `GITHUB_TOKEN` del propio workflow.
+No registry token is needed: the push to GHCR uses the workflow's built-in `GITHUB_TOKEN`.
 
-Si prefieres la API de Dokploy en lugar del webhook, sustituye el paso *Trigger Dokploy deployment* por:
+To use the Dokploy API instead of the webhook, replace the *Trigger Dokploy deployment* step with:
 
 ```bash
 curl -fsS -X POST "$DOKPLOY_URL/api/compose.deploy" \
@@ -126,6 +162,8 @@ curl -fsS -X POST "$DOKPLOY_URL/api/compose.deploy" \
   -d "{\"composeId\":\"$DOKPLOY_COMPOSE_ID\"}"
 ```
 
-## Exportar desde Anki
+## Exporting Decks from Anki
 
-En Anki: engranaje del mazo → Exportar → formato “Paquete de mazo de Anki (*.apkg)”, con “Incluir información de programación” e “Incluir multimedia” activados. Al reimportar un mismo mazo se actualizan las notas existentes y se conservan las tarjetas ya programadas.
+In Anki, open the deck's gear menu → **Export**, choose **Anki Deck Package (\*.apkg)**, and enable **Include scheduling information** and **Include media**.
+
+Re-importing the same deck updates existing notes and preserves the scheduling of cards that have already been studied.
