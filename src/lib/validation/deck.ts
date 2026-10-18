@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const DECK_DESCRIPTION_MAX = 2000;
+
 export const deckNameSchema = z
   .string()
   .trim()
@@ -15,7 +17,7 @@ export const createDeckSchema = z.object({
 export const renameDeckSchema = z.object({
   id: z.string().uuid(),
   name: deckNameSchema,
-  description: z.string().trim().max(2000).optional(),
+  description: z.string().trim().max(DECK_DESCRIPTION_MAX, "La descripción es demasiado larga").optional(),
 });
 
 const stepsSchema = z

@@ -30,10 +30,11 @@ export async function createDeck(_prev: ActionState, formData: FormData): Promis
 
 export async function renameDeck(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
+  const description = formData.get("description");
   const parsed = renameDeckSchema.safeParse({
     id: formData.get("id"),
     name: formData.get("name"),
-    description: formData.get("description") ?? undefined,
+    description: typeof description === "string" ? description.replace(/\r\n?/g, "\n") : undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   const deck = await prisma.deck.findFirst({ where: { id: parsed.data.id, userId: user.id }, select: { id: true, parentId: true } });

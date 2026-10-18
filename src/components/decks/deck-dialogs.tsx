@@ -7,6 +7,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Field, FormError } from "@/components/ui/field";
 import { createDeck, deleteDeck, renameDeck, type ActionState } from "@/lib/decks/actions";
 import type { DeckNode } from "@/lib/decks/queries";
+import { DECK_DESCRIPTION_MAX } from "@/lib/validation/deck";
 
 export function CreateDeckButton({
   children,
@@ -62,7 +63,7 @@ export function RenameDeckDialog({ deck, onClose }: { deck: DeckNode | null; onC
             <Input id="rename-name" name="name" defaultValue={deck.name} required maxLength={120} autoFocus />
           </Field>
           <Field label="Descripción" htmlFor="rename-description">
-            <Textarea id="rename-description" name="description" defaultValue={deck.description} maxLength={2000} />
+            <Textarea id="rename-description" name="description" defaultValue={deck.description} maxLength={DECK_DESCRIPTION_MAX} />
           </Field>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>
