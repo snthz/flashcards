@@ -31,8 +31,21 @@ const subscribeEvents = (audio: HTMLAudioElement, events: string[]) => (callback
   return () => events.forEach((name) => audio.removeEventListener(name, callback));
 };
 
+// Safari returns a new currentTime on every read while playing; useSyncExternalStore needs a stable
+// snapshot or it re-renders forever, so reads come from this cache, refreshed only by the subscription.
+const times = new WeakMap<HTMLAudioElement, number>();
+
+function readTime(audio: HTMLAudioElement) {
+  if (!times.has(audio)) times.set(audio, audio.currentTime);
+  return times.get(audio) ?? 0;
+}
+
 // Polls on animation frames while playing so the progress bar moves smoothly on short clips.
-const subscribeTime = (audio: HTMLAudioElement) => (callback: () => void) => {
+const subscribeTime = (audio: HTMLAudioElement) => (notify: () => void) => {
+  const callback = () => {
+    times.set(audio, audio.currentTime);
+    notify();
+  };
   let frame = 0;
   const tick = () => {
     callback();
@@ -99,7 +112,7 @@ export function AudioPlayer({ audio, onRateChange }: AudioPlayerProps) {
   const paused = useAudioValue(subscribeState, () => audio.paused);
   const duration = useAudioValue(subscribeState, () => (Number.isFinite(audio.duration) ? audio.duration : 0));
   const rate = useAudioValue(subscribeState, () => audio.playbackRate);
-  const currentTime = useAudioValue(subscribeProgress, () => audio.currentTime);
+  const currentTime = useAudioValue(subscribeProgress, () => readTime(audio));
 
   const cycleRate = () => {
     const index = PLAYBACK_RATES.findIndex((value) => value === rate);
