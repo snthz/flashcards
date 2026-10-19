@@ -16,6 +16,7 @@ An Anki-compatible spaced repetition app, built as an installable Progressive We
 - [Deployment (Dokploy)](#deployment-dokploy)
 - [CI/CD](#cicd)
 - [Exporting Decks from Anki](#exporting-decks-from-anki)
+- [License](#license)
 
 ## Features
 
@@ -168,3 +169,7 @@ curl -fsS -X POST "$DOKPLOY_URL/api/compose.deploy" \
 In Anki, open the deck's gear menu → **Export**, choose **Anki Deck Package (\*.apkg)**, and enable **Include scheduling information** and **Include media**.
 
 Re-importing the same deck updates existing notes and preserves the scheduling of cards that have already been studied.
+
+## License
+
+Released under the [MIT License](LICENSE).
