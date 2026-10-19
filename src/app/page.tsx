@@ -1,151 +1,186 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, BarChart3, Brain, Layers, MonitorSmartphone, Smartphone, Upload } from "lucide-react";
+import { ArrowRight, Layers, Plus } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/user";
+import { getI18n } from "@/lib/i18n/server";
+import { PREMADE_DECKS } from "@/lib/premade/catalog";
+import { formatNumber } from "@/lib/utils";
 import { buttonStyles } from "@/components/ui/button";
-import { CardPreview } from "@/components/landing/card-preview";
+import { ReviewDemo } from "@/components/landing/review-demo";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 
-export const metadata: Metadata = {
-  title: "Flashcards · Repaso espaciado compatible con Anki",
-  description: "Importa tus mazos de Anki, estudia con SM-2 o FSRS y sincroniza tu progreso entre iPhone, Android y escritorio. Gratis y sin instalar nada.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return {
+    title: { absolute: t.meta.landingTitle },
+    description: t.meta.landingDescription,
+  };
+}
 
-const features = [
-  {
-    icon: Upload,
-    title: "Importa tus mazos .apkg",
-    description: "Trae tus mazos desde Anki con plantillas, multimedia y el progreso de cada tarjeta intacto.",
-  },
-  {
-    icon: Brain,
-    title: "El mismo algoritmo",
-    description: "SM-2 clásico de Anki o FSRS, configurables por mazo con los mismos parámetros que ya conoces.",
-  },
-  {
-    icon: MonitorSmartphone,
-    title: "Progreso sincronizado",
-    description: "Empieza en el ordenador y continúa en el móvil. Tu cuenta guarda mazos, repasos y estadísticas.",
-  },
-  {
-    icon: Smartphone,
-    title: "Instalable en iOS y Android",
-    description: "Es una PWA: añádela a la pantalla de inicio y úsala a pantalla completa, sin tienda ni pagos.",
-  },
-  {
-    icon: BarChart3,
-    title: "Estadísticas claras",
-    description: "Repasos por día, previsión, retención, racha y mapa de actividad para ver cómo avanzas.",
-  },
-  {
-    icon: Layers,
-    title: "Mazos, notas y etiquetas",
-    description: "Submazos, tipos de nota con cloze, explorador con búsqueda y acciones masivas.",
-  },
-];
+function Brand() {
+  return (
+    <Link href="/" className="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight">
+      <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow-sm">
+        <Layers className="size-4" />
+      </span>
+      Flashcards
+    </Link>
+  );
+}
 
-const steps = [
-  { number: "1", title: "Crea tu cuenta", description: "Solo necesitas un correo y una contraseña." },
-  { number: "2", title: "Importa o crea mazos", description: "Sube tus .apkg de Anki o añade notas desde cero." },
-  { number: "3", title: "Repasa cada día", description: "Cuatro botones, intervalos previstos y deshacer, como en Anki." },
-];
+function Steps({ title, steps }: { title: string; steps: string[] }) {
+  return (
+    <div className="flex flex-col gap-4 rounded-xl border bg-card p-5">
+      <h3 className="font-medium">{title}</h3>
+      <ol className="flex flex-col gap-3 text-sm">
+        {steps.map((step, index) => (
+          <li key={step} className="flex gap-3">
+            <span className="w-4 shrink-0 font-mono text-muted-foreground tabular-nums">{index + 1}</span>
+            {step}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
 
 export default async function HomePage() {
   const user = await getCurrentUser();
   if (user) redirect("/decks");
+  const { locale, t } = await getI18n();
+  const l = t.landing;
+  const premade = PREMADE_DECKS[0];
+  const premadeCount = premade ? formatNumber(premade.cardCount, locale) : null;
 
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="safe-top sticky top-0 z-20 border-b bg-background/75 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4 md:px-6">
-          <Link href="/" className="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow-sm">
-              <Layers className="size-4" />
-            </span>
-            Flashcards
-          </Link>
+        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-4 px-4 md:px-6">
+          <Brand />
           <nav className="flex items-center gap-2">
-            <Link href="/login" className={buttonStyles("ghost", "sm")}>
-              Iniciar sesión
+            <div className="mr-1 hidden sm:block">
+              <LanguageSwitcher label={l.language} size="sm" />
+            </div>
+            <Link href="/login" className={buttonStyles("ghost", "sm", "whitespace-nowrap")}>
+              {l.login}
             </Link>
-            <Link href="/register" className={buttonStyles("primary", "sm")}>
-              Crear cuenta
+            <Link href="/register" className={buttonStyles("primary", "sm", "whitespace-nowrap")}>
+              {l.signup}
             </Link>
           </nav>
         </div>
       </header>
 
       <main className="flex-1">
-        <section className="mx-auto grid w-full max-w-5xl items-center gap-10 px-4 py-16 md:grid-cols-2 md:px-6 md:py-24">
+        <section className="mx-auto grid w-full max-w-5xl items-center gap-12 px-4 pb-20 pt-14 md:grid-cols-[1.1fr_1fr] md:px-6 md:pb-28 md:pt-24">
           <div className="flex flex-col gap-6">
-            <span className="w-fit rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
-              Compatible con Anki · Gratis en iOS
-            </span>
-            <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-              Tus mazos de Anki, en cualquier dispositivo.
-            </h1>
-            <p className="max-w-lg text-lg text-muted-foreground">
-              Importa tus .apkg, estudia con el mismo repaso espaciado y sigue tu progreso desde el móvil o el ordenador, sin
-              perder nada por el camino.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <h1 className="max-w-xl text-4xl font-semibold leading-[1.08] tracking-tight text-pretty md:text-[3.25rem]">{l.heading}</h1>
+            <p className="max-w-lg text-lg leading-relaxed text-muted-foreground">{l.lead}</p>
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
               <Link href="/register" className={buttonStyles("primary", "lg")}>
-                Empezar gratis
+                {l.ctaPrimary}
                 <ArrowRight className="size-4" />
               </Link>
               <Link href="/login" className={buttonStyles("outline", "lg")}>
-                Ya tengo cuenta
+                {l.ctaSecondary}
               </Link>
             </div>
+            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              {l.fineprint.map((item, index) => (
+                <li key={item} className="flex items-center gap-4">
+                  {index > 0 ? <span aria-hidden className="size-1 rounded-full bg-border" /> : null}
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
-          <CardPreview className="mx-auto" />
+          <div className="flex flex-col items-center gap-3">
+            <ReviewDemo />
+            <p className="text-xs text-muted-foreground">{l.demo.label}</p>
+          </div>
+        </section>
+
+        <section className="border-t">
+          <div className="mx-auto grid w-full max-w-5xl gap-10 px-4 py-16 md:grid-cols-[1fr_1.6fr] md:gap-16 md:px-6 md:py-20">
+            <div className="flex flex-col gap-3">
+              <h2 className="text-2xl font-semibold tracking-tight">{l.carryTitle}</h2>
+              <p className="text-muted-foreground">{l.carryLead}</p>
+            </div>
+            <dl className="divide-y border-y">
+              {l.carry.map((row) => (
+                <div key={row.term} className="grid gap-1 py-4 sm:grid-cols-[11rem_1fr] sm:gap-6">
+                  <dt className="font-medium">{row.term}</dt>
+                  <dd className="text-muted-foreground">{row.detail}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         </section>
 
         <section className="border-t bg-muted/40">
-          <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-16 md:px-6">
-            <div className="flex flex-col gap-2">
-              <h2 className="text-2xl font-semibold tracking-tight">Todo lo que esperas de Anki</h2>
-              <p className="max-w-xl text-muted-foreground">Sin instalar programas ni pagar la app de iPhone.</p>
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-16 md:px-6 md:py-20">
+            <div className="flex max-w-xl flex-col gap-3">
+              <h2 className="text-2xl font-semibold tracking-tight">{l.installTitle}</h2>
+              <p className="text-muted-foreground">{l.installLead}</p>
             </div>
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {features.map((feature) => {
-                const Icon = feature.icon;
-                return (
-                  <li key={feature.title} className="flex flex-col gap-3 rounded-xl border bg-card p-5">
-                    <span className="flex size-9 items-center justify-center rounded-lg bg-accent-soft text-accent">
-                      <Icon className="size-4" />
-                    </span>
-                    <h3 className="font-medium">{feature.title}</h3>
-                    <p className="text-sm text-muted-foreground">{feature.description}</p>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Steps title={l.installIosTitle} steps={l.installIosSteps} />
+              <Steps title={l.installAndroidTitle} steps={l.installAndroidSteps} />
+            </div>
           </div>
         </section>
 
-        <section className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-16 md:px-6">
-          <h2 className="text-2xl font-semibold tracking-tight">Cómo funciona</h2>
-          <ol className="grid gap-6 md:grid-cols-3">
-            {steps.map((step) => (
-              <li key={step.number} className="flex gap-4">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
-                  {step.number}
-                </span>
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-medium">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground">{step.description}</p>
+        {premade && premadeCount ? (
+          <section className="border-t">
+            <div className="mx-auto grid w-full max-w-5xl items-center gap-8 px-4 py-16 md:grid-cols-2 md:px-6 md:py-20">
+              <div className="flex flex-col gap-3">
+                <h2 className="text-2xl font-semibold tracking-tight">{l.premadeTitle}</h2>
+                <p className="text-muted-foreground">{l.premadeLead}</p>
+              </div>
+              <div className="flex flex-col gap-4 rounded-xl border bg-card p-5">
+                <div className="flex items-baseline justify-between gap-4">
+                  <h3 className="font-medium">{l.premadeName}</h3>
+                  <span className="text-sm text-muted-foreground tabular-nums">{l.premadeCards(premadeCount)}</span>
                 </div>
-              </li>
-            ))}
-          </ol>
-          <div className="flex flex-col items-start gap-4 rounded-2xl border bg-card p-8 md:flex-row md:items-center md:justify-between">
+                <p className="text-sm text-muted-foreground">{l.premadeDetail(premadeCount)}</p>
+                <ul className="flex flex-wrap gap-1.5" lang="en">
+                  {premade.samples.map((sample) => (
+                    <li key={sample.front} className="rounded-md border bg-background px-2 py-1 text-xs">
+                      {sample.front}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        <section className="border-t">
+          <div className="mx-auto grid w-full max-w-5xl gap-10 px-4 py-16 md:grid-cols-[1fr_1.6fr] md:gap-16 md:px-6 md:py-20">
+            <h2 className="text-2xl font-semibold tracking-tight">{l.faqTitle}</h2>
+            <div className="divide-y border-y">
+              {l.faq.map((item) => (
+                <details key={item.q} className="group py-1">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-3 font-medium [&::-webkit-details-marker]:hidden">
+                    {item.q}
+                    <Plus className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-45" />
+                  </summary>
+                  <p className="pb-4 pr-8 text-muted-foreground">{item.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-t">
+          <div className="mx-auto flex w-full max-w-5xl flex-col items-start gap-6 px-4 py-16 md:flex-row md:items-center md:justify-between md:px-6">
             <div className="flex flex-col gap-1">
-              <p className="text-lg font-semibold">Listo para retomar tus repasos</p>
-              <p className="text-sm text-muted-foreground">Crea tu cuenta e importa tu primer mazo en menos de un minuto.</p>
+              <p className="text-xl font-semibold tracking-tight">{l.finalTitle}</p>
+              <p className="text-muted-foreground">{l.finalLead}</p>
             </div>
             <Link href="/register" className={buttonStyles("primary", "lg")}>
-              Crear cuenta
+              {l.finalCta}
               <ArrowRight className="size-4" />
             </Link>
           </div>
@@ -153,9 +188,9 @@ export default async function HomePage() {
       </main>
 
       <footer className="border-t">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-8 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-6">
-          <span>Flashcards · repaso espaciado compatible con Anki</span>
-          <span>Anki es una marca de sus respectivos autores. Este proyecto no está afiliado.</span>
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-8 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-6">
+          <span>{l.footerNote}</span>
+          <LanguageSwitcher label={l.language} size="sm" className="self-start md:self-auto" />
         </div>
       </footer>
     </div>
