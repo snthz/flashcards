@@ -3,6 +3,9 @@ import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { safeMediaName, sha1, writeMediaFile, mimeTypeFor } from "@/lib/media";
 import { toDeckDescription } from "@/lib/decks/description";
+import { defaultConfigName } from "@/lib/defaults";
+import { defaultLocale, type Locale } from "@/lib/i18n/config";
+import { dictionaries } from "@/lib/i18n/messages";
 import { plainText } from "./render";
 import type { ParsedCollection, ParsedDeckConfig } from "./types";
 
@@ -99,11 +102,12 @@ async function ensureDeckPath(userId: string, fullName: string, configId: string
   return deckId;
 }
 
-export async function importCollection(userId: string, parsed: ParsedCollection): Promise<ImportSummary> {
+export async function importCollection(userId: string, parsed: ParsedCollection, locale: Locale = defaultLocale): Promise<ImportSummary> {
+  const fallbackDeckName = dictionaries[locale].importer.defaults.deck;
   const summary: ImportSummary = { decks: 0, noteTypes: 0, notes: 0, updatedNotes: 0, cards: 0, media: 0, skippedCards: 0 };
   const defaultConfig =
     (await prisma.deckConfig.findFirst({ where: { userId, isDefault: true }, select: { id: true } })) ??
-    (await prisma.deckConfig.create({ data: { userId, name: "Predeterminada", isDefault: true }, select: { id: true } }));
+    (await prisma.deckConfig.create({ data: { userId, name: defaultConfigName(locale), isDefault: true }, select: { id: true } }));
 
   const noteTypeIds = new Map<string, { id: string; fieldNames: string[]; sortFieldIdx: number }>();
   for (const noteType of parsed.noteTypes) {
@@ -160,7 +164,7 @@ export async function importCollection(userId: string, parsed: ParsedCollection)
     if (isDefaultDeck && !usedDeckIds.has(key)) continue;
     const configId = deck.configAnkiId ? (configIds.get(deck.configAnkiId.toString()) ?? defaultConfig.id) : defaultConfig.id;
     const before = await prisma.deck.count({ where: { userId } });
-    const deckId = await ensureDeckPath(userId, deck.name || "Importado", configId, deck.ankiId, deck.description);
+    const deckId = await ensureDeckPath(userId, deck.name || fallbackDeckName, configId, deck.ankiId, deck.description);
     const after = await prisma.deck.count({ where: { userId } });
     summary.decks += after - before;
     if (deckId) deckIds.set(key, deckId);
@@ -168,7 +172,7 @@ export async function importCollection(userId: string, parsed: ParsedCollection)
   const fallbackDeckId = async () => {
     const existing = deckIds.values().next();
     if (!existing.done) return existing.value;
-    const created = await ensureDeckPath(userId, "Importado", defaultConfig.id, null, "");
+    const created = await ensureDeckPath(userId, fallbackDeckName, defaultConfig.id, null, "");
     return created ?? "";
   };
   for (const key of usedDeckIds) {

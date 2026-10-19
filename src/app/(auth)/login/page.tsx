@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
 import { AuthForm } from "@/components/auth/auth-form";
+import { getMessages } from "@/lib/i18n/server";
 import { login } from "../actions";
 
-export const metadata: Metadata = { title: "Iniciar sesión" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getMessages();
+  return { title: t.auth.loginTitle };
+}
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const t = (await getMessages()).auth;
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Bienvenido de vuelta</h1>
-        <p className="text-muted-foreground">Continúa tu repaso justo donde lo dejaste.</p>
+        <h1 className="text-3xl font-semibold tracking-tight">{t.loginHeading}</h1>
+        <p className="text-muted-foreground">{t.loginLead}</p>
       </div>
       <AuthForm mode="login" action={login} />
     </div>

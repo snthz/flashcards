@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Download, Share } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsClient } from "@/lib/hooks/use-is-client";
+import { useMessages } from "@/lib/i18n/client";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -19,6 +20,7 @@ function isStandalone() {
 
 export function InstallPrompt() {
   const isClient = useIsClient();
+  const t = useMessages().pwa;
   const [event, setEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [accepted, setAccepted] = useState(false);
 
@@ -38,11 +40,9 @@ export function InstallPrompt() {
   return (
     <div className="flex flex-col gap-3 rounded-xl border bg-accent-soft/60 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-col gap-0.5">
-        <p className="text-sm font-medium">Instala la app</p>
+        <p className="text-sm font-medium">{t.installTitle}</p>
         <p className="text-sm text-muted-foreground">
-          {event
-            ? "Accede más rápido y estudia a pantalla completa."
-            : "En Safari toca Compartir y luego “Añadir a pantalla de inicio”."}
+          {event ? t.installBody : t.installIos}
         </p>
       </div>
       {event ? (
@@ -55,7 +55,7 @@ export function InstallPrompt() {
           }}
         >
           <Download className="size-4" />
-          Instalar
+          {t.install}
         </Button>
       ) : (
         <Share className="size-5 text-accent" aria-hidden />

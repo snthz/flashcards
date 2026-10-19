@@ -1,13 +1,13 @@
-import { z } from "./zod";
+import { message, z } from "./zod";
 
 export const DECK_DESCRIPTION_MAX = 2000;
 
 export const deckNameSchema = z
   .string()
   .trim()
-  .min(1, "Escribe un nombre")
-  .max(120, "El nombre es demasiado largo")
-  .refine((value) => !value.includes("::"), "El nombre no puede contener ::");
+  .min(1, message("deckNameRequired"))
+  .max(120, message("deckNameTooLong"))
+  .refine((value) => !value.includes("::"), message("deckNameNoSeparator"));
 
 export const createDeckSchema = z.object({
   name: deckNameSchema,
@@ -17,7 +17,7 @@ export const createDeckSchema = z.object({
 export const renameDeckSchema = z.object({
   id: z.string().uuid(),
   name: deckNameSchema,
-  description: z.string().trim().max(DECK_DESCRIPTION_MAX, "La descripción es demasiado larga").optional(),
+  description: z.string().trim().max(DECK_DESCRIPTION_MAX, message("descriptionTooLong")).optional(),
 });
 
 const stepsSchema = z
@@ -35,7 +35,7 @@ const stepsSchema = z
         return unit === "d" ? amount * 1440 : unit === "h" ? amount * 60 : amount;
       }),
   )
-  .pipe(z.array(z.number().positive("Los pasos deben ser positivos").max(60 * 24 * 365)));
+  .pipe(z.array(z.number().positive(message("stepsPositive")).max(60 * 24 * 365)));
 
 export const deckConfigSchema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -66,7 +66,7 @@ export const deckConfigSchema = z.object({
         .filter(Boolean)
         .map(Number),
     )
-    .pipe(z.array(z.number()).refine((w) => w.length === 0 || w.length >= 17, "Se esperan al menos 17 parámetros")),
+    .pipe(z.array(z.number()).refine((w) => w.length === 0 || w.length >= 17, message("fsrsWeightsCount"))),
 });
 
 export type DeckConfigInput = z.infer<typeof deckConfigSchema>;

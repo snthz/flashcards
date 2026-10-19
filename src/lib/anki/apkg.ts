@@ -119,11 +119,11 @@ function clampInt(value: number, min: number, max: number, fallback: number) {
   return Math.min(max, Math.max(min, Math.round(value)));
 }
 
-function parseLegacyDeckConfigs(json: string): ParsedDeckConfig[] {
+function parseLegacyDeckConfigs(json: string, fallbackName: string): ParsedDeckConfig[] {
   const raw = JSON.parse(json || "{}") as Record<string, Record<string, unknown>>;
   return Object.values(raw).map((conf) => {
     const id = asBigInt(conf.id);
-    const base = defaultDeckConfig(id, asString(conf.name) || "Importada");
+    const base = defaultDeckConfig(id, asString(conf.name) || fallbackName);
     const fresh = (conf.new ?? {}) as Record<string, unknown>;
     const rev = (conf.rev ?? {}) as Record<string, unknown>;
     const lapse = (conf.lapse ?? {}) as Record<string, unknown>;
@@ -149,11 +149,11 @@ function parseLegacyDeckConfigs(json: string): ParsedDeckConfig[] {
   });
 }
 
-function parseModernDeckConfigs(db: Database): ParsedDeckConfig[] {
+function parseModernDeckConfigs(db: Database, fallbackName: string): ParsedDeckConfig[] {
   if (!tableExists(db, "deck_config")) return [];
   return query(db, "SELECT id, name, config FROM deck_config").map((row) => {
     const id = asBigInt(row.id);
-    const base = defaultDeckConfig(id, asString(row.name) || "Importada");
+    const base = defaultDeckConfig(id, asString(row.name) || fallbackName);
     const config = decodeMessage(asBytes(row.config));
     const learn = packedFloats(config, 1);
     const relearn = packedFloats(config, 2);
@@ -179,14 +179,14 @@ function parseModernDeckConfigs(db: Database): ParsedDeckConfig[] {
   });
 }
 
-function parseLegacyNoteTypes(json: string): ParsedNoteType[] {
+function parseLegacyNoteTypes(json: string, fallbackName: string): ParsedNoteType[] {
   const raw = JSON.parse(json || "{}") as Record<string, Record<string, unknown>>;
   return Object.values(raw).map((model) => {
     const flds = (Array.isArray(model.flds) ? model.flds : []) as Array<Record<string, unknown>>;
     const tmpls = (Array.isArray(model.tmpls) ? model.tmpls : []) as Array<Record<string, unknown>>;
     return {
       ankiId: asBigInt(model.id),
-      name: asString(model.name) || "Sin nombre",
+      name: asString(model.name) || fallbackName,
       kind: asNumber(model.type) === 1 ? "CLOZE" : "STANDARD",
       css: asString(model.css),
       fields: [...flds].sort((a, b) => asNumber(a.ord) - asNumber(b.ord)).map((f) => ({ name: asString(f.name) })),
@@ -200,7 +200,7 @@ function parseLegacyNoteTypes(json: string): ParsedNoteType[] {
   });
 }
 
-function parseModernNoteTypes(db: Database): ParsedNoteType[] {
+function parseModernNoteTypes(db: Database, fallbackName: string): ParsedNoteType[] {
   const fieldsByType = new Map<string, Array<{ ord: number; name: string }>>();
   for (const row of query(db, "SELECT ntid, ord, name FROM fields")) {
     const key = asBigInt(row.ntid).toString();
@@ -222,7 +222,7 @@ function parseModernNoteTypes(db: Database): ParsedNoteType[] {
     const config = decodeMessage(asBytes(row.config));
     return {
       ankiId: id,
-      name: asString(row.name) || "Sin nombre",
+      name: asString(row.name) || fallbackName,
       kind: getVarint(config, 1) === 1 ? "CLOZE" : "STANDARD",
       css: getString(config, 3),
       fields: (fieldsByType.get(key) ?? []).sort((a, b) => a.ord - b.ord).map((f) => ({ name: f.name })),
@@ -383,13 +383,23 @@ function isZstd(data: Uint8Array) {
   return data.length >= 4 && data[0] === 0x28 && data[1] === 0xb5 && data[2] === 0x2f && data[3] === 0xfd;
 }
 
+export class ApkgError extends Error {
+  constructor(readonly code: "noCollection" | "emptyCollection") {
+    super(code);
+    this.name = "ApkgError";
+  }
+}
+
 export interface ParseOptions {
   now?: Date;
   includeMedia?: boolean;
+  fallbackNames?: { deckConfig?: string; noteType?: string };
 }
 
 export async function parseApkg(buffer: Uint8Array, options: ParseOptions = {}): Promise<ParsedCollection> {
   const now = options.now ?? new Date();
+  const deckConfigName = options.fallbackNames?.deckConfig ?? "Imported";
+  const noteTypeName = options.fallbackNames?.noteType ?? "Unnamed";
   const files = unzipSync(buffer);
   let version = 1;
   if (files.meta) {
@@ -408,21 +418,21 @@ export async function parseApkg(buffer: Uint8Array, options: ParseOptions = {}):
   } else if (files["collection.anki2"]) {
     collectionBytes = files["collection.anki2"];
   }
-  if (!collectionBytes) throw new Error("El archivo no contiene una colección de Anki");
+  if (!collectionBytes) throw new ApkgError("noCollection");
 
   const SQL = await getSql();
   const db = new SQL.Database(collectionBytes);
   try {
     const col = query(db, "SELECT crt, models, decks, dconf, ver FROM col")[0];
-    if (!col) throw new Error("La colección está vacía o dañada");
+    if (!col) throw new ApkgError("emptyCollection");
     const crt = asNumber(col.crt);
     const modern = tableExists(db, "notetypes") && query(db, "SELECT COUNT(*) AS c FROM notetypes")[0]?.c !== 0;
     const legacyModels = asString(col.models);
     const useModern = modern && (legacyModels === "" || legacyModels === "{}");
 
-    const noteTypes = useModern ? parseModernNoteTypes(db) : parseLegacyNoteTypes(legacyModels);
+    const noteTypes = useModern ? parseModernNoteTypes(db, noteTypeName) : parseLegacyNoteTypes(legacyModels, noteTypeName);
     const decks = useModern ? parseModernDecks(db) : parseLegacyDecks(asString(col.decks));
-    const deckConfigs = useModern ? parseModernDeckConfigs(db) : parseLegacyDeckConfigs(asString(col.dconf));
+    const deckConfigs = useModern ? parseModernDeckConfigs(db, deckConfigName) : parseLegacyDeckConfigs(asString(col.dconf), deckConfigName);
     const notes = parseNotes(db);
     const cards = parseCards(db, crt, now);
 

@@ -7,6 +7,7 @@ import { Field, FormError } from "@/components/ui/field";
 import { changePassword, deleteAccount, updateProfile, type SettingsState } from "@/app/(app)/settings/actions";
 import { logout } from "@/app/(auth)/actions";
 import { useIsClient } from "@/lib/hooks/use-is-client";
+import { useMessages } from "@/lib/i18n/client";
 
 const hours = Array.from({ length: 24 }, (_, i) => i);
 
@@ -18,15 +19,16 @@ function SuccessMessage({ message }: { message?: string }) {
 export function ProfileForm({ name, timezone, dayStartHour }: { name: string; timezone: string; dayStartHour: number }) {
   const [state, action, pending] = useActionState<SettingsState, FormData>(updateProfile, {});
   const isClient = useIsClient();
+  const t = useMessages().settings;
   const zones = isClient && typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [timezone];
   return (
     <form action={action} className="flex flex-col gap-4">
       <FormError message={state.error} />
       <SuccessMessage message={state.success} />
-      <Field label="Nombre" htmlFor="name" error={state.fieldErrors?.name}>
+      <Field label={t.name} htmlFor="name" error={state.fieldErrors?.name}>
         <Input id="name" name="name" defaultValue={name} required maxLength={80} />
       </Field>
-      <Field label="Zona horaria" htmlFor="timezone" error={state.fieldErrors?.timezone}>
+      <Field label={t.timezone} htmlFor="timezone" error={state.fieldErrors?.timezone}>
         <Select id="timezone" name="timezone" defaultValue={timezone}>
           {zones.includes(timezone) ? null : <option value={timezone}>{timezone}</option>}
           {zones.map((zone) => (
@@ -36,7 +38,7 @@ export function ProfileForm({ name, timezone, dayStartHour }: { name: string; ti
           ))}
         </Select>
       </Field>
-      <Field label="Inicio del día" htmlFor="dayStartHour" hint="Hora a la que empieza un nuevo día de estudio, igual que en Anki.">
+      <Field label={t.dayStart} htmlFor="dayStartHour" hint={t.dayStartHint}>
         <Select id="dayStartHour" name="dayStartHour" defaultValue={String(dayStartHour)}>
           {hours.map((hour) => (
             <option key={hour} value={hour}>
@@ -47,7 +49,7 @@ export function ProfileForm({ name, timezone, dayStartHour }: { name: string; ti
       </Field>
       <div>
         <Button type="submit" loading={pending}>
-          Guardar
+          {t.save}
         </Button>
       </div>
     </form>
@@ -56,19 +58,20 @@ export function ProfileForm({ name, timezone, dayStartHour }: { name: string; ti
 
 export function PasswordForm() {
   const [state, action, pending] = useActionState<SettingsState, FormData>(changePassword, {});
+  const t = useMessages().settings;
   return (
     <form action={action} className="flex flex-col gap-4">
       <FormError message={state.error} />
       <SuccessMessage message={state.success} />
-      <Field label="Contraseña actual" htmlFor="currentPassword" error={state.fieldErrors?.currentPassword}>
+      <Field label={t.currentPassword} htmlFor="currentPassword" error={state.fieldErrors?.currentPassword}>
         <Input id="currentPassword" name="currentPassword" type="password" autoComplete="current-password" required />
       </Field>
-      <Field label="Nueva contraseña" htmlFor="newPassword" error={state.fieldErrors?.newPassword}>
+      <Field label={t.newPassword} htmlFor="newPassword" error={state.fieldErrors?.newPassword}>
         <Input id="newPassword" name="newPassword" type="password" autoComplete="new-password" required minLength={8} />
       </Field>
       <div>
         <Button type="submit" variant="secondary" loading={pending}>
-          Cambiar contraseña
+          {t.changePassword}
         </Button>
       </div>
     </form>
@@ -76,10 +79,11 @@ export function PasswordForm() {
 }
 
 export function LogoutButton() {
+  const t = useMessages().settings;
   return (
     <form action={logout}>
       <Button type="submit" variant="outline">
-        Cerrar sesión
+        {t.logout}
       </Button>
     </form>
   );
@@ -87,14 +91,15 @@ export function LogoutButton() {
 
 export function DeleteAccountForm({ email }: { email: string }) {
   const [value, setValue] = useState("");
+  const t = useMessages().settings;
   return (
     <form action={deleteAccount} className="flex flex-col gap-3">
-      <Field label={`Escribe ${email} para confirmar`} htmlFor="confirmation">
+      <Field label={t.typeToConfirm(email)} htmlFor="confirmation">
         <Input id="confirmation" name="confirmation" value={value} onChange={(e) => setValue(e.target.value)} autoComplete="off" />
       </Field>
       <div>
         <Button type="submit" variant="danger" disabled={value !== email}>
-          Eliminar cuenta y todos los datos
+          {t.deleteAccount}
         </Button>
       </div>
     </form>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Streak } from "@/lib/stats/queries";
 import { cn } from "@/lib/utils";
+import { getMessages } from "@/lib/i18n/server";
 
 interface Tier {
   min: number;
@@ -51,12 +52,10 @@ function FlameIcon({ tier, className }: { tier: Tier | null; className?: string 
   );
 }
 
-export function StreakBadge({ streak, className }: { streak: Streak; className?: string }) {
-  const tier = TIERS.find((t) => streak.days >= t.min) ?? null;
-  const label =
-    streak.days === 0
-      ? "Sin racha. Estudia hoy para empezar una."
-      : `Racha de ${streak.days} ${streak.days === 1 ? "día" : "días"}${streak.activeToday ? "" : ". Estudia hoy para mantenerla."}`;
+export async function StreakBadge({ streak, className }: { streak: Streak; className?: string }) {
+  const t = await getMessages();
+  const tier = TIERS.find((entry) => streak.days >= entry.min) ?? null;
+  const label = streak.days === 0 ? t.stats.streakBadge.none : t.stats.streakBadge.label(streak.days, streak.activeToday);
   return (
     <Link
       href="/stats"

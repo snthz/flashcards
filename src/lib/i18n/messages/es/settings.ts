@@ -1,0 +1,27 @@
+import type { Messages } from "../types";
+
+export const settings: Messages["settings"] = {
+  title: "Ajustes",
+  profileTitle: "Perfil",
+  profileDescription: "Tu nombre y cómo se calculan los días de estudio.",
+  name: "Nombre",
+  timezone: "Zona horaria",
+  dayStart: "Inicio del día",
+  dayStartHint: "Hora a la que empieza un nuevo día de estudio, igual que en Anki.",
+  save: "Guardar",
+  profileUpdated: "Perfil actualizado",
+  invalidTimezone: "Zona horaria inválida",
+  languageTitle: "Idioma",
+  languageDescription: "Se usa en toda la app, en este y en tus otros dispositivos.",
+  passwordTitle: "Contraseña",
+  currentPassword: "Contraseña actual",
+  newPassword: "Nueva contraseña",
+  changePassword: "Cambiar contraseña",
+  passwordUpdated: "Contraseña actualizada",
+  wrongCurrentPassword: "La contraseña actual no es correcta",
+  logout: "Cerrar sesión",
+  dangerTitle: "Zona de peligro",
+  dangerDescription: "Eliminar tu cuenta borra mazos, tarjetas, historial y archivos multimedia.",
+  typeToConfirm: (email) => `Escribe ${email} para confirmar`,
+  deleteAccount: "Eliminar cuenta y todos los datos",
+};

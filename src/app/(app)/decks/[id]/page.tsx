@@ -10,13 +10,18 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CreateDeckButton } from "@/components/decks/deck-dialogs";
 import { ExpandableText } from "@/components/ui/expandable-text";
 import { formatNumber } from "@/lib/utils";
+import { getI18n, getMessages } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n/config";
 
-export const metadata: Metadata = { title: "Mazo" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getMessages();
+  return { title: t.decks.deckTitle };
+}
 
-function CountTile({ label, value, tone }: { label: string; value: number; tone: string }) {
+function CountTile({ label, value, tone, locale }: { label: string; value: number; tone: string; locale: Locale }) {
   return (
     <div className="flex flex-col items-center gap-1 rounded-xl border bg-card px-4 py-5">
-      <span className={`text-3xl font-semibold tabular-nums ${tone}`}>{formatNumber(value)}</span>
+      <span className={`text-3xl font-semibold tabular-nums ${tone}`}>{formatNumber(value, locale)}</span>
       <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
     </div>
   );
@@ -25,6 +30,7 @@ function CountTile({ label, value, tone }: { label: string; value: number; tone:
 export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
   const { id } = await params;
   const user = await requireUser();
+  const { locale, t } = await getI18n();
   const tree = await getDeckTree(user);
   const deck = findNode(tree, id);
   if (!deck) notFound();
@@ -40,19 +46,19 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
           <>
             <Link href={`/browse?deck=${deck.id}`} className={buttonStyles("outline", "md")}>
               <Search className="size-4" />
-              Explorar
+              {t.decks.browse}
             </Link>
             <Link href={`/decks/${deck.id}/options`} className={buttonStyles("outline", "md")}>
               <Settings2 className="size-4" />
-              Opciones
+              {t.common.options}
             </Link>
           </>
         }
       />
       <div className="grid grid-cols-3 gap-3">
-        <CountTile label="Nuevas" value={deck.counts.fresh} tone="text-info" />
-        <CountTile label="Aprendiendo" value={deck.counts.learning} tone="text-danger" />
-        <CountTile label="Repaso" value={deck.counts.review} tone="text-success" />
+        <CountTile label={t.decks.new} value={deck.counts.fresh} tone="text-info" locale={locale} />
+        <CountTile label={t.decks.learning} value={deck.counts.learning} tone="text-danger" locale={locale} />
+        <CountTile label={t.decks.review} value={deck.counts.review} tone="text-success" locale={locale} />
       </div>
       <div className="flex flex-col gap-3 sm:flex-row">
         <Link
@@ -61,24 +67,24 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
           aria-disabled={pending === 0}
         >
           <Play className="size-5" />
-          {pending > 0 ? "Estudiar ahora" : "Nada pendiente por hoy"}
+          {pending > 0 ? t.decks.studyNow : t.decks.nothingDue}
         </Link>
         <Link href={`/notes/new?deck=${deck.id}`} className={buttonStyles("outline", "lg", "h-14")}>
           <Plus className="size-5" />
-          Añadir tarjeta
+          {t.decks.addCard}
         </Link>
       </div>
       <Card>
         <CardHeader className="flex-row items-center justify-between gap-3 p-6 pb-4">
-          <p className="text-sm font-medium">Submazos</p>
+          <p className="text-sm font-medium">{t.decks.subdecks}</p>
           <CreateDeckButton parentId={deck.id} variant="outline" size="sm">
             <Plus className="size-3.5" />
-            Submazo
+            {t.decks.subdeck}
           </CreateDeckButton>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 p-6 pt-0">
           {deck.children.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Este mazo no tiene submazos.</p>
+            <p className="text-sm text-muted-foreground">{t.decks.noSubdecks}</p>
           ) : (
             <ul className="divide-y">
               {deck.children.map((child) => (
@@ -86,16 +92,16 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
                   <Link href={`/decks/${child.id}`} className="flex items-center justify-between py-2.5 text-sm hover:text-accent">
                     <span className="truncate font-medium">{child.name}</span>
                     <span className="flex gap-3 tabular-nums text-muted-foreground">
-                      <span className="text-info">{child.counts.fresh}</span>
-                      <span className="text-danger">{child.counts.learning}</span>
-                      <span className="text-success">{child.counts.review}</span>
+                      <span className="text-info">{formatNumber(child.counts.fresh, locale)}</span>
+                      <span className="text-danger">{formatNumber(child.counts.learning, locale)}</span>
+                      <span className="text-success">{formatNumber(child.counts.review, locale)}</span>
                     </span>
                   </Link>
                 </li>
               ))}
             </ul>
           )}
-          <p className="text-xs text-muted-foreground">{formatNumber(deck.counts.total)} tarjetas en total</p>
+          <p className="text-xs text-muted-foreground">{t.decks.totalCards(deck.counts.total, formatNumber(deck.counts.total, locale))}</p>
         </CardContent>
       </Card>
     </div>

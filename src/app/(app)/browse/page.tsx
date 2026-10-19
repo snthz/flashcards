@@ -6,9 +6,13 @@ import { browseQuerySchema } from "@/lib/validation/note";
 import { PageHeader } from "@/components/layout/page-header";
 import { BrowseFilters } from "@/components/browse/browse-filters";
 import { BrowseTable } from "@/components/browse/browse-table";
+import { getMessages } from "@/lib/i18n/server";
 import { BrowseTableSkeleton } from "./loading";
 
-export const metadata: Metadata = { title: "Explorar" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getMessages();
+  return { title: t.browse.title };
+}
 
 async function Results({ query }: { query: ReturnType<typeof browseQuerySchema.parse> }) {
   const user = await requireUser();
@@ -27,10 +31,11 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
   const query = parsed.success ? parsed.data : browseQuerySchema.parse({});
   const user = await requireUser();
   const decks = await getDeckOptions(user);
+  const t = await getMessages();
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Explorar" description="Busca, edita, suspende o reinicia tarjetas." />
+      <PageHeader title={t.browse.title} description={t.browse.description} />
       <BrowseFilters query={query} decks={decks} />
       <Suspense key={JSON.stringify(query)} fallback={<BrowseTableSkeleton />}>
         <Results query={query} />

@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useMessages } from "@/lib/i18n/client";
 
 export function ExpandableText({ text, className }: { text: string; className?: string }) {
+  const t = useMessages();
   const ref = useRef<HTMLParagraphElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
@@ -23,7 +25,7 @@ export function ExpandableText({ text, className }: { text: string; className?: 
       </p>
       {overflowing ? (
         <button type="button" className="text-xs font-medium text-foreground hover:underline" onClick={() => setExpanded((v) => !v)}>
-          {expanded ? "Ver menos" : "Ver más"}
+          {expanded ? t.study.showLess : t.study.showMore}
         </button>
       ) : null}
     </div>

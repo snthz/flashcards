@@ -1,0 +1,22 @@
+import type { Messages } from "../types";
+
+export const common: Messages["common"] = {
+  appName: "Flashcards",
+  back: "Volver",
+  close: "Cerrar",
+  save: "Guardar",
+  cancel: "Cancelar",
+  delete: "Eliminar",
+  edit: "Editar",
+  rename: "Renombrar",
+  create: "Crear",
+  confirm: "Confirmar",
+  loading: "Cargando…",
+  search: "Buscar",
+  all: "Todos",
+  none: "Ninguno",
+  more: "Más",
+  options: "Opciones",
+  invalidData: "Datos inválidos",
+  notFound: "No encontrado",
+};

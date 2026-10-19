@@ -3,6 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import type { CurrentUser } from "@/lib/auth/user";
 import { flattenTree, getDeckSubtreeIds, getDeckTree } from "@/lib/decks/queries";
 import type { BrowseQuery } from "@/lib/validation/note";
+import { getMessages } from "@/lib/i18n/server";
 
 export const BROWSE_PAGE_SIZE = 50;
 
@@ -52,7 +53,7 @@ export async function searchCards(user: CurrentUser, query: BrowseQuery) {
       { note: { fields: { has: term } } },
     ];
   }
-  const [total, cards, decks] = await Promise.all([
+  const [total, cards, decks, t] = await Promise.all([
     prisma.card.count({ where }),
     prisma.card.findMany({
       where,
@@ -76,12 +77,13 @@ export async function searchCards(user: CurrentUser, query: BrowseQuery) {
       },
     }),
     getDeckOptions(user),
+    getMessages(),
   ]);
   const deckNames = new Map(decks.map((d) => [d.id, d.name]));
   const rows: BrowseRow[] = cards.map((card) => ({
     id: card.id,
     noteId: card.noteId,
-    preview: card.note.sortField || "(vacío)",
+    preview: card.note.sortField || t.notes.emptyPreview,
     deckName: deckNames.get(card.deckId) ?? "",
     state: card.state,
     due: card.due.toISOString(),

@@ -7,11 +7,14 @@ import { CheckCircle2, FileUp, UploadCloud } from "lucide-react";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { FormError } from "@/components/ui/field";
 import { cn, formatNumber } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
+import { intlLocale } from "@/lib/i18n/config";
 import type { ImportSummary } from "@/lib/anki/import";
 
 type Phase = "idle" | "uploading" | "processing" | "done" | "error";
 
 export function ImportForm() {
+  const { locale, t } = useI18n();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -24,7 +27,7 @@ export function ImportForm() {
   const pick = (candidate: File | null | undefined) => {
     if (!candidate) return;
     if (!candidate.name.toLowerCase().endsWith(".apkg")) {
-      setError("Selecciona un archivo .apkg exportado desde Anki");
+      setError(t.importer.errors.notApkg);
       return;
     }
     setError(null);
@@ -54,7 +57,7 @@ export function ImportForm() {
     xhr.upload.onload = () => setPhase("processing");
     xhr.onerror = () => {
       setPhase("error");
-      setError("No se pudo subir el archivo. Revisa tu conexión.");
+      setError(t.importer.errors.uploadFailed);
     };
     xhr.onload = () => {
       try {
@@ -65,11 +68,11 @@ export function ImportForm() {
           router.refresh();
         } else {
           setPhase("error");
-          setError(payload.error ?? "No se pudo importar el archivo");
+          setError(payload.error ?? t.importer.errors.failed);
         }
       } catch {
         setPhase("error");
-        setError("Respuesta inesperada del servidor");
+        setError(t.importer.errors.unexpectedResponse);
       }
     };
     xhr.send(body);
@@ -82,21 +85,21 @@ export function ImportForm() {
       <div className="flex flex-col items-center gap-4 rounded-xl border bg-card p-8 text-center animate-in">
         <CheckCircle2 className="size-10 text-success" />
         <div className="flex flex-col gap-1">
-          <p className="text-lg font-semibold">Importación completada</p>
+          <p className="text-lg font-semibold">{t.importer.done}</p>
           <p className="text-sm text-muted-foreground">{file?.name}</p>
         </div>
         <dl className="grid w-full max-w-sm grid-cols-2 gap-x-6 gap-y-2 text-sm">
-          <Stat label="Mazos nuevos" value={summary.decks} />
-          <Stat label="Tipos de nota" value={summary.noteTypes} />
-          <Stat label="Notas nuevas" value={summary.notes} />
-          <Stat label="Notas actualizadas" value={summary.updatedNotes} />
-          <Stat label="Tarjetas" value={summary.cards} />
-          <Stat label="Archivos multimedia" value={summary.media} />
-          {summary.skippedCards > 0 ? <Stat label="Tarjetas ya existentes" value={summary.skippedCards} /> : null}
+          <Stat label={t.importer.summary.decks} value={summary.decks} />
+          <Stat label={t.importer.summary.noteTypes} value={summary.noteTypes} />
+          <Stat label={t.importer.summary.notes} value={summary.notes} />
+          <Stat label={t.importer.summary.updatedNotes} value={summary.updatedNotes} />
+          <Stat label={t.importer.summary.cards} value={summary.cards} />
+          <Stat label={t.importer.summary.media} value={summary.media} />
+          {summary.skippedCards > 0 ? <Stat label={t.importer.summary.skippedCards} value={summary.skippedCards} /> : null}
         </dl>
         <div className="flex gap-2">
           <Link href="/decks" className={buttonStyles("primary")}>
-            Ver mazos
+            {t.importer.viewDecks}
           </Link>
           <Button
             variant="outline"
@@ -106,7 +109,7 @@ export function ImportForm() {
               setPhase("idle");
             }}
           >
-            Importar otro
+            {t.importer.importAnother}
           </Button>
         </div>
       </div>
@@ -144,9 +147,9 @@ export function ImportForm() {
         />
         {file ? <FileUp className="size-8 text-accent" /> : <UploadCloud className="size-8 text-muted-foreground" />}
         <div className="flex flex-col gap-1">
-          <p className="font-medium">{file ? file.name : "Arrastra tu archivo .apkg o haz clic para elegirlo"}</p>
+          <p className="font-medium">{file ? file.name : t.importer.dropzone}</p>
           <p className="text-sm text-muted-foreground">
-            {file ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : "Exporta un mazo desde Anki y súbelo aquí"}
+            {file ? `${new Intl.NumberFormat(intlLocale(locale), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(file.size / 1024 / 1024)} MB` : t.importer.dropzoneHint}
           </p>
         </div>
       </div>
@@ -159,13 +162,13 @@ export function ImportForm() {
             />
           </div>
           <p className="text-sm text-muted-foreground" aria-live="polite">
-            {phase === "uploading" ? `Subiendo… ${progress}%` : "Procesando el mazo, esto puede tardar unos segundos…"}
+            {phase === "uploading" ? t.importer.uploading(progress) : t.importer.processing}
           </p>
         </div>
       ) : null}
       <div className="flex justify-end">
         <Button onClick={upload} disabled={!file} loading={busy}>
-          Importar
+          {t.importer.submit}
         </Button>
       </div>
     </div>
@@ -173,10 +176,11 @@ export function ImportForm() {
 }
 
 function Stat({ label, value }: { label: string; value: number }) {
+  const { locale } = useI18n();
   return (
     <>
       <dt className="text-left text-muted-foreground">{label}</dt>
-      <dd className="text-right font-medium tabular-nums">{formatNumber(value)}</dd>
+      <dd className="text-right font-medium tabular-nums">{formatNumber(value, locale)}</dd>
     </>
   );
 }

@@ -1,5 +1,8 @@
 import { z } from "zod";
+import type { Messages } from "@/lib/i18n/messages";
 
-z.config(z.locales.es());
+export function message(key: keyof Messages["validation"]) {
+  return key;
+}
 
 export { z };

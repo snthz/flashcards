@@ -6,6 +6,7 @@ import { Input, Select } from "@/components/ui/input";
 import { Field, FormError } from "@/components/ui/field";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createDeckConfig, deleteDeckConfig, saveDeckConfig, setDeckConfig, type ActionState } from "@/lib/decks/actions";
+import { useMessages } from "@/lib/i18n/client";
 
 interface ConfigValues {
   id: string;
@@ -45,6 +46,9 @@ function stepsToText(steps: number[]) {
 }
 
 export function DeckOptionsForm({ deckId, config, configs }: Props) {
+  const t = useMessages();
+  const o = t.deckOptions;
+  const l = o.labels;
   const [state, action, pending] = useActionState<ActionState, FormData>(saveDeckConfig.bind(null, config.id), {});
   const [algorithm, setAlgorithm] = useState(config.algorithm);
   const [switching, startSwitch] = useTransition();
@@ -54,8 +58,8 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Preajuste</CardTitle>
-          <CardDescription>Los mazos que compartan un preajuste usan las mismas opciones.</CardDescription>
+          <CardTitle>{o.preset}</CardTitle>
+          <CardDescription>{o.presetDescription}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -63,12 +67,12 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
               value={config.id}
               disabled={switching}
               onChange={(event) => startSwitch(() => setDeckConfig(deckId, event.target.value))}
-              aria-label="Preajuste"
+              aria-label={o.preset}
             >
               {configs.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
-                  {c.isDefault ? " (predeterminada)" : ""}
+                  {c.isDefault ? o.defaultSuffix : ""}
                 </option>
               ))}
             </Select>
@@ -78,13 +82,13 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
                 onClick={() => startSwitch(() => deleteDeckConfig(deckId, config.id))}
                 disabled={switching}
               >
-                Eliminar preajuste
+                {o.deletePreset}
               </Button>
             ) : null}
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
-              placeholder="Nombre del nuevo preajuste"
+              placeholder={o.newPresetPlaceholder}
               value={newName}
               onChange={(event) => setNewName(event.target.value)}
               maxLength={80}
@@ -99,7 +103,7 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
                 })
               }
             >
-              Clonar como nuevo
+              {o.cloneAsNew}
             </Button>
           </div>
         </CardContent>
@@ -109,27 +113,27 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Límites diarios</CardTitle>
+            <CardTitle>{o.dailyLimits}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nombre del preajuste" htmlFor="name" className="sm:col-span-2">
+            <Field label={l.name} htmlFor="name" className="sm:col-span-2">
               <Input id="name" name="name" defaultValue={config.name} required maxLength={80} />
             </Field>
-            <Field label="Tarjetas nuevas por día" htmlFor="newPerDay">
+            <Field label={l.newPerDay} htmlFor="newPerDay">
               <Input id="newPerDay" name="newPerDay" type="number" min={0} max={9999} defaultValue={config.newPerDay} inputMode="numeric" />
             </Field>
-            <Field label="Repasos máximos por día" htmlFor="reviewsPerDay">
+            <Field label={l.reviewsPerDay} htmlFor="reviewsPerDay">
               <Input id="reviewsPerDay" name="reviewsPerDay" type="number" min={0} max={99999} defaultValue={config.reviewsPerDay} inputMode="numeric" />
             </Field>
-            <Field label="Orden de tarjetas nuevas" htmlFor="newCardOrder">
+            <Field label={l.newCardOrder} htmlFor="newCardOrder">
               <Select id="newCardOrder" name="newCardOrder" defaultValue={config.newCardOrder}>
-                <option value="SEQUENTIAL">En orden de creación</option>
-                <option value="RANDOM">Aleatorio</option>
+                <option value="SEQUENTIAL">{o.orderSequential}</option>
+                <option value="RANDOM">{o.orderRandom}</option>
               </Select>
             </Field>
-            <Field label="Algoritmo" htmlFor="algorithm" hint="SM-2 es el clásico de Anki. FSRS es el algoritmo moderno de Anki 23.10+.">
+            <Field label={l.algorithm} htmlFor="algorithm" hint={o.algorithmHint}>
               <Select id="algorithm" name="algorithm" value={algorithm} onChange={(e) => setAlgorithm(e.target.value as "SM2" | "FSRS")}>
-                <option value="SM2">SM-2 (Anki clásico)</option>
+                <option value="SM2">{o.algorithmSm2}</option>
                 <option value="FSRS">FSRS</option>
               </Select>
             </Field>
@@ -138,20 +142,20 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Tarjetas nuevas</CardTitle>
-            <CardDescription>Pasos separados por espacios. Usa m, h o d: “1m 10m”, “1h”, “3d”.</CardDescription>
+            <CardTitle>{o.newCards}</CardTitle>
+            <CardDescription>{o.stepsHint}</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <Field label="Pasos de aprendizaje" htmlFor="learningSteps">
+            <Field label={l.learningSteps} htmlFor="learningSteps">
               <Input id="learningSteps" name="learningSteps" defaultValue={stepsToText(config.learningSteps)} />
             </Field>
-            <Field label="Intervalo de graduación (días)" htmlFor="graduatingInterval">
+            <Field label={l.graduatingInterval} htmlFor="graduatingInterval">
               <Input id="graduatingInterval" name="graduatingInterval" type="number" min={1} defaultValue={config.graduatingInterval} />
             </Field>
-            <Field label="Intervalo fácil (días)" htmlFor="easyInterval">
+            <Field label={l.easyInterval} htmlFor="easyInterval">
               <Input id="easyInterval" name="easyInterval" type="number" min={1} defaultValue={config.easyInterval} />
             </Field>
-            <Field label="Facilidad inicial (%)" htmlFor="startingEase">
+            <Field label={l.startingEase} htmlFor="startingEase">
               <Input id="startingEase" name="startingEase" type="number" min={130} max={500} defaultValue={config.startingEase / 10} disabled={algorithm === "FSRS"} />
             </Field>
           </CardContent>
@@ -159,25 +163,25 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Olvidos</CardTitle>
+            <CardTitle>{o.lapses}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <Field label="Pasos de reaprendizaje" htmlFor="relearningSteps">
+            <Field label={l.relearningSteps} htmlFor="relearningSteps">
               <Input id="relearningSteps" name="relearningSteps" defaultValue={stepsToText(config.relearningSteps)} />
             </Field>
-            <Field label="Intervalo mínimo tras olvido (días)" htmlFor="minLapseInterval">
+            <Field label={l.minLapseInterval} htmlFor="minLapseInterval">
               <Input id="minLapseInterval" name="minLapseInterval" type="number" min={1} defaultValue={config.minLapseInterval} />
             </Field>
-            <Field label="Nuevo intervalo tras olvido (0–1)" htmlFor="lapseMultiplier">
+            <Field label={l.lapseMultiplier} htmlFor="lapseMultiplier">
               <Input id="lapseMultiplier" name="lapseMultiplier" type="number" step="0.05" min={0} max={1} defaultValue={config.lapseMultiplier} disabled={algorithm === "FSRS"} />
             </Field>
-            <Field label="Umbral de sanguijuela" htmlFor="leechThreshold">
+            <Field label={l.leechThreshold} htmlFor="leechThreshold">
               <Input id="leechThreshold" name="leechThreshold" type="number" min={0} defaultValue={config.leechThreshold} />
             </Field>
-            <Field label="Acción con sanguijuelas" htmlFor="leechAction">
+            <Field label={l.leechAction} htmlFor="leechAction">
               <Select id="leechAction" name="leechAction" defaultValue={config.leechAction}>
-                <option value="TAG">Solo etiquetar</option>
-                <option value="SUSPEND">Suspender tarjeta</option>
+                <option value="TAG">{o.leechTagOnly}</option>
+                <option value="SUSPEND">{o.leechSuspend}</option>
               </Select>
             </Field>
           </CardContent>
@@ -185,30 +189,30 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle>{algorithm === "FSRS" ? "FSRS" : "Avanzado"}</CardTitle>
+            <CardTitle>{algorithm === "FSRS" ? "FSRS" : o.advanced}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <Field label="Intervalo máximo (días)" htmlFor="maxInterval">
+            <Field label={l.maxInterval} htmlFor="maxInterval">
               <Input id="maxInterval" name="maxInterval" type="number" min={1} max={36500} defaultValue={config.maxInterval} />
             </Field>
             {algorithm === "FSRS" ? (
               <>
-                <Field label="Retención deseada (0.70–0.99)" htmlFor="desiredRetention">
+                <Field label={l.desiredRetention} htmlFor="desiredRetention">
                   <Input id="desiredRetention" name="desiredRetention" type="number" step="0.01" min={0.7} max={0.99} defaultValue={config.desiredRetention} />
                 </Field>
-                <Field label="Parámetros FSRS" htmlFor="fsrsWeights" hint="Pega los parámetros optimizados desde Anki o déjalo vacío para usar los predeterminados." className="sm:col-span-2">
+                <Field label={l.fsrsWeights} htmlFor="fsrsWeights" hint={o.fsrsWeightsHint} className="sm:col-span-2">
                   <Input id="fsrsWeights" name="fsrsWeights" defaultValue={config.fsrsWeights.join(", ")} />
                 </Field>
               </>
             ) : (
               <>
-                <Field label="Bonificación fácil" htmlFor="easyBonus">
+                <Field label={l.easyBonus} htmlFor="easyBonus">
                   <Input id="easyBonus" name="easyBonus" type="number" step="0.05" min={1} max={3} defaultValue={config.easyBonus} />
                 </Field>
-                <Field label="Multiplicador difícil" htmlFor="hardMultiplier">
+                <Field label={l.hardMultiplier} htmlFor="hardMultiplier">
                   <Input id="hardMultiplier" name="hardMultiplier" type="number" step="0.05" min={1} max={2} defaultValue={config.hardMultiplier} />
                 </Field>
-                <Field label="Modificador de intervalo" htmlFor="intervalModifier">
+                <Field label={l.intervalModifier} htmlFor="intervalModifier">
                   <Input id="intervalModifier" name="intervalModifier" type="number" step="0.05" min={0.1} max={3} defaultValue={config.intervalModifier} />
                 </Field>
                 <input type="hidden" name="desiredRetention" value={config.desiredRetention} />
@@ -231,7 +235,7 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
         {state.success ? <p className="rounded-lg bg-success-soft px-3 py-2 text-sm text-success">{state.success}</p> : null}
         <div className="flex justify-end">
           <Button type="submit" size="lg" loading={pending}>
-            Guardar opciones
+            {o.saveOptions}
           </Button>
         </div>
       </form>

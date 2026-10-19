@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMessages } from "@/lib/i18n/client";
 
 interface DialogProps {
   open: boolean;
@@ -15,6 +16,7 @@ interface DialogProps {
 
 export function Dialog({ open, onClose, title, description, children, className }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
+  const t = useMessages();
 
   useEffect(() => {
     const dialog = ref.current;
@@ -44,7 +46,7 @@ export function Dialog({ open, onClose, title, description, children, className 
           <button
             type="button"
             onClick={onClose}
-            aria-label="Cerrar"
+            aria-label={t.common.close}
             className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <X className="size-4" />

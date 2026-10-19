@@ -1,4 +1,5 @@
 import type { ParsedCard, ParsedCollection, ParsedDeck, ParsedNote, ParsedNoteType } from "@/lib/anki/types";
+import type { Locale } from "@/lib/i18n/config";
 import type { PremadeDeck } from "../types";
 import { around } from "./data/around";
 import { away } from "./data/away";
@@ -112,7 +113,7 @@ function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function buildCollection(): ParsedCollection {
+function buildCollection(locale: Locale): ParsedCollection {
   const noteType: ParsedNoteType = {
     ankiId: NOTE_TYPE_ID,
     name: "Phrasal verb (EN → ES)",
@@ -129,7 +130,7 @@ function buildCollection(): ParsedCollection {
     {
       ankiId: ROOT_DECK_ID,
       name: ROOT_NAME,
-      description: phrasalVerbsDeck.description,
+      description: phrasalVerbsDeck.text[locale].description,
       configAnkiId: null,
     },
   ];
@@ -190,12 +191,24 @@ const allVerbs = PHRASAL_GROUPS.flatMap((group) => group.verbs);
 export const phrasalVerbsDeck: PremadeDeck = {
   slug: "phrasal-verbs",
   title: "Phrasal verbs",
-  summary: `Los ${allVerbs.length} phrasal verbs más usados del inglés, con ejemplos, sinónimos y pronunciación.`,
-  description:
-    "Phrasal verbs del inglés cotidiano agrupados por partícula (up, out, off…). Cada tarjeta trae la traducción al español, una definición corta en inglés, un ejemplo con su traducción, sinónimos, si el verbo es separable y notas de uso. La pronunciación usa la voz de tu dispositivo.",
-  languages: "Inglés → Español",
-  level: "Intermedio",
-  tags: ["Inglés", "Vocabulario", "Con audio"],
+  text: {
+    en: {
+      summary: `The ${allVerbs.length} most common English phrasal verbs, with examples, synonyms and pronunciation.`,
+      description:
+        "Everyday English phrasal verbs grouped by particle (up, out, off…). Each card has the Spanish translation, a short English definition, an example with its translation, synonyms, whether the verb is separable and usage notes. Pronunciation uses your device's voice.",
+      languages: "English → Spanish",
+      level: "Intermediate",
+      tags: ["English", "Vocabulary", "With audio"],
+    },
+    es: {
+      summary: `Los ${allVerbs.length} phrasal verbs más usados del inglés, con ejemplos, sinónimos y pronunciación.`,
+      description:
+        "Phrasal verbs del inglés cotidiano agrupados por partícula (up, out, off…). Cada tarjeta trae la traducción al español, una definición corta en inglés, un ejemplo con su traducción, sinónimos, si el verbo es separable y notas de uso. La pronunciación usa la voz de tu dispositivo.",
+      languages: "Inglés → Español",
+      level: "Intermedio",
+      tags: ["Inglés", "Vocabulario", "Con audio"],
+    },
+  },
   cardCount: allVerbs.length,
   subdecks: PHRASAL_GROUPS.map((group) => ({ name: group.name, count: group.verbs.length })),
   samples: [up[0], out[0], off[1], down[0], on[3], back[0]].map(([verb, translation]) => ({ front: verb, back: translation })),

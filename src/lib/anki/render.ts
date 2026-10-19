@@ -10,6 +10,7 @@ export interface RenderInput {
   deckName: string;
   noteTypeName: string;
   mediaBase: string;
+  typeAnswerPlaceholder?: string;
 }
 
 export interface RenderedCard {
@@ -136,7 +137,7 @@ function applyFilters(filters: string[], value: string, fieldName: string, input
           : "";
         break;
       case "type":
-        result = side === "question" ? `<input class="typeans" type="text" placeholder="Escribe la respuesta" autocomplete="off">` : `<div class="typeans-answer">${result}</div>`;
+        result = side === "question" ? `<input class="typeans" type="text" placeholder="${escapeAttr(input.typeAnswerPlaceholder ?? "Type the answer")}" autocomplete="off">` : `<div class="typeans-answer">${result}</div>`;
         break;
       case "type-cloze":
         result = side === "question" ? `<input class="typeans" type="text" autocomplete="off">` : `<div class="typeans-answer">${clozeOnlyText(result, input.ord)}</div>`;

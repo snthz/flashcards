@@ -2,6 +2,8 @@
 
 import { useCallback, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
 import { Pause, Play, RotateCcw, Volume2 } from "lucide-react";
+import { useI18n, useMessages } from "@/lib/i18n/client";
+import { intlLocale, type Locale } from "@/lib/i18n/config";
 import { SpeechClip, type Clip } from "./speech-clip";
 
 export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5] as const;
@@ -87,8 +89,8 @@ function formatTime(seconds: number) {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 }
 
-function formatRate(rate: number) {
-  return `${String(rate).replace(".", ",")}×`;
+function formatRate(rate: number, locale: Locale) {
+  return `${new Intl.NumberFormat(intlLocale(locale)).format(rate)}×`;
 }
 
 interface AudioControlsProps {
@@ -116,6 +118,7 @@ const stopKeys = (event: KeyboardEvent) => {
 // The small speaker button that replaces [sound:…] inside the card, sized for touch like Anki's replay button.
 export function AudioToggle({ audio }: AudioControlsProps) {
   const { paused } = useAudioState(audio);
+  const t = useMessages();
   return (
     <button
       type="button"
@@ -125,7 +128,7 @@ export function AudioToggle({ audio }: AudioControlsProps) {
         toggle(audio);
       }}
       onKeyDown={stopKeys}
-      aria-label={paused ? "Reproducir audio" : "Pausar audio"}
+      aria-label={paused ? t.study.playAudio : t.study.pauseAudio}
       aria-pressed={!paused}
     >
       {paused ? <Volume2 /> : <Pause fill="currentColor" />}
@@ -139,6 +142,7 @@ const dockButton =
 // Full controls for the clip that played last, docked under the card where there is room for touch targets.
 export function AudioDock({ audio, onRateChange }: AudioControlsProps & { onRateChange: (rate: number) => void }) {
   const { paused, duration, rate } = useAudioState(audio);
+  const { locale, t } = useI18n();
 
   const cycleRate = () => {
     const index = PLAYBACK_RATES.findIndex((value) => value === rate);
@@ -148,16 +152,16 @@ export function AudioDock({ audio, onRateChange }: AudioControlsProps & { onRate
   return (
     <div
       role="group"
-      aria-label="Reproductor de audio"
+      aria-label={t.study.audioPlayer}
       className="sticky bottom-0 z-10 flex items-center gap-0.5 border-t bg-card/90 px-1.5 py-1 backdrop-blur-xl"
       onClick={stopClick}
       onKeyDown={stopKeys}
     >
-      <button type="button" className={dockButton} onMouseDown={keepFocus} onClick={() => toggle(audio)} aria-label={paused ? "Reproducir" : "Pausar"}>
+      <button type="button" className={dockButton} onMouseDown={keepFocus} onClick={() => toggle(audio)} aria-label={paused ? t.study.play : t.study.pause}>
         {paused ? <Play className="size-5 fill-current" /> : <Pause className="size-5 fill-current" />}
       </button>
       {audio instanceof SpeechClip ? (
-        <span className="min-w-0 flex-1 truncate px-2 text-xs text-muted-foreground">Voz del dispositivo</span>
+        <span className="min-w-0 flex-1 truncate px-2 text-xs text-muted-foreground">{t.study.deviceVoice}</span>
       ) : (
         <SeekControls audio={audio} duration={duration} />
       )}
@@ -166,10 +170,10 @@ export function AudioDock({ audio, onRateChange }: AudioControlsProps & { onRate
         className="flex h-11 min-w-11 shrink-0 items-center justify-center rounded-full px-2 text-sm font-semibold tabular-nums text-foreground active:scale-90"
         onMouseDown={keepFocus}
         onClick={cycleRate}
-        aria-label={`Velocidad ${formatRate(rate)}`}
-        title="Cambiar velocidad"
+        aria-label={t.study.speed(formatRate(rate, locale))}
+        title={t.study.changeSpeed}
       >
-        {formatRate(rate)}
+        {formatRate(rate, locale)}
       </button>
     </div>
   );
@@ -178,6 +182,7 @@ export function AudioDock({ audio, onRateChange }: AudioControlsProps & { onRate
 function SeekControls({ audio, duration }: { audio: Clip; duration: number }) {
   const subscribeProgress = useCallback((callback: () => void) => subscribeTime(audio)(callback), [audio]);
   const currentTime = useAudioValue(subscribeProgress, () => readTime(audio));
+  const t = useMessages();
   const progress = duration > 0 ? Math.min(currentTime / duration, 1) * 100 : 0;
 
   return (
@@ -187,8 +192,8 @@ function SeekControls({ audio, duration }: { audio: Clip; duration: number }) {
         className={`${dockButton} opacity-70`}
         onMouseDown={keepFocus}
         onClick={() => seek(audio, audio.currentTime - SKIP_SECONDS)}
-        aria-label={`Retroceder ${SKIP_SECONDS} segundos`}
-        title={`Retroceder ${SKIP_SECONDS} s`}
+        aria-label={t.study.skipBack(SKIP_SECONDS)}
+        title={t.study.skipBackShort(SKIP_SECONDS)}
       >
         <RotateCcw className="size-5" />
       </button>
@@ -201,8 +206,8 @@ function SeekControls({ audio, duration }: { audio: Clip; duration: number }) {
         value={Math.min(currentTime, duration || 1)}
         onChange={(event) => seek(audio, Number(event.target.value))}
         onPointerUp={(event) => event.currentTarget.blur()}
-        aria-label="Posición"
-        aria-valuetext={`${formatTime(currentTime)} de ${formatTime(duration)}`}
+        aria-label={t.study.position}
+        aria-valuetext={t.study.positionOf(formatTime(currentTime), formatTime(duration))}
         className="fc-range mx-2 min-w-0 flex-1"
         style={{ "--fc-progress": `${progress}%` } as CSSProperties}
       />

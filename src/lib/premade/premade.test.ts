@@ -19,7 +19,7 @@ describe("phrasal verbs deck", () => {
 
   it("builds a collection the importer can take", () => {
     const deck = PREMADE_DECKS.find((d) => d.slug === "phrasal-verbs")!;
-    const collection = deck.build();
+    const collection = deck.build("en");
     expect(collection.notes).toHaveLength(verbs.length);
     expect(new Set(collection.notes.map((n) => n.guid)).size).toBe(verbs.length);
     expect(new Set(collection.cards.map((c) => c.newPosition)).size).toBe(verbs.length);

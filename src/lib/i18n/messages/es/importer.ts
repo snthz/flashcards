@@ -1,0 +1,47 @@
+import type { Messages } from "../types";
+
+export const importer: Messages["importer"] = {
+  title: "Importar",
+  heading: "Importar desde Anki",
+  description: "Sube un archivo .apkg. Se conservan mazos, tipos de nota, multimedia y el progreso de cada tarjeta.",
+  howTo: "Cómo exportar desde Anki",
+  howToSteps: [
+    "En Anki, haz clic en el engranaje del mazo y elige “Exportar”.",
+    "Selecciona el formato “Paquete de mazo de Anki (*.apkg)”.",
+    "Activa “Incluir información de programación” para conservar tu progreso y “Incluir multimedia”.",
+  ],
+  dropzone: "Arrastra tu archivo .apkg o haz clic para elegirlo",
+  dropzoneHint: "Exporta un mazo desde Anki y súbelo aquí",
+  uploading: (progress) => `Subiendo… ${progress}%`,
+  processing: "Procesando el mazo, esto puede tardar unos segundos…",
+  submit: "Importar",
+  done: "Importación completada",
+  summary: {
+    decks: "Mazos nuevos",
+    noteTypes: "Tipos de nota",
+    notes: "Notas nuevas",
+    updatedNotes: "Notas actualizadas",
+    cards: "Tarjetas",
+    media: "Archivos multimedia",
+    skippedCards: "Tarjetas ya existentes",
+  },
+  viewDecks: "Ver mazos",
+  importAnother: "Importar otro",
+  errors: {
+    notApkg: "Selecciona un archivo .apkg exportado desde Anki",
+    uploadFailed: "No se pudo subir el archivo. Revisa tu conexión.",
+    unexpectedResponse: "Respuesta inesperada del servidor",
+    unauthorized: "No autorizado",
+    missingFile: "Selecciona un archivo .apkg",
+    tooLarge: "El archivo es demasiado grande",
+    unsupportedType: "Solo se admiten archivos .apkg",
+    noCollection: "El archivo no contiene una colección de Anki",
+    emptyCollection: "La colección está vacía o dañada",
+    failed: "No se pudo importar el archivo",
+  },
+  defaults: {
+    importedDeckConfig: "Importada",
+    deck: "Importado",
+    noteType: "Sin nombre",
+  },
+};

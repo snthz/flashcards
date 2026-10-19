@@ -6,17 +6,19 @@ import { usePathname } from "next/navigation";
 import { BarChart3, ChevronDown, Compass, Layers, LogOut, Search, Settings } from "lucide-react";
 import { Menu, MenuLink, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { logout } from "@/app/(auth)/actions";
+import { useMessages } from "@/lib/i18n/client";
+import type { Messages } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 
-const items = [
-  { href: "/decks", label: "Mazos", short: "Mazos", icon: Layers },
-  { href: "/discover", label: "Descubrir", short: "Descubrir", icon: Compass },
-  { href: "/browse", label: "Explorar", short: "Explorar", icon: Search },
-  { href: "/stats", label: "Estadísticas", short: "Stats", icon: BarChart3 },
-  { href: "/settings", label: "Ajustes", short: "Ajustes", icon: Settings },
-] as const;
-
-const tabs = items.slice(0, 4);
+function navItems(t: Messages["nav"]) {
+  return [
+    { href: "/decks", label: t.decks, short: t.decks, icon: Layers },
+    { href: "/discover", label: t.discover, short: t.discover, icon: Compass },
+    { href: "/browse", label: t.browse, short: t.browse, icon: Search },
+    { href: "/stats", label: t.stats, short: t.statsShort, icon: BarChart3 },
+    { href: "/settings", label: t.settings, short: t.settings, icon: Settings },
+  ];
+}
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -41,6 +43,7 @@ function Brand() {
 }
 
 function Tabs({ pathname }: { pathname: string }) {
+  const tabs = navItems(useMessages().nav).slice(0, 4);
   const index = tabs.findIndex((tab) => isActive(pathname, tab.href));
   return (
     <nav className="relative grid auto-cols-fr grid-flow-col rounded-full border bg-muted/70 p-1">
@@ -75,6 +78,7 @@ function Tabs({ pathname }: { pathname: string }) {
 
 function UserMenu({ name, settingsActive }: { name: string; settingsActive: boolean }) {
   const [pending, startTransition] = useTransition();
+  const t = useMessages().nav;
   return (
     <Menu
       className="shrink-0"
@@ -94,14 +98,14 @@ function UserMenu({ name, settingsActive }: { name: string; settingsActive: bool
         </span>
       }
     >
-      <p className="truncate px-2.5 py-2 text-xs text-muted-foreground">Sesión de {name}</p>
+      <p className="truncate px-2.5 py-2 text-xs text-muted-foreground">{t.signedInAs(name)}</p>
       <MenuSeparator />
       <MenuLink href="/settings" icon={<Settings />}>
-        Ajustes
+        {t.settings}
       </MenuLink>
       <MenuSeparator />
       <MenuItem tone="danger" icon={<LogOut />} onSelect={() => startTransition(() => logout())}>
-        Cerrar sesión
+        {t.logout}
       </MenuItem>
     </Menu>
   );
@@ -122,6 +126,7 @@ export function TopNav({ name }: { name: string }) {
 
 export function BottomNav() {
   const pathname = usePathname();
+  const items = navItems(useMessages().nav);
   if (pathname.includes("/study")) return null;
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/85 backdrop-blur-xl safe-bottom md:hidden">

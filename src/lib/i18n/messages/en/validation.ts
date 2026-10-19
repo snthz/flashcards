@@ -1,0 +1,17 @@
+export const validation = {
+  invalid: "Invalid value",
+  emailInvalid: "Enter a valid email",
+  passwordMin: "Password must be at least 8 characters",
+  passwordTooLong: "Password is too long",
+  nameRequired: "Enter your name",
+  passwordRequired: "Enter your password",
+  currentPasswordRequired: "Enter your current password",
+  deckNameRequired: "Enter a name",
+  deckNameTooLong: "The name is too long",
+  deckNameNoSeparator: "The name can't contain ::",
+  descriptionTooLong: "The description is too long",
+  stepsPositive: "Steps must be positive",
+  fsrsWeightsCount: "At least 17 parameters are expected",
+  selectDeck: "Select a deck",
+  selectNoteType: "Select a note type",
+};

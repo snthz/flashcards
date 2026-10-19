@@ -1,8 +1,8 @@
-import { z } from "./zod";
+import { message, z } from "./zod";
 
 export const noteInputSchema = z.object({
-  deckId: z.string().uuid("Selecciona un mazo"),
-  noteTypeId: z.string().uuid("Selecciona un tipo de nota"),
+  deckId: z.string().uuid(message("selectDeck")),
+  noteTypeId: z.string().uuid(message("selectNoteType")),
   fields: z.array(z.string().max(100_000)).min(1),
   tags: z
     .string()

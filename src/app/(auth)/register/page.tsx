@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
 import { AuthForm } from "@/components/auth/auth-form";
+import { getMessages } from "@/lib/i18n/server";
 import { register } from "../actions";
 
-export const metadata: Metadata = { title: "Crear cuenta" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getMessages();
+  return { title: t.auth.registerTitle };
+}
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  const t = (await getMessages()).auth;
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Crea tu cuenta</h1>
-        <p className="text-muted-foreground">Importa tus mazos de Anki y estudia desde cualquier dispositivo.</p>
+        <h1 className="text-3xl font-semibold tracking-tight">{t.registerHeading}</h1>
+        <p className="text-muted-foreground">{t.registerLead}</p>
       </div>
       <AuthForm mode="register" action={register} />
     </div>

@@ -2,7 +2,7 @@
 
 An Anki-compatible spaced repetition app, built as an installable Progressive Web App. Import your existing `.apkg` decks, review them with the same scheduling algorithms Anki uses (classic SM-2 or FSRS), keep progress in sync across desktop and mobile, and track your learning with detailed statistics.
 
-> The user interface is in Spanish.
+> The user interface is available in English (default) and Spanish.
 
 ## Table of Contents
 
@@ -26,6 +26,7 @@ An Anki-compatible spaced repetition app, built as an installable Progressive We
 - **Notes and browser** — A note editor with built-in Basic, Basic (and reversed card), and Cloze note types, plus a card browser with search, filters, and bulk actions.
 - **Statistics** — Daily reviews, forecast, retention, streaks, a yearly activity heatmap, and card and interval distributions.
 - **Accounts** — Database-backed persistent sessions, with configurable time zone and day rollover hour.
+- **Languages** — English and Spanish, switchable from Settings or the landing page and saved to the account.
 - **PWA** — Installable on iOS, Android, and desktop, with a service worker and an offline fallback page.
 
 ## Tech Stack

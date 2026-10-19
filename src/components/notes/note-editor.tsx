@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Field, FormError } from "@/components/ui/field";
 import { createNote, deleteNoteAndRedirect, updateNote, type NoteActionState } from "@/lib/notes/actions";
+import { useMessages } from "@/lib/i18n/client";
 
 interface NoteTypeOption {
   id: string;
@@ -38,6 +39,7 @@ export function NoteEditor({
   returnTo,
 }: EditorProps) {
   const router = useRouter();
+  const t = useMessages();
   const [noteTypeId, setNoteTypeId] = useState(initialNoteTypeId ?? noteTypes[0]?.id ?? "");
   const noteType = noteTypes.find((t) => t.id === noteTypeId) ?? noteTypes[0];
   const [state, action, pending] = useActionState<NoteActionState, FormData>(mode === "create" ? createNote : updateNote, {});
@@ -63,7 +65,7 @@ export function NoteEditor({
     setValues((next?.fields ?? []).map((_, i) => values[i] ?? ""));
   };
 
-  if (!noteType) return <p className="text-sm text-muted-foreground">No tienes tipos de nota.</p>;
+  if (!noteType) return <p className="text-sm text-muted-foreground">{t.notes.noNoteTypes}</p>;
 
   return (
     <form action={action} className="flex flex-col gap-5">
@@ -72,7 +74,7 @@ export function NoteEditor({
       {mode === "edit" ? <input type="hidden" name="noteId" value={noteId} /> : null}
       {mode === "create" ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Mazo" htmlFor="deckId">
+          <Field label={t.notes.deck} htmlFor="deckId">
             <Select id="deckId" name="deckId" defaultValue={initialDeckId ?? decks[0]?.id ?? ""} required>
               {decks.map((deck) => (
                 <option key={deck.id} value={deck.id}>
@@ -81,7 +83,7 @@ export function NoteEditor({
               ))}
             </Select>
           </Field>
-          <Field label="Tipo de nota" htmlFor="noteTypeId">
+          <Field label={t.notes.noteType} htmlFor="noteTypeId">
             <Select id="noteTypeId" name="noteTypeId" value={noteTypeId} onChange={(e) => changeNoteType(e.target.value)}>
               {noteTypes.map((type) => (
                 <option key={type.id} value={type.id}>
@@ -98,7 +100,7 @@ export function NoteEditor({
             key={`${noteType.id}-${index}`}
             label={field.name}
             htmlFor={`field-${index}`}
-            hint={noteType.kind === "CLOZE" && index === 0 ? "Usa {{c1::texto}} para crear huecos. Se admite HTML." : undefined}
+            hint={noteType.kind === "CLOZE" && index === 0 ? t.notes.clozeHint : undefined}
           >
             <Textarea
               id={`field-${index}`}
@@ -111,7 +113,7 @@ export function NoteEditor({
             />
           </Field>
         ))}
-        <Field label="Etiquetas" htmlFor="tags" hint="Separadas por espacios.">
+        <Field label={t.notes.tags} htmlFor="tags" hint={t.notes.tagsHint}>
           <Input id="tags" name="tags" value={tags} onChange={(e) => setTags(e.target.value)} autoComplete="off" />
         </Field>
       </div>
@@ -122,12 +124,12 @@ export function NoteEditor({
             variant="ghost"
             className="text-danger"
             onClick={() => {
-              if (window.confirm("¿Eliminar esta nota y todas sus tarjetas?")) {
+              if (window.confirm(t.notes.deleteConfirm)) {
                 void deleteNoteAndRedirect(noteId, returnTo ?? "/browse");
               }
             }}
           >
-            Eliminar nota
+            {t.notes.deleteNote}
           </Button>
         ) : (
           <span />
@@ -135,11 +137,11 @@ export function NoteEditor({
         <div className="flex gap-2">
           {returnTo ? (
             <Button type="button" variant="ghost" onClick={() => router.push(returnTo)}>
-              Cancelar
+              {t.common.cancel}
             </Button>
           ) : null}
           <Button type="submit" loading={pending}>
-            {mode === "create" ? "Añadir" : "Guardar"}
+            {mode === "create" ? t.notes.add : t.common.save}
           </Button>
         </div>
       </div>

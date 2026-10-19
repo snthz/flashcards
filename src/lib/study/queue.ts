@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
 import type { CurrentUser } from "@/lib/auth/user";
+import type { Locale } from "@/lib/i18n/config";
 import { dayWindow, findNode, getDeckTree, subtreeIds, type DayWindow } from "@/lib/decks/queries";
 import { fieldMap, renderCard } from "@/lib/anki/render";
+import { dictionaries } from "@/lib/i18n/messages";
 import type { NoteTypeField, NoteTypeTemplate } from "@/lib/anki/types";
 import {
   formatDueDistance,
@@ -73,18 +75,18 @@ export function toSchedulable(card: {
   };
 }
 
-function intervalLabels(card: CardWithRelations, window: DayWindow): Record<Rating, string> {
+function intervalLabels(card: CardWithRelations, window: DayWindow, locale: Locale): Record<Rating, string> {
   const config = toSchedulerConfig(card.deck.config);
   const previews = preview(toSchedulable(card), config, { now: window.now, dayStart: window.start });
   const labels = {} as Record<Rating, string>;
   for (const rating of [1, 2, 3, 4] as Rating[]) {
     const next = previews[rating];
-    labels[rating] = next.state === "REVIEW" ? formatInterval(next.interval) : formatDueDistance(next.due, window.now);
+    labels[rating] = next.state === "REVIEW" ? formatInterval(next.interval, locale) : formatDueDistance(next.due, window.now, locale);
   }
   return labels;
 }
 
-export function buildStudyCard(card: CardWithRelations, deckFullName: string, window: DayWindow): StudyCard {
+export function buildStudyCard(card: CardWithRelations, deckFullName: string, window: DayWindow, locale: Locale): StudyCard {
   const noteType = card.note.noteType;
   const fields = noteType.fields as NoteTypeField[];
   const templates = noteType.templates as NoteTypeTemplate[];
@@ -97,6 +99,7 @@ export function buildStudyCard(card: CardWithRelations, deckFullName: string, wi
     template,
     css: noteType.css,
     ord: card.ord,
+    typeAnswerPlaceholder: dictionaries[locale].study.typeAnswer,
     kind: noteType.kind,
     tags: card.note.tags,
     deckName: deckFullName,
@@ -112,7 +115,7 @@ export function buildStudyCard(card: CardWithRelations, deckFullName: string, wi
     answer: rendered.answer,
     css: rendered.css,
     audio: rendered.audio,
-    intervals: intervalLabels(card, window),
+    intervals: intervalLabels(card, window, locale),
     flag: card.flag,
   };
 }
@@ -173,7 +176,7 @@ async function pickNext(userId: string, deckIds: string[], window: DayWindow, co
   return null;
 }
 
-export async function getStudyState(user: CurrentUser, deckId: string): Promise<StudyState | null> {
+export async function getStudyState(user: CurrentUser, deckId: string, locale: Locale): Promise<StudyState | null> {
   const tree = await getDeckTree(user);
   const node = findNode(tree, deckId);
   if (!node) return null;
@@ -213,7 +216,7 @@ export async function getStudyState(user: CurrentUser, deckId: string): Promise<
     deckId: node.id,
     deckName: node.fullName,
     counts: { fresh: node.counts.fresh, learning: node.counts.learning, review: node.counts.review },
-    card: card ? buildStudyCard(card, node.fullName, window) : null,
+    card: card ? buildStudyCard(card, node.fullName, window, locale) : null,
     canUndo: Boolean(lastLog),
     learnAheadAt,
   };

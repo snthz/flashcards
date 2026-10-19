@@ -10,9 +10,13 @@ import { DeckList } from "@/components/decks/deck-list";
 import { CreateDeckButton } from "@/components/decks/deck-dialogs";
 import { StreakBadge } from "@/components/stats/streak-badge";
 import { getStreak } from "@/lib/stats/queries";
+import { getMessages } from "@/lib/i18n/server";
 import { DeckListSkeleton } from "./loading";
 
-export const metadata: Metadata = { title: "Mazos" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getMessages();
+  return { title: t.decks.title };
+}
 
 async function Decks() {
   const user = await requireUser();
@@ -26,11 +30,12 @@ async function Streak() {
   return <StreakBadge streak={streak} className="mr-auto sm:mr-0" />;
 }
 
-export default function DecksPage() {
+export default async function DecksPage() {
+  const t = await getMessages();
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        title="Mazos"
+        title={t.decks.title}
         actions={
           <>
             <Suspense fallback={<span className="skeleton mr-auto h-10 w-16 rounded-full sm:mr-0" />}>
@@ -38,11 +43,11 @@ export default function DecksPage() {
             </Suspense>
             <Link href="/import" className={buttonStyles("outline", "md")}>
               <Upload className="size-4" />
-              Importar
+              {t.decks.import}
             </Link>
             <CreateDeckButton>
               <Plus className="size-4" />
-              Nuevo mazo
+              {t.decks.newDeck}
             </CreateDeckButton>
           </>
         }

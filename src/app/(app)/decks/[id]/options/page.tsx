@@ -4,12 +4,17 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/user";
 import { PageHeader } from "@/components/layout/page-header";
 import { DeckOptionsForm } from "@/components/decks/deck-options-form";
+import { getMessages } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Opciones del mazo" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getMessages();
+  return { title: t.deckOptions.title };
+}
 
 export default async function DeckOptionsPage({ params }: PageProps<"/decks/[id]/options">) {
   const { id } = await params;
   const user = await requireUser();
+  const t = await getMessages();
   const [deck, configs] = await Promise.all([
     prisma.deck.findFirst({ where: { id, userId: user.id }, include: { config: true } }),
     prisma.deckConfig.findMany({ where: { userId: user.id }, orderBy: [{ isDefault: "desc" }, { name: "asc" }] }),
@@ -18,7 +23,7 @@ export default async function DeckOptionsPage({ params }: PageProps<"/decks/[id]
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <PageHeader title="Opciones" description={deck.name} backHref={`/decks/${deck.id}`} />
+      <PageHeader title={t.common.options} description={deck.name} backHref={`/decks/${deck.id}`} />
       <DeckOptionsForm
         deckId={deck.id}
         config={{

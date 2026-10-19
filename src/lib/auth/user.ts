@@ -8,6 +8,7 @@ export type CurrentUser = {
   name: string;
   timezone: string;
   dayStartHour: number;
+  locale: string;
 };
 
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {

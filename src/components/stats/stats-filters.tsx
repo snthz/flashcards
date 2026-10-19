@@ -5,15 +5,12 @@ import { useTransition } from "react";
 import { Select } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { StatsPeriod } from "@/lib/stats/queries";
+import { useI18n } from "@/lib/i18n/client";
 
-const PERIODS: Array<{ value: StatsPeriod; label: string }> = [
-  { value: "month", label: "1 mes" },
-  { value: "quarter", label: "3 meses" },
-  { value: "year", label: "1 año" },
-  { value: "all", label: "Todo" },
-];
+const PERIODS: StatsPeriod[] = ["month", "quarter", "year", "all"];
 
 export function StatsFilters({ deckId, period, decks }: { deckId: string; period: StatsPeriod; decks: Array<{ id: string; name: string }> }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const navigate = (next: { deck?: string; period?: StatsPeriod }) => {
@@ -26,28 +23,28 @@ export function StatsFilters({ deckId, period, decks }: { deckId: string; period
   };
   return (
     <div className={cn("flex flex-col gap-2 sm:flex-row sm:items-center", pending && "opacity-70")}>
-      <Select value={deckId} onChange={(e) => navigate({ deck: e.target.value })} aria-label="Mazo" className="sm:w-64">
-        <option value="">Todos los mazos</option>
+      <Select value={deckId} onChange={(e) => navigate({ deck: e.target.value })} aria-label={t.stats.deck} className="sm:w-64">
+        <option value="">{t.stats.allDecks}</option>
         {decks.map((d) => (
           <option key={d.id} value={d.id}>
             {d.name}
           </option>
         ))}
       </Select>
-      <div className="flex rounded-lg border bg-card p-0.5" role="tablist" aria-label="Periodo">
-        {PERIODS.map((p) => (
+      <div className="flex rounded-lg border bg-card p-0.5" role="tablist" aria-label={t.stats.period}>
+        {PERIODS.map((value) => (
           <button
-            key={p.value}
+            key={value}
             type="button"
             role="tab"
-            aria-selected={period === p.value}
-            onClick={() => navigate({ period: p.value })}
+            aria-selected={period === value}
+            onClick={() => navigate({ period: value })}
             className={cn(
               "flex-1 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors",
-              period === p.value ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+              period === value ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {p.label}
+            {t.stats.periods[value]}
           </button>
         ))}
       </div>

@@ -1,0 +1,16 @@
+export const discover = {
+  title: "Discover",
+  description: "Ready-made decks to study. Add them to your collection in one tap.",
+  added: "Added",
+  cardCount: (count: number, formatted: string) => (count === 1 ? "1 card" : `${formatted} cards`),
+  comingSoon: "More decks are coming soon: irregular verbs, uses of “get” and more.",
+  sampleCards: "Sample cards",
+  subdecks: "Subdecks",
+  openDeck: "Open deck",
+  updated: "Updated",
+  updateContent: "Update content",
+  adding: "Adding…",
+  addToDecks: "Add to my decks",
+  unavailable: "This deck is no longer available",
+  installFailed: "Couldn't add the deck. Please try again.",
+};

@@ -4,20 +4,24 @@ import { getDeckOptions, getNoteTypeOptions } from "@/lib/notes/queries";
 import { PageHeader } from "@/components/layout/page-header";
 import { NoteEditor } from "@/components/notes/note-editor";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getMessages } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Añadir nota" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getMessages();
+  return { title: t.notes.addTitle };
+}
 
 export default async function NewNotePage({ searchParams }: PageProps<"/notes/new">) {
   const { deck } = await searchParams;
-  const user = await requireUser();
+  const [user, t] = await Promise.all([requireUser(), getMessages()]);
   const [decks, noteTypes] = await Promise.all([getDeckOptions(user), getNoteTypeOptions(user.id)]);
   const deckId = typeof deck === "string" && decks.some((d) => d.id === deck) ? deck : decks[0]?.id;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <PageHeader title="Añadir nota" backHref={deckId ? `/decks/${deckId}` : "/decks"} />
+      <PageHeader title={t.notes.addTitle} backHref={deckId ? `/decks/${deckId}` : "/decks"} />
       {decks.length === 0 ? (
-        <EmptyState title="Crea un mazo primero" description="Necesitas al menos un mazo para añadir tarjetas." />
+        <EmptyState title={t.notes.createDeckFirst} description={t.notes.createDeckFirstHint} />
       ) : (
         <NoteEditor
           mode="create"

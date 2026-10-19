@@ -1,3 +1,5 @@
+import { defaultLocale, intlLocale, type Locale } from "@/lib/i18n/config";
+
 export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -6,12 +8,12 @@ export function pluralize(count: number, singular: string, plural: string) {
   return count === 1 ? singular : plural;
 }
 
-export function formatNumber(value: number) {
-  return new Intl.NumberFormat("es").format(value);
+export function formatNumber(value: number, locale: Locale = defaultLocale) {
+  return new Intl.NumberFormat(intlLocale(locale)).format(value);
 }
 
-export function formatDate(date: Date, options: Intl.DateTimeFormatOptions = { dateStyle: "medium" }) {
-  return new Intl.DateTimeFormat("es", options).format(date);
+export function formatDate(date: Date, locale: Locale = defaultLocale, options: Intl.DateTimeFormatOptions = { dateStyle: "medium" }) {
+  return new Intl.DateTimeFormat(intlLocale(locale), options).format(date);
 }
 
 export function formatDuration(ms: number) {

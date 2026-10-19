@@ -1,0 +1,73 @@
+import type { Messages } from "../types";
+
+export const landing: Messages["landing"] = {
+  login: "Iniciar sesión",
+  signup: "Crear cuenta",
+  heading: "Tus mazos de Anki, en todos tus dispositivos.",
+  lead: "Importa un mazo, conserva el historial de cada tarjeta y sigue desde el móvil o el portátil. La programación de repasos funciona igual que en Anki.",
+  ctaPrimary: "Crear una cuenta gratis",
+  ctaSecondary: "Ya tengo cuenta",
+  fineprint: ["Gratis", "Sin tienda de apps", "iPhone, Android, escritorio"],
+  demo: {
+    label: "Prueba un repaso",
+    deck: "Vocabulario",
+    showAnswer: "Mostrar respuesta",
+    again: "Otra vez",
+    hard: "Difícil",
+    good: "Bien",
+    easy: "Fácil",
+    done: "Eso es todo el ciclo. Tus mazos reales funcionan igual.",
+    restart: "Empezar de nuevo",
+    cards: [
+      { front: "ubiquitous", back: "omnipresente, que está en todas partes" },
+      { front: "to give up", back: "rendirse, dejar de intentarlo" },
+      { front: "serendipity", back: "un hallazgo afortunado que no buscabas" },
+    ],
+  },
+  carryTitle: "Lo que se trae de Anki",
+  carryLead: "Exporta un mazo desde Anki, sube el archivo y aparece tal como lo dejaste.",
+  carry: [
+    { term: "Mazos y multimedia", detail: "Las plantillas, los estilos, las imágenes y el audio vienen con el mazo." },
+    { term: "Historial de repasos", detail: "Se mantienen intervalos, facilidad y fechas, así que nada empieza de cero." },
+    { term: "Programación", detail: "El SM-2 de Anki con las mismas opciones por mazo, o FSRS con tu retención objetivo." },
+    { term: "Tipos de nota", detail: "Básico, invertido y cloze, además de los tipos personalizados de tus mazos." },
+    { term: "Explorador", detail: "Busca en todas las notas, filtra por mazo o estado y suspende o mueve tarjetas en bloque." },
+    { term: "Estadísticas", detail: "Repasos por día, carga prevista, retención, racha y mapa de actividad anual." },
+  ],
+  installTitle: "Ponla en tu pantalla de inicio",
+  installLead: "Es una app web, así que no hay nada que descargar de una tienda. Una vez añadida, se abre a pantalla completa como cualquier otra app.",
+  installIosTitle: "iPhone y iPad",
+  installIosSteps: ["Abre la web en Safari", "Toca el botón Compartir", "Elige “Añadir a pantalla de inicio”"],
+  installAndroidTitle: "Android",
+  installAndroidSteps: ["Abre la web en Chrome", "Toca el menú ⋮", "Elige “Instalar app”"],
+  premadeTitle: "¿Aún no tienes mazos?",
+  premadeLead: "Empieza con uno ya hecho desde la pestaña Descubrir.",
+  premadeName: "Phrasal verbs",
+  premadeDetail: (count) =>
+    `${count} phrasal verbs comunes del inglés agrupados por partícula, con traducción al español, ejemplos y pronunciación.`,
+  premadeCards: (count) => `${count} tarjetas`,
+  faqTitle: "Preguntas",
+  faq: [
+    {
+      q: "¿Es gratis?",
+      a: "Sí. No hay anuncios ni plan de pago.",
+    },
+    {
+      q: "¿Se sincroniza con AnkiWeb?",
+      a: "No. Traes tus mazos exportándolos desde Anki como archivos .apkg. A partir de ahí, tu cuenta mantiene el progreso sincronizado entre tus dispositivos.",
+    },
+    {
+      q: "¿Puedo estudiar sin cobertura?",
+      a: "Todavía no. Los repasos se guardan en tu cuenta sobre la marcha, así que necesitas conexión mientras estudias.",
+    },
+    {
+      q: "¿Lo hace el equipo de Anki?",
+      a: "No. Es un proyecto independiente que lee el formato de archivo de Anki.",
+    },
+  ],
+  finalTitle: "Trae tu primer mazo.",
+  finalLead: "Se tarda más o menos un minuto.",
+  finalCta: "Crear cuenta",
+  footerNote: "Anki es una marca de sus respectivos autores. Este proyecto no está afiliado.",
+  language: "Idioma",
+};

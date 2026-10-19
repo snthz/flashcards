@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { getMessages } from "@/lib/i18n/server";
 
 interface PageHeaderProps {
   title: string;
@@ -9,14 +10,15 @@ interface PageHeaderProps {
   actions?: ReactNode;
 }
 
-export function PageHeader({ title, description, backHref, actions }: PageHeaderProps) {
+export async function PageHeader({ title, description, backHref, actions }: PageHeaderProps) {
+  const t = await getMessages();
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex min-w-0 flex-col gap-1">
         {backHref ? (
           <Link href={backHref} className="-ml-1 inline-flex w-fit items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground">
             <ChevronLeft className="size-4" />
-            Volver
+            {t.common.back}
           </Link>
         ) : null}
         <h1 className="truncate text-2xl font-semibold tracking-tight">{title}</h1>

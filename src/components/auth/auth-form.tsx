@@ -8,6 +8,7 @@ import { FormError } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 import { useBrowserTimeZone } from "@/lib/hooks/use-is-client";
 import type { AuthState } from "@/app/(auth)/actions";
+import { useMessages } from "@/lib/i18n/client";
 
 interface AuthFormProps {
   mode: "login" | "register";
@@ -75,6 +76,7 @@ export function AuthForm({ mode, action }: AuthFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const timezone = useBrowserTimeZone();
   const isRegister = mode === "register";
+  const t = useMessages().auth;
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -82,7 +84,7 @@ export function AuthForm({ mode, action }: AuthFormProps) {
       {isRegister ? (
         <AuthInput
           name="name"
-          label="Nombre"
+          label={t.name}
           autoComplete="name"
           icon={<User />}
           required
@@ -93,7 +95,7 @@ export function AuthForm({ mode, action }: AuthFormProps) {
       ) : null}
       <AuthInput
         name="email"
-        label="Correo"
+        label={t.email}
         type="email"
         autoComplete="email"
         inputMode="email"
@@ -104,19 +106,19 @@ export function AuthForm({ mode, action }: AuthFormProps) {
       />
       <AuthInput
         name="password"
-        label="Contraseña"
+        label={t.password}
         type={showPassword ? "text" : "password"}
         autoComplete={isRegister ? "new-password" : "current-password"}
         icon={<Lock />}
         required
         minLength={isRegister ? 8 : 1}
         error={state.fieldErrors?.password}
-        hint={isRegister ? "Mínimo 8 caracteres." : undefined}
+        hint={isRegister ? t.passwordHint : undefined}
         trailing={
           <button
             type="button"
             onClick={() => setShowPassword((value) => !value)}
-            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            aria-label={showPassword ? t.hidePassword : t.showPassword}
             className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
           >
             {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -125,23 +127,23 @@ export function AuthForm({ mode, action }: AuthFormProps) {
       />
       <input type="hidden" name="timezone" value={timezone} />
       <Button type="submit" size="lg" loading={pending} className="mt-1 h-12 rounded-xl text-base">
-        {isRegister ? "Crear cuenta" : "Entrar"}
+        {isRegister ? t.submitRegister : t.submitLogin}
         {pending ? null : <ArrowRight className="size-4" />}
       </Button>
       {isRegister ? (
-        <p className="text-center text-xs text-muted-foreground">Al crear la cuenta se guardará tu zona horaria ({timezone}) para calcular los días de estudio.</p>
+        <p className="text-center text-xs text-muted-foreground">{t.timezoneNote(timezone)}</p>
       ) : null}
       <div className="relative py-1">
         <div className="h-px w-full bg-border" />
         <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-muted-foreground">
-          {isRegister ? "¿Ya tienes cuenta?" : "¿Eres nuevo?"}
+          {isRegister ? t.haveAccount : t.newHere}
         </span>
       </div>
       <Link
         href={isRegister ? "/login" : "/register"}
         className="inline-flex h-11 items-center justify-center rounded-xl border bg-card text-sm font-medium transition-colors hover:bg-muted"
       >
-        {isRegister ? "Iniciar sesión" : "Crear una cuenta gratis"}
+        {isRegister ? t.goToLogin : t.goToRegister}
       </Link>
     </form>
   );

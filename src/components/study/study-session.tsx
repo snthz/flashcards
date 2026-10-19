@@ -7,16 +7,18 @@ import { CheckCircle2, Eye, EyeOff, Flag, MoreHorizontal, Pencil, PauseCircle, U
 import { Button } from "@/components/ui/button";
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
+import { intlLocale } from "@/lib/i18n/config";
 import { answerCard, buryCard, flagCard, suspendCard, undoLastReview } from "@/lib/study/actions";
 import type { StudyState } from "@/lib/study/types";
 import type { Rating } from "@/lib/scheduler";
 import { CardFrame } from "./card-frame";
 
-const RATING_META: Record<Rating, { label: string; tone: string; key: string }> = {
-  1: { label: "Otra vez", tone: "text-danger border-danger/40 hover:bg-danger-soft", key: "1" },
-  2: { label: "Difícil", tone: "text-warning border-warning/40 hover:bg-warning-soft", key: "2" },
-  3: { label: "Bien", tone: "text-success border-success/40 hover:bg-success-soft", key: "3" },
-  4: { label: "Fácil", tone: "text-info border-info/40 hover:bg-info-soft", key: "4" },
+const RATING_META: Record<Rating, { label: "again" | "hard" | "good" | "easy"; tone: string; key: string }> = {
+  1: { label: "again", tone: "text-danger border-danger/40 hover:bg-danger-soft", key: "1" },
+  2: { label: "hard", tone: "text-warning border-warning/40 hover:bg-warning-soft", key: "2" },
+  3: { label: "good", tone: "text-success border-success/40 hover:bg-success-soft", key: "3" },
+  4: { label: "easy", tone: "text-info border-info/40 hover:bg-info-soft", key: "4" },
 };
 
 const FLAG_COLORS = ["", "#ef4444", "#f97316", "#22c55e", "#3b82f6", "#ec4899", "#14b8a6", "#a855f7"];
@@ -25,6 +27,7 @@ const EMPTY: string[] = [];
 
 export function StudySession({ initial }: { initial: StudyState }) {
   const router = useRouter();
+  const { locale, t } = useI18n();
   const [state, setState] = useState<StudyState>(initial);
   const [revealed, setRevealed] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -94,20 +97,20 @@ export function StudySession({ initial }: { initial: StudyState }) {
     <div className="-mb-24 flex h-[calc(100dvh_-_1rem_-_var(--safe-top))] flex-col md:mb-0 md:h-auto">
       <header className="flex items-center justify-between gap-3 pb-3">
         <div className="flex min-w-0 items-center gap-2">
-          <Link href={`/decks/${state.deckId}`} aria-label="Salir" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+          <Link href={`/decks/${state.deckId}`} aria-label={t.study.exit} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
             <X className="size-5" />
           </Link>
           <p className="truncate text-sm font-medium">{state.deckName}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 text-sm tabular-nums" aria-label="Pendientes">
+          <div className="flex items-center gap-2 text-sm tabular-nums" aria-label={t.study.remaining}>
             <span className={cn("text-info", card?.state === "NEW" && "underline underline-offset-4")}>{state.counts.fresh}</span>
             <span className={cn("text-danger", (card?.state === "LEARNING" || card?.state === "RELEARNING") && "underline underline-offset-4")}>
               {state.counts.learning}
             </span>
             <span className={cn("text-success", card?.state === "REVIEW" && "underline underline-offset-4")}>{state.counts.review}</span>
           </div>
-          <Button variant="ghost" size="icon" onClick={undo} disabled={!state.canUndo || pending} aria-label="Deshacer">
+          <Button variant="ghost" size="icon" onClick={undo} disabled={!state.canUndo || pending} aria-label={t.study.undo}>
             <Undo2 className="size-4" />
           </Button>
           {card ? (
@@ -115,21 +118,22 @@ export function StudySession({ initial }: { initial: StudyState }) {
               trigger={
                 <span className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
                   <MoreHorizontal className="size-4" />
+                  <span className="sr-only">{t.study.moreActions}</span>
                 </span>
               }
             >
               <MenuItem icon={<Pencil />} onSelect={() => router.push(`/notes/${card.noteId}/edit?from=/decks/${state.deckId}/study`)}>
-                Editar nota
+                {t.study.editNote}
               </MenuItem>
               <MenuItem icon={<Flag />} onSelect={() => apply(() => flagCard(state.deckId, card.id, card.flag ? 0 : 1))}>
-                {card.flag ? "Quitar marca" : "Marcar"}
+                {card.flag ? t.study.removeFlag : t.study.flag}
               </MenuItem>
               <MenuSeparator />
               <MenuItem icon={<EyeOff />} onSelect={() => apply(() => buryCard(state.deckId, card.id))}>
-                Enterrar hasta mañana
+                {t.study.buryUntilTomorrow}
               </MenuItem>
               <MenuItem icon={<PauseCircle />} tone="danger" onSelect={() => apply(() => suspendCard(state.deckId, card.id))}>
-                Suspender
+                {t.study.suspend}
               </MenuItem>
             </Menu>
           ) : null}
@@ -177,7 +181,7 @@ export function StudySession({ initial }: { initial: StudyState }) {
                     )}
                   >
                     <span className="text-xs tabular-nums text-muted-foreground">{card.intervals[rating]}</span>
-                    <span className="text-sm font-semibold">{RATING_META[rating].label}</span>
+                    <span className="text-sm font-semibold">{t.study[RATING_META[rating].label]}</span>
                   </button>
                 ))}
               </div>
@@ -189,14 +193,14 @@ export function StudySession({ initial }: { initial: StudyState }) {
                 disabled={pending}
               >
                 <Eye className="size-5" aria-hidden />
-                Mostrar respuesta
+                {t.study.showAnswer}
                 <kbd className="ml-1 hidden rounded-md border border-current/25 px-1.5 py-0.5 font-sans text-xs font-medium opacity-60 md:inline">
-                  Espacio
+                  {t.study.spaceKey}
                 </kbd>
               </Button>
             )}
             <p className="mt-2 hidden text-center text-xs text-muted-foreground md:block">
-              Espacio para mostrar · 1–4 para calificar · Ctrl+Z para deshacer
+              {t.study.shortcutsHint}
             </p>
           </footer>
         </>
@@ -204,21 +208,21 @@ export function StudySession({ initial }: { initial: StudyState }) {
         <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border bg-card p-10 text-center animate-in">
           <CheckCircle2 className="size-12 text-success" />
           <div className="flex flex-col gap-1">
-            <p className="text-lg font-semibold">¡Terminaste por hoy!</p>
+            <p className="text-lg font-semibold">{t.study.finishedTitle}</p>
             <p className="max-w-sm text-sm text-muted-foreground">
               {state.learnAheadAt
-                ? `Tienes tarjetas en aprendizaje que estarán listas a las ${new Date(state.learnAheadAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}.`
-                : "No hay más tarjetas pendientes en este mazo. Vuelve mañana o añade tarjetas nuevas."}
+                ? t.study.learnAheadAt(new Date(state.learnAheadAt).toLocaleTimeString(intlLocale(locale), { hour: "2-digit", minute: "2-digit" }))
+                : t.study.noMoreCards}
             </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => router.push(`/decks/${state.deckId}`)}>
-              Volver al mazo
+              {t.study.backToDeck}
             </Button>
             {state.canUndo ? (
               <Button variant="ghost" onClick={undo} disabled={pending}>
                 <Undo2 className="size-4" />
-                Deshacer
+                {t.study.undo}
               </Button>
             ) : null}
           </div>

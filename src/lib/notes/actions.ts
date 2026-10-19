@@ -7,6 +7,8 @@ import { requireUser } from "@/lib/auth/user";
 import { clozeOrdinals, fieldMap, isQuestionEmpty, plainText } from "@/lib/anki/render";
 import type { NoteTypeField, NoteTypeTemplate } from "@/lib/anki/types";
 import { noteInputSchema, noteUpdateSchema } from "@/lib/validation/note";
+import { getI18n } from "@/lib/i18n/server";
+import { issueMessage, parseOptions } from "@/lib/i18n/validation";
 
 export type NoteActionState = { error?: string; success?: string; noteId?: string };
 
@@ -55,19 +57,22 @@ function readFields(formData: FormData) {
 }
 
 export async function createNote(_prev: NoteActionState, formData: FormData): Promise<NoteActionState> {
-  const user = await requireUser();
-  const parsed = noteInputSchema.safeParse({
-    deckId: formData.get("deckId"),
-    noteTypeId: formData.get("noteTypeId"),
-    fields: readFields(formData),
-    tags: formData.get("tags") ?? "",
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  const [user, { locale, t }] = await Promise.all([requireUser(), getI18n()]);
+  const parsed = noteInputSchema.safeParse(
+    {
+      deckId: formData.get("deckId"),
+      noteTypeId: formData.get("noteTypeId"),
+      fields: readFields(formData),
+      tags: formData.get("tags") ?? "",
+    },
+    parseOptions(locale),
+  );
+  if (!parsed.success) return { error: issueMessage(t, parsed.error.issues[0]) };
   const [deck, noteType] = await Promise.all([
     prisma.deck.findFirst({ where: { id: parsed.data.deckId, userId: user.id }, select: { id: true } }),
     prisma.noteType.findFirst({ where: { id: parsed.data.noteTypeId, userId: user.id } }),
   ]);
-  if (!deck || !noteType) return { error: "Mazo o tipo de nota no válido" };
+  if (!deck || !noteType) return { error: t.notes.invalidDeckOrNoteType };
   const shape: NoteTypeShape = {
     kind: noteType.kind,
     name: noteType.name,
@@ -76,7 +81,7 @@ export async function createNote(_prev: NoteActionState, formData: FormData): Pr
     templates: noteType.templates as NoteTypeTemplate[],
   };
   const fields = shape.fields.map((_, i) => parsed.data.fields[i] ?? "");
-  if (fields.every((f) => plainText(f).length === 0 && !/<img|\[sound:/i.test(f))) return { error: "Escribe al menos un campo" };
+  if (fields.every((f) => plainText(f).length === 0 && !/<img|\[sound:/i.test(f))) return { error: t.notes.fieldsEmpty };
   const ords = requiredOrdinals(shape, fields, parsed.data.tags);
   const lastPosition = await prisma.card.aggregate({ where: { userId: user.id }, _max: { newPosition: true } });
   const position = (lastPosition._max.newPosition ?? 0) + 1;
@@ -95,22 +100,25 @@ export async function createNote(_prev: NoteActionState, formData: FormData): Pr
   });
   revalidatePath("/decks");
   revalidatePath("/browse");
-  return { success: `Nota añadida (${ords.length} ${ords.length === 1 ? "tarjeta" : "tarjetas"})`, noteId: note.id };
+  return { success: t.notes.added(ords.length), noteId: note.id };
 }
 
 export async function updateNote(_prev: NoteActionState, formData: FormData): Promise<NoteActionState> {
-  const user = await requireUser();
-  const parsed = noteUpdateSchema.safeParse({
-    noteId: formData.get("noteId"),
-    fields: readFields(formData),
-    tags: formData.get("tags") ?? "",
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  const [user, { locale, t }] = await Promise.all([requireUser(), getI18n()]);
+  const parsed = noteUpdateSchema.safeParse(
+    {
+      noteId: formData.get("noteId"),
+      fields: readFields(formData),
+      tags: formData.get("tags") ?? "",
+    },
+    parseOptions(locale),
+  );
+  if (!parsed.success) return { error: issueMessage(t, parsed.error.issues[0]) };
   const note = await prisma.note.findFirst({
     where: { id: parsed.data.noteId, userId: user.id },
     include: { noteType: true, cards: { select: { id: true, ord: true, deckId: true, state: true } } },
   });
-  if (!note) return { error: "Nota no encontrada" };
+  if (!note) return { error: t.notes.noteNotFound };
   const shape: NoteTypeShape = {
     kind: note.noteType.kind,
     name: note.noteType.name,
@@ -143,7 +151,7 @@ export async function updateNote(_prev: NoteActionState, formData: FormData): Pr
   });
   revalidatePath("/decks");
   revalidatePath("/browse");
-  return { success: "Nota guardada" };
+  return { success: t.notes.saved };
 }
 
 export async function deleteNotes(noteIds: string[]) {

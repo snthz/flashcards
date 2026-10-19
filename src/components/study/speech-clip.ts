@@ -69,7 +69,7 @@ export class SpeechClip extends EventTarget implements Clip {
   }
 
   play() {
-    if (typeof speechSynthesis === "undefined") return Promise.reject(new Error("Este dispositivo no tiene voz sintética"));
+    if (typeof speechSynthesis === "undefined") return Promise.reject(new Error("Speech synthesis is not available on this device"));
     speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(this.text);
     utterance.lang = this.lang;

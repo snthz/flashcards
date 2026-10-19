@@ -2,6 +2,8 @@ import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { dayStart, nextDayStart } from "@/lib/scheduler";
 import type { CurrentUser } from "@/lib/auth/user";
+import { getLocale } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/config";
 import { toDeckDescription } from "./description";
 
 export interface DeckCounts {
@@ -99,14 +101,14 @@ async function countsByDeck(userId: string, window: DayWindow) {
   };
 }
 
-function buildTree(rows: DeckRow[], counts: Awaited<ReturnType<typeof countsByDeck>>): DeckNode[] {
+function buildTree(rows: DeckRow[], counts: Awaited<ReturnType<typeof countsByDeck>>, collator: Intl.Collator): DeckNode[] {
   const byParent = new Map<string | null, DeckRow[]>();
   for (const row of rows) {
     const list = byParent.get(row.parentId) ?? [];
     list.push(row);
     byParent.set(row.parentId, list);
   }
-  const sortRows = (list: DeckRow[]) => list.sort((a, b) => a.name.localeCompare(b.name, "es"));
+  const sortRows = (list: DeckRow[]) => list.sort((a, b) => collator.compare(a.name, b.name));
 
   const build = (row: DeckRow, depth: number, prefix: string): { node: DeckNode; studiedNew: number; studiedReview: number } => {
     const fullName = prefix ? `${prefix}::${row.name}` : row.name;
@@ -145,7 +147,7 @@ function buildTree(rows: DeckRow[], counts: Awaited<ReturnType<typeof countsByDe
 
 export const getDeckTree = cache(async (user: CurrentUser): Promise<DeckNode[]> => {
   const window = dayWindow(user);
-  const [rows, counts] = await Promise.all([
+  const [rows, counts, locale] = await Promise.all([
     prisma.deck.findMany({
       where: { userId: user.id },
       select: {
@@ -158,8 +160,9 @@ export const getDeckTree = cache(async (user: CurrentUser): Promise<DeckNode[]> 
       },
     }),
     countsByDeck(user.id, window),
+    getLocale(),
   ]);
-  return buildTree(rows, counts);
+  return buildTree(rows, counts, new Intl.Collator(intlLocale(locale)));
 });
 
 export function findNode(nodes: DeckNode[], id: string): DeckNode | null {

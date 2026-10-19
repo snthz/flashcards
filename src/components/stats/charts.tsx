@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { cn, formatNumber } from "@/lib/utils";
 import { SERIES } from "@/lib/stats/palette";
+import { useI18n } from "@/lib/i18n/client";
+import { intlLocale, type Locale } from "@/lib/i18n/config";
 
 export interface Series {
   key: string;
@@ -10,17 +12,17 @@ export interface Series {
   color: string;
 }
 
-const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-const WEEKDAYS = ["L", "", "X", "", "V", "", ""];
-
-function shortDay(day: string) {
-  const [, m, d] = day.split("-");
-  return `${Number(d)}/${Number(m)}`;
+function dayDate(day: string) {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12));
 }
 
-function longDay(day: string) {
-  const [y, m, d] = day.split("-").map(Number);
-  return new Intl.DateTimeFormat("es", { day: "numeric", month: "short", year: "numeric" }).format(new Date(Date.UTC(y, m - 1, d, 12)));
+function shortDay(day: string, locale: Locale) {
+  return new Intl.DateTimeFormat(intlLocale(locale), { day: "numeric", month: "numeric", timeZone: "UTC" }).format(dayDate(day));
+}
+
+function longDay(day: string, locale: Locale) {
+  return new Intl.DateTimeFormat(intlLocale(locale), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(dayDate(day));
 }
 
 function niceMax(value: number) {
@@ -61,6 +63,7 @@ export function Legend({ series }: { series: Series[] }) {
 }
 
 export function ChartCard({ title, subtitle, children, table }: { title: string; subtitle?: string; children: ReactNode; table?: ReactNode }) {
+  const { t } = useI18n();
   return (
     <section className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:p-5">
       <div className="flex flex-col gap-0.5">
@@ -70,7 +73,7 @@ export function ChartCard({ title, subtitle, children, table }: { title: string;
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">{children}</div>
       {table ? (
         <details className="text-xs text-muted-foreground">
-          <summary className="cursor-pointer select-none">Ver tabla</summary>
+          <summary className="cursor-pointer select-none">{t.stats.charts.showTable}</summary>
           <div className="mt-2 max-h-64 overflow-auto rounded-md border">{table}</div>
         </details>
       ) : null}
@@ -79,6 +82,7 @@ export function ChartCard({ title, subtitle, children, table }: { title: string;
 }
 
 export function DataTable({ headers, rows }: { headers: string[]; rows: Array<Array<string | number>> }) {
+  const { locale } = useI18n();
   return (
     <table className="w-full text-xs">
       <thead className="bg-muted/60 text-left">
@@ -95,7 +99,7 @@ export function DataTable({ headers, rows }: { headers: string[]; rows: Array<Ar
           <tr key={i} className="border-t">
             {row.map((cell, j) => (
               <td key={j} className={cn("px-2 py-1", j > 0 && "text-right tabular-nums")}>
-                {typeof cell === "number" ? formatNumber(cell) : cell}
+                {typeof cell === "number" ? formatNumber(cell, locale) : cell}
               </td>
             ))}
           </tr>
@@ -112,7 +116,8 @@ interface StackedColumnsProps {
   valueLabel?: string;
 }
 
-export function StackedColumns({ data, series, height = 220, valueLabel = "repasos" }: StackedColumnsProps) {
+export function StackedColumns({ data, series, height = 220, valueLabel }: StackedColumnsProps) {
+  const { locale, t } = useI18n();
   const [hover, setHover] = useState<number | null>(null);
   const id = useId();
   const [ref, width] = useContainerWidth<HTMLDivElement>(600);
@@ -133,14 +138,14 @@ export function StackedColumns({ data, series, height = 220, valueLabel = "repas
   return (
     <div ref={ref} className="relative w-full">
       <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="block max-w-full" role="img" aria-labelledby={id}>
-        <title id={id}>Gráfico de columnas</title>
+        <title id={id}>{t.stats.charts.columnChart}</title>
         {ticks.map((t) => {
           const y = padTop + plotH - (t / max) * plotH;
           return (
             <g key={t}>
               <line x1={padLeft} x2={width - padRight} y1={y} y2={y} style={{ stroke: "var(--viz-grid)" }} strokeWidth={1} />
               <text x={padLeft - 8} y={y + 3} textAnchor="end" fontSize={11} style={{ fill: "var(--muted-foreground)" }}>
-                {formatNumber(t)}
+                {formatNumber(t, locale)}
               </text>
             </g>
           );
@@ -184,7 +189,7 @@ export function StackedColumns({ data, series, height = 220, valueLabel = "repas
               />
               {i % labelEvery === 0 ? (
                 <text x={padLeft + i * band + band / 2} y={height - 6} textAnchor="middle" fontSize={11} style={{ fill: "var(--muted-foreground)" }}>
-                  {shortDay(d.day)}
+                  {shortDay(d.day, locale)}
                 </text>
               ) : null}
             </g>
@@ -193,16 +198,16 @@ export function StackedColumns({ data, series, height = 220, valueLabel = "repas
       </svg>
       {active ? (
         <div className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 rounded-md border bg-card px-2.5 py-1.5 text-xs shadow-md">
-          <p className="font-medium">{longDay(active.day)}</p>
+          <p className="font-medium">{longDay(active.day, locale)}</p>
           {series.map((s) => (
             <p key={s.key} className="flex items-center gap-1.5 text-muted-foreground">
               <span className="inline-block size-2 rounded-sm" style={{ background: s.color }} />
-              {s.label}: {formatNumber(active.values[s.key] ?? 0)}
+              {s.label}: {formatNumber(active.values[s.key] ?? 0, locale)}
             </p>
           ))}
           {series.length > 1 ? (
             <p className="text-muted-foreground">
-              Total: {formatNumber(totals[hover!])} {valueLabel}
+              {t.stats.charts.total}: {formatNumber(totals[hover!], locale)} {valueLabel ?? t.stats.charts.reviewsUnit}
             </p>
           ) : null}
         </div>
@@ -212,6 +217,7 @@ export function StackedColumns({ data, series, height = 220, valueLabel = "repas
 }
 
 export function HorizontalBars({ data, color = SERIES.primary }: { data: Array<{ label: string; value: number; hint?: string }>; color?: string }) {
+  const { locale } = useI18n();
   const max = Math.max(...data.map((d) => d.value), 1);
   return (
     <ul className="flex flex-col gap-2">
@@ -221,7 +227,7 @@ export function HorizontalBars({ data, color = SERIES.primary }: { data: Array<{
           <span className="h-3 overflow-hidden rounded-r-[3px] bg-transparent">
             <span className="block h-full rounded-r-[3px]" style={{ width: `${(d.value / max) * 100}%`, background: color }} />
           </span>
-          <span className="text-right tabular-nums">{formatNumber(d.value)}</span>
+          <span className="text-right tabular-nums">{formatNumber(d.value, locale)}</span>
         </li>
       ))}
     </ul>
@@ -229,15 +235,16 @@ export function HorizontalBars({ data, color = SERIES.primary }: { data: Array<{
 }
 
 export function StackedBar({ segments }: { segments: Array<{ label: string; value: number; color: string }> }) {
+  const { locale, t } = useI18n();
   const total = segments.reduce((sum, s) => sum + s.value, 0);
-  if (total === 0) return <p className="text-sm text-muted-foreground">Sin tarjetas.</p>;
+  if (total === 0) return <p className="text-sm text-muted-foreground">{t.stats.charts.noCards}</p>;
   return (
     <div className="flex flex-col gap-2">
       <div className="flex h-4 w-full gap-0.5 overflow-hidden rounded">
         {segments
           .filter((s) => s.value > 0)
           .map((s) => (
-            <span key={s.label} className="h-full" style={{ width: `${(s.value / total) * 100}%`, background: s.color }} title={`${s.label}: ${s.value}`} />
+            <span key={s.label} className="h-full" style={{ width: `${(s.value / total) * 100}%`, background: s.color }} title={`${s.label}: ${formatNumber(s.value, locale)}`} />
           ))}
       </div>
       <ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-5">
@@ -245,7 +252,7 @@ export function StackedBar({ segments }: { segments: Array<{ label: string; valu
           <li key={s.label} className="flex items-center gap-1.5">
             <span className="inline-block size-2.5 rounded-sm" style={{ background: s.color }} aria-hidden />
             <span className="text-muted-foreground">{s.label}</span>
-            <span className="ml-auto tabular-nums">{formatNumber(s.value)}</span>
+            <span className="ml-auto tabular-nums">{formatNumber(s.value, locale)}</span>
           </li>
         ))}
       </ul>
@@ -254,6 +261,7 @@ export function StackedBar({ segments }: { segments: Array<{ label: string; valu
 }
 
 export function Heatmap({ data }: { data: Array<{ day: string; count: number }> }) {
+  const { locale, t } = useI18n();
   const [hover, setHover] = useState<{ day: string; count: number } | null>(null);
   const max = Math.max(...data.map((d) => d.count), 1);
   const first = data[0]?.day;
@@ -280,19 +288,19 @@ export function Heatmap({ data }: { data: Array<{ day: string; count: number }> 
     const col = Math.floor((i + firstDow) / 7);
     const last = monthLabels[monthLabels.length - 1];
     if (last && col - last.col < 3) return;
-    monthLabels.push({ col, label: MONTHS[month - 1] });
+    monthLabels.push({ col, label: t.stats.charts.months[month - 1] });
   });
 
   return (
     <div className="flex flex-col gap-3">
       <div className="relative overflow-x-auto">
-        <svg viewBox={`0 0 ${width} ${height}`} className="block h-auto w-full min-w-[540px]" role="img" aria-label="Actividad diaria">
+        <svg viewBox={`0 0 ${width} ${height}`} className="block h-auto w-full min-w-[540px]" role="img" aria-label={t.stats.charts.dailyActivity}>
           {monthLabels.map((l) => (
             <text key={`${l.col}-${l.label}`} x={padLeft + l.col * step} y={10} fontSize={9} style={{ fill: "var(--muted-foreground)" }}>
               {l.label}
             </text>
           ))}
-          {WEEKDAYS.map((label, row) =>
+          {t.stats.charts.weekdays.map((label, row) =>
             label ? (
               <text key={row} x={0} y={padTop + row * step + cell - 2} fontSize={9} style={{ fill: "var(--muted-foreground)" }}>
                 {label}
@@ -320,17 +328,17 @@ export function Heatmap({ data }: { data: Array<{ day: string; count: number }> 
         </svg>
         {hover ? (
           <div className="pointer-events-none absolute left-2 top-2 rounded-md border bg-card px-2.5 py-1.5 text-xs shadow-md">
-            <p className="font-medium">{longDay(hover.day)}</p>
-            <p className="text-muted-foreground">{formatNumber(hover.count)} repasos</p>
+            <p className="font-medium">{longDay(hover.day, locale)}</p>
+            <p className="text-muted-foreground">{t.stats.charts.reviewCount(hover.count, formatNumber(hover.count, locale))}</p>
           </div>
         ) : null}
       </div>
       <div className="flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
-        <span className="mr-1">Menos</span>
+        <span className="mr-1">{t.stats.charts.less}</span>
         {["var(--viz-empty)", ...steps].map((color) => (
           <span key={color} className="inline-block size-2.5 rounded-[2px]" style={{ background: color }} aria-hidden />
         ))}
-        <span className="ml-1">Más</span>
+        <span className="ml-1">{t.stats.charts.more}</span>
       </div>
     </div>
   );

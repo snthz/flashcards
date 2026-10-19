@@ -6,6 +6,8 @@ import { DAY_MS, dayKey } from "@/lib/scheduler";
 
 export type StatsPeriod = "month" | "quarter" | "year" | "all";
 
+export type IntervalBucket = "day" | "week" | "month" | "quarter" | "year" | "longer";
+
 export interface DailyReviews {
   day: string;
   fresh: number;
@@ -26,7 +28,7 @@ export interface StatsData {
   forecast: Array<{ day: string; count: number }>;
   cardStates: { fresh: number; learning: number; young: number; mature: number; suspended: number };
   answerButtons: { learning: number[]; review: number[] };
-  intervals: Array<{ label: string; count: number }>;
+  intervals: Array<{ bucket: IntervalBucket; count: number }>;
 }
 
 const PERIOD_DAYS: Record<StatsPeriod, number | null> = { month: 30, quarter: 90, year: 365, all: null };
@@ -137,14 +139,16 @@ export async function getStats(user: CurrentUser, options: { deckId?: string; pe
 
   const forecastMap = new Map<string, number>();
   const cardStates = { fresh: 0, learning: 0, young: 0, mature: 0, suspended: 0 };
-  const intervalBuckets = [
-    { label: "1d", max: 1 },
-    { label: "2–7d", max: 7 },
-    { label: "8–30d", max: 30 },
-    { label: "1–3m", max: 90 },
-    { label: "3–12m", max: 365 },
-    { label: "+1a", max: Number.POSITIVE_INFINITY },
-  ].map((b) => ({ ...b, count: 0 }));
+  const intervalBuckets = (
+    [
+      { bucket: "day", max: 1 },
+      { bucket: "week", max: 7 },
+      { bucket: "month", max: 30 },
+      { bucket: "quarter", max: 90 },
+      { bucket: "year", max: 365 },
+      { bucket: "longer", max: Number.POSITIVE_INFINITY },
+    ] satisfies Array<{ bucket: IntervalBucket; max: number }>
+  ).map((b) => ({ ...b, count: 0 }));
   let due = 0;
   let dueTomorrow = 0;
   const tomorrowEnd = new Date(window.end.getTime() + DAY_MS);
@@ -185,6 +189,6 @@ export async function getStats(user: CurrentUser, options: { deckId?: string; pe
     forecast,
     cardStates,
     answerButtons,
-    intervals: intervalBuckets.map((b) => ({ label: b.label, count: b.count })),
+    intervals: intervalBuckets.map((b) => ({ bucket: b.bucket, count: b.count })),
   };
 }

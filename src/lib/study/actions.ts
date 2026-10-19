@@ -2,13 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth/user";
+import { requireUser, type CurrentUser } from "@/lib/auth/user";
+import { getLocale } from "@/lib/i18n/server";
 import { dayWindow } from "@/lib/decks/queries";
 import { schedule, type Rating } from "@/lib/scheduler";
-import { findCard, getStudyState, toSchedulable, toSchedulerConfig } from "./queue";
+import { findCard, getStudyState as readStudyState, toSchedulable, toSchedulerConfig } from "./queue";
 import type { StudyState } from "./types";
 
 const MAX_DURATION_MS = 60_000;
+
+async function getStudyState(user: CurrentUser, deckId: string) {
+  return readStudyState(user, deckId, await getLocale());
+}
 
 function isRating(value: number): value is Rating {
   return value === 1 || value === 2 || value === 3 || value === 4;
