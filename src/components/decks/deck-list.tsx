@@ -42,10 +42,8 @@ function DeckRow({
   return (
     <>
       <div
-        className={cn(
-          "group flex items-center gap-1 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/70",
-          node.depth > 0 && "ml-4 border-l pl-3",
-        )}
+        className="group flex items-center gap-1 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/70"
+        style={node.depth > 0 ? { marginLeft: `${node.depth * 1.25}rem` } : undefined}
       >
         <button
           type="button"
@@ -102,7 +100,7 @@ function DeckRow({
 
 export function DeckList({ tree }: { tree: DeckNode[] }) {
   const { t } = useI18n();
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(tree.filter((n) => n.children.length > 0).map((n) => n.id)));
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [renaming, setRenaming] = useState<DeckNode | null>(null);
   const [deleting, setDeleting] = useState<DeckNode | null>(null);
 

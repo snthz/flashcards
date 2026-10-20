@@ -166,12 +166,27 @@ jobs:
       - name: Trigger Dokploy deployment
         env:
           WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message || github.sha }}
         run: |
           if [ -z "$WEBHOOK_URL" ]; then
             echo "The DOKPLOY_WEBHOOK_URL secret is not set" >&2
             exit 1
           fi
-          curl -fsS --retry 3 --retry-delay 5 -X POST "$WEBHOOK_URL"
+          payload=$(jq -n \
+            --arg ref "$GITHUB_REF" \
+            --arg sha "$GITHUB_SHA" \
+            --arg message "$COMMIT_MESSAGE" \
+            '{ref: $ref, after: $sha, head_commit: {id: $sha, message: $message}}')
+          status=$(curl -sS --retry 3 --retry-delay 5 -o response.txt -w '%{http_code}' \
+            -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-GitHub-Event: push" \
+            -d "$payload")
+          cat response.txt; echo
+          if [ "$status" != "200" ]; then
+            echo "Dokploy responded with HTTP $status" >&2
+            exit 1
+          fi
 
       - name: Wait for the new revision
         if: vars.NEXT_PUBLIC_APP_URL != ''
