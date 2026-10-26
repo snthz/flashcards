@@ -50,7 +50,7 @@ const BASE_CSS = `
 .fc-root img { max-width: 100%; height: auto; }
 .fc-root .cloze { color: var(--fc-accent, #4f46e5); font-weight: 600; }
 .fc-root details.hint summary { cursor: pointer; color: var(--fc-accent, #4f46e5); }
-.fc-root .typeans { font: inherit; font-size: max(16px, 1em); width: 100%; max-width: 24rem; padding: .5rem .75rem; border: 1px solid rgba(127,127,127,.4); border-radius: .5rem; background: transparent; color: inherit; }
+.fc-root .typeans { display: block; box-sizing: border-box; font: inherit; font-size: max(16px, 1em); width: 100%; max-width: 24rem; margin: 1rem auto 0; padding: .5rem .75rem; border: 1px solid rgba(127,127,127,.4); border-radius: .5rem; background: transparent; color: inherit; text-align: center; }
 .fc-root .typeans-answer { margin-top: .5rem; font-weight: 600; }
 .fc-root #typeans { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95em; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
 .fc-root .typeGood { background: rgba(34,197,94,.22); border-radius: 2px; }
