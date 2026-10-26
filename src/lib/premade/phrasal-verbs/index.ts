@@ -1,5 +1,5 @@
-import type { ParsedCard, ParsedCollection, ParsedDeck, ParsedNote, ParsedNoteType } from "@/lib/anki/types";
 import type { Locale } from "@/lib/i18n/config";
+import { buildPremadeCollection, premadeIds, slugify } from "../build";
 import type { PremadeDeck } from "../types";
 import { around } from "./data/around";
 import { away } from "./data/away";
@@ -39,12 +39,7 @@ export const PHRASAL_GROUPS: ParticleGroup[] = [
   { name: "otras (across · ahead · forward)", verbs: [...across, ...ahead, ...forward] },
 ];
 
-const ROOT_NAME = "Phrasal verbs (EN → ES)";
-// Ids far from Anki's millisecond timestamps so they never clash with a user's own imports.
-const NOTE_TYPE_ID = 9_100_300_000_001n;
-const ROOT_DECK_ID = 9_100_200_000_000n;
-const NOTE_ID_BASE = 9_100_000_000_000n;
-const CARD_ID_BASE = 9_100_100_000_000n;
+const ID_BASE = 9_100_000_000_000n;
 
 const FIELDS = ["Verbo", "Traducción", "Definición", "Ejemplo", "Traducción del ejemplo", "Sinónimos", "Tipo", "Notas"];
 
@@ -105,85 +100,28 @@ const CSS = `.card {
 .pv-note { margin-top: 0.75rem; font-size: 0.875rem; opacity: 0.75; }
 `;
 
-function slug(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-
-function escapeHtml(value: string) {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function buildCollection(locale: Locale): ParsedCollection {
-  const noteType: ParsedNoteType = {
-    ankiId: NOTE_TYPE_ID,
-    name: "Phrasal verb (EN → ES)",
-    kind: "STANDARD",
-    css: CSS,
-    fields: FIELDS.map((name) => ({ name })),
-    templates: [{ name: "Inglés → Español", qfmt: FRONT, afmt: BACK }],
-    sortFieldIdx: 0,
-    latexPre: "",
-    latexPost: "",
-  };
-
-  const decks: ParsedDeck[] = [
-    {
-      ankiId: ROOT_DECK_ID,
-      name: ROOT_NAME,
-      description: phrasalVerbsDeck.text[locale].description,
-      configAnkiId: null,
+function buildCollection(locale: Locale) {
+  return buildPremadeCollection({
+    idBase: ID_BASE,
+    guidPrefix: "fc-pv",
+    tag: "phrasal-verbs",
+    rootName: "Phrasal verbs (EN → ES)",
+    description: phrasalVerbsDeck.text[locale].description,
+    noteType: {
+      name: "Phrasal verb (EN → ES)",
+      fields: FIELDS,
+      templates: [{ name: "Inglés → Español", qfmt: FRONT, afmt: BACK }],
+      css: CSS,
     },
-  ];
-  const notes: ParsedNote[] = [];
-  const cards: ParsedCard[] = [];
-  // Interleave particles by relative rank so studying the whole deck mixes them instead of
-  // finishing every "up" verb first; each list is already ordered from most to least common.
-  const ranked: Array<{ rank: number; index: number }> = [];
-  const now = new Date();
-
-  PHRASAL_GROUPS.forEach((group, groupIndex) => {
-    const deckId = ROOT_DECK_ID + BigInt(groupIndex + 1);
-    decks.push({ ankiId: deckId, name: `${ROOT_NAME}::${group.name}`, description: "", configAnkiId: null });
-    group.verbs.forEach(([verb, translation, definition, example, exampleTranslation, synonyms, kind, note], position) => {
-      const index = notes.length;
-      const id = BigInt(index);
-      notes.push({
-        ankiId: NOTE_ID_BASE + id,
-        guid: `fc-pv-${slug(verb)}`,
-        noteTypeAnkiId: NOTE_TYPE_ID,
-        fields: [verb, translation, definition, example, exampleTranslation, synonyms, KIND_LABELS[kind], note ?? ""].map(escapeHtml),
-        tags: ["phrasal-verbs", slug(group.name.split(" ")[0])],
-      });
-      cards.push({
-        ankiId: CARD_ID_BASE + id,
-        noteAnkiId: NOTE_ID_BASE + id,
-        deckAnkiId: deckId,
-        ord: 0,
-        state: "NEW",
-        due: now,
-        newPosition: 0,
-        interval: 0,
-        ease: 2500,
-        reps: 0,
-        lapses: 0,
-        step: 0,
-        stability: null,
-        difficulty: null,
-        suspended: false,
-        buried: false,
-        flag: 0,
-      });
-      ranked.push({ rank: (position + 0.5) / group.verbs.length, index });
-    });
+    groups: PHRASAL_GROUPS.map((group) => ({
+      name: group.name,
+      tag: slugify(group.name.split(" ")[0]),
+      notes: group.verbs.map(([verb, translation, definition, example, exampleTranslation, synonyms, kind, note]) => ({
+        key: verb,
+        fields: [verb, translation, definition, example, exampleTranslation, synonyms, KIND_LABELS[kind], note ?? ""],
+      })),
+    })),
   });
-
-  ranked
-    .sort((a, b) => a.rank - b.rank || a.index - b.index)
-    .forEach(({ index }, order) => {
-      cards[index].newPosition = order;
-    });
-
-  return { noteTypes: [noteType], decks, deckConfigs: [], notes, cards, media: [] };
 }
 
 const allVerbs = PHRASAL_GROUPS.flatMap((group) => group.verbs);
@@ -212,6 +150,6 @@ export const phrasalVerbsDeck: PremadeDeck = {
   cardCount: allVerbs.length,
   subdecks: PHRASAL_GROUPS.map((group) => ({ name: group.name, count: group.verbs.length })),
   samples: [up[0], out[0], off[1], down[0], on[3], back[0]].map(([verb, translation]) => ({ front: verb, back: translation })),
-  rootAnkiId: ROOT_DECK_ID,
+  rootAnkiId: premadeIds(ID_BASE).rootDeck,
   build: buildCollection,
 };
