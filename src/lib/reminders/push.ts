@@ -41,7 +41,7 @@ export async function sendToUser(userId: string, payload: PushPayload) {
       await webpush.sendNotification(
         { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
         JSON.stringify(payload),
-        { vapidDetails, TTL: TTL_SECONDS, urgency: "normal", topic: payload.tag },
+        { vapidDetails, TTL: TTL_SECONDS, urgency: "normal" },
       );
       sent += 1;
     } catch (error) {
