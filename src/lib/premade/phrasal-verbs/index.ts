@@ -1,5 +1,6 @@
 import type { Locale } from "@/lib/i18n/config";
 import { buildPremadeCollection, premadeIds, slugify } from "../build";
+import { PREMADE_BASE_CSS } from "../style";
 import type { PremadeDeck } from "../types";
 import { around } from "./data/around";
 import { away } from "./data/away";
@@ -69,28 +70,13 @@ const BACK = `<div class="pv">
   {{#Notas}}<div class="pv-note">{{Notas}}</div>{{/Notas}}
 </div>`;
 
-// Inherits the app's text color and background so it reads well in light and dark mode.
-const CSS = `.card {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 18px;
-  line-height: 1.5;
-  text-align: left;
-  color: inherit;
-  background: transparent;
-  --pv-accent: #4f46e5;
-  --pv-soft: rgba(79, 70, 229, 0.08);
-}
-.card.nightMode {
-  --pv-accent: #a5b4fc;
-  --pv-soft: rgba(165, 180, 252, 0.12);
-}
-.pv { max-width: 34rem; margin: 0 auto; }
+const CSS = `${PREMADE_BASE_CSS}.pv { max-width: 34rem; margin: 0 auto; }
 .pv-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
-.pv-verb { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; color: var(--pv-accent); }
+.pv-verb { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
 .pv hr#answer { margin: 1.25rem 0; }
 .pv-meaning { font-size: 1.375rem; font-weight: 600; }
 .pv-def { margin-top: 0.25rem; font-size: 0.95rem; opacity: 0.65; font-style: italic; }
-.pv-example { margin-top: 1.25rem; padding: 0.75rem 1rem; border-radius: 0.875rem; background: var(--pv-soft); }
+.pv-example { margin-top: 1.25rem; padding: 0.75rem 1rem; border-radius: 0.875rem; background: var(--premade-soft); }
 .pv-example-en { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-weight: 500; }
 .pv-example-es { margin-top: 0.25rem; font-size: 0.95rem; opacity: 0.7; }
 .pv-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin-top: 1rem; font-size: 0.875rem; }
