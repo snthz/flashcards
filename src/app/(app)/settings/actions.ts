@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/user";
@@ -10,6 +11,8 @@ import { changePasswordSchema, profileSchema } from "@/lib/validation/auth";
 import { isValidTimeZone } from "@/lib/scheduler";
 import { getI18n } from "@/lib/i18n/server";
 import { issueMessage, parseOptions } from "@/lib/i18n/validation";
+import { isPushEndpoint, sendToUser } from "@/lib/reminders/push";
+import { z } from "zod";
 
 export type SettingsState = { error?: string; success?: string; fieldErrors?: Record<string, string> };
 
@@ -56,4 +59,39 @@ export async function deleteAccount(formData: FormData) {
   await destroyAllSessions(user.id);
   await prisma.user.delete({ where: { id: user.id } });
   redirect("/register");
+}
+
+const subscriptionSchema = z.object({
+  endpoint: z.string().url().max(2048),
+  keys: z.object({ p256dh: z.string().min(1).max(256), auth: z.string().min(1).max(256) }),
+});
+
+export async function saveReminderHour(hour: number | null) {
+  const user = await requireUser();
+  const value = hour == null ? null : Math.max(0, Math.min(23, Math.round(hour)));
+  await prisma.user.update({ where: { id: user.id }, data: { reminderHour: value, reminderSentOn: null } });
+}
+
+export async function savePushSubscription(input: unknown) {
+  const user = await requireUser();
+  const parsed = subscriptionSchema.safeParse(input);
+  if (!parsed.success || !isPushEndpoint(parsed.data.endpoint)) return { ok: false };
+  const headerStore = await headers();
+  const data = { userId: user.id, p256dh: parsed.data.keys.p256dh, auth: parsed.data.keys.auth, userAgent: headerStore.get("user-agent")?.slice(0, 255) ?? null };
+  await prisma.pushSubscription.upsert({ where: { endpoint: parsed.data.endpoint }, create: { endpoint: parsed.data.endpoint, ...data }, update: data });
+  return { ok: true };
+}
+
+export async function deletePushSubscription(endpoint: string) {
+  const user = await requireUser();
+  await prisma.pushSubscription.deleteMany({ where: { userId: user.id, endpoint } });
+  const remaining = await prisma.pushSubscription.count({ where: { userId: user.id } });
+  if (remaining === 0) await prisma.user.update({ where: { id: user.id }, data: { reminderHour: null } });
+}
+
+export async function sendTestReminder() {
+  const user = await requireUser();
+  const { t } = await getI18n();
+  const result = await sendToUser(user.id, { title: t.reminders.testTitle, body: t.reminders.testBody, url: "/decks", tag: "test-reminder" });
+  return { sent: result.sent };
 }

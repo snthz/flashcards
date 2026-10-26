@@ -42,11 +42,14 @@ model User {
   timezone     String   @default("UTC")
   dayStartHour Int      @default(4)
   locale       String   @default("en")
+  reminderHour   Int?
+  reminderSentOn String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   sessions    Session[]
   resetTokens PasswordResetToken[]
+  pushSubscriptions PushSubscription[]
   decks       Deck[]
   deckConfigs DeckConfig[]
   noteTypes   NoteType[]
@@ -78,6 +81,19 @@ model PasswordResetToken {
   createdAt DateTime  @default(now())
 
   @@index([userId, createdAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model DeckConfig {

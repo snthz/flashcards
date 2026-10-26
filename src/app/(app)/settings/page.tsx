@@ -7,6 +7,9 @@ import { DeleteAccountForm, LogoutButton, PasswordForm, ProfileForm } from "@/co
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ExportButton } from "@/components/export/export-dialog";
+import { ReminderSettings } from "@/components/settings/reminder-settings";
+import { vapidPublicKey } from "@/lib/reminders/push";
+import { prisma } from "@/lib/db";
 import { Download } from "lucide-react";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,6 +21,7 @@ export default async function SettingsPage() {
   const user = await requireUser();
   const messages = await getMessages();
   const t = messages.settings;
+  const reminder = await prisma.user.findUnique({ where: { id: user.id }, select: { reminderHour: true } });
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={user.email} actions={<LogoutButton />} />
@@ -29,6 +33,15 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <ProfileForm name={user.name} timezone={user.timezone} dayStartHour={user.dayStartHour} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t.remindersTitle}</CardTitle>
+          <CardDescription>{t.remindersDescription}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ReminderSettings publicKey={vapidPublicKey()} initialHour={reminder?.reminderHour ?? null} />
         </CardContent>
       </Card>
       <Card>

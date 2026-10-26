@@ -12,6 +12,7 @@ import { nav } from "./nav";
 import { notes } from "./notes";
 import { offline } from "./offline";
 import { pwa } from "./pwa";
+import { reminders } from "./reminders";
 import { settings } from "./settings";
 import { stats } from "./stats";
 import { study } from "./study";
@@ -33,6 +34,7 @@ export const en = {
   notes,
   offline,
   pwa,
+  reminders,
   settings,
   stats,
   study,

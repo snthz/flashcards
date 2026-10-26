@@ -47,3 +47,44 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+interface PushMessage {
+  title?: string;
+  body?: string;
+  url?: string;
+  tag?: string;
+}
+
+self.addEventListener("push", (event) => {
+  let message: PushMessage = {};
+  try {
+    message = event.data?.json() ?? {};
+  } catch {
+    message = { body: event.data?.text() };
+  }
+  event.waitUntil(
+    self.registration.showNotification(message.title ?? "Flashcards", {
+      body: message.body,
+      icon: "/icons/icon-192.png",
+      tag: message.tag ?? "flashcards",
+      data: { url: message.url ?? "/decks" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL((event.notification.data as { url?: string } | null)?.url ?? "/decks", self.location.origin).href;
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      const existing = windows.find((client) => new URL(client.url).origin === self.location.origin);
+      if (existing) {
+        await existing.focus();
+        if ("navigate" in existing) await existing.navigate(target).catch(() => null);
+        return;
+      }
+      await self.clients.openWindow(target);
+    })(),
+  );
+});

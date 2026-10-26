@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { dayStart, nextDayStart } from "@/lib/scheduler";
 import type { CurrentUser } from "@/lib/auth/user";
 import { getLocale } from "@/lib/i18n/server";
-import { intlLocale } from "@/lib/i18n/config";
+import { intlLocale, type Locale } from "@/lib/i18n/config";
 import { toDeckDescription } from "./description";
 
 export interface DeckCounts {
@@ -145,9 +145,9 @@ function buildTree(rows: DeckRow[], counts: Awaited<ReturnType<typeof countsByDe
   return sortRows(byParent.get(null) ?? []).map((row) => build(row, 0, "").node);
 }
 
-export const getDeckTree = cache(async (user: CurrentUser): Promise<DeckNode[]> => {
+export async function loadDeckTree(user: Pick<CurrentUser, "id" | "timezone" | "dayStartHour">, locale: Locale): Promise<DeckNode[]> {
   const window = dayWindow(user);
-  const [rows, counts, locale] = await Promise.all([
+  const [rows, counts] = await Promise.all([
     prisma.deck.findMany({
       where: { userId: user.id },
       select: {
@@ -160,10 +160,11 @@ export const getDeckTree = cache(async (user: CurrentUser): Promise<DeckNode[]> 
       },
     }),
     countsByDeck(user.id, window),
-    getLocale(),
   ]);
   return buildTree(rows, counts, new Intl.Collator(intlLocale(locale)));
-});
+}
+
+export const getDeckTree = cache(async (user: CurrentUser): Promise<DeckNode[]> => loadDeckTree(user, await getLocale()));
 
 export function findNode(nodes: DeckNode[], id: string): DeckNode | null {
   for (const node of nodes) {
