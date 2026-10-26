@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { fieldMap, renderCard } from "@/lib/anki/render";
 import { PREMADE_DECKS } from "./catalog";
 import { KIND_LABELS, WORD_BANDS } from "./english-words";
+import { FALSE_FRIEND_GROUPS } from "./false-friends";
 import { PATTERN_GROUPS, SPOKEN_FORMS, spokenForms } from "./irregular-verbs";
 import { PHRASAL_GROUPS } from "./phrasal-verbs";
 
@@ -146,6 +147,54 @@ describe("english words deck", () => {
     expect(spanish.question).toContain("sustantivo");
     expect(spanish.audio.answer).toHaveLength(2);
     expect(spanish.answer).not.toContain("{{");
+  });
+});
+
+function renderBoth(slug: string, guid: string) {
+  const collection = PREMADE_DECKS.find((d) => d.slug === slug)!.build("es");
+  const [noteType] = collection.noteTypes;
+  const note = collection.notes.find((n) => n.guid === guid)!;
+  return noteType.templates.map((template, ord) =>
+    renderCard({
+      fields: fieldMap(noteType.fields.map((f) => f.name), note.fields),
+      template,
+      css: noteType.css,
+      ord,
+      kind: "STANDARD",
+      tags: note.tags,
+      deckName: "x",
+      noteTypeName: noteType.name,
+      mediaBase: "/api/media/",
+    }),
+  );
+}
+
+describe("false friends deck", () => {
+  const words = FALSE_FRIEND_GROUPS.flatMap((group) => group.words);
+
+  it("has complete, unique entries", () => {
+    expect(words.length).toBeGreaterThanOrEqual(100);
+    expect(new Set(words.map((w) => w[0])).size).toBe(words.length);
+    expect(new Set(words.map((w) => w[2])).size).toBe(words.length);
+    for (const entry of words) {
+      expect(entry.slice(0, 8).every((v) => typeof v === "string" && v.trim() === v && v.length > 0), entry[0]).toBe(true);
+      expect(entry[8] === undefined || (entry[8].trim() === entry[8] && entry[8].length > 0), entry[0]).toBe(true);
+    }
+  });
+
+  it("asks for the meaning and for the look-alike in English", () => {
+    const deck = PREMADE_DECKS.find((d) => d.slug === "false-friends")!;
+    const collection = deck.build("en");
+    expect(collection.cards).toHaveLength(words.length * 2);
+    expect(new Set(collection.cards.map((c) => c.newPosition)).size).toBe(words.length * 2);
+    const [english, spanish] = renderBoth("false-friends", "fc-ff-actually");
+    expect(english.audio.question).toEqual(["tts:en-US:actually"]);
+    expect(english.answer).toContain("actualmente");
+    expect(spanish.audio.question).toEqual([]);
+    expect(spanish.question).toContain("actualmente");
+    expect(spanish.answer).toContain("actually");
+    expect(spanish.audio.answer).toHaveLength(2);
+    expect([english.answer, spanish.answer].join("")).not.toContain("{{");
   });
 });
 
