@@ -5,6 +5,7 @@ import { KIND_LABELS, WORD_BANDS } from "./english-words";
 import { FALSE_FRIEND_GROUPS } from "./false-friends";
 import { PATTERN_GROUPS, SPOKEN_FORMS, spokenForms } from "./irregular-verbs";
 import { PHRASAL_GROUPS } from "./phrasal-verbs";
+import { PHRASE_GROUPS } from "./remote-work";
 
 describe("phrasal verbs deck", () => {
   const verbs = PHRASAL_GROUPS.flatMap((group) => group.verbs);
@@ -195,6 +196,32 @@ describe("false friends deck", () => {
     expect(spanish.answer).toContain("actually");
     expect(spanish.audio.answer).toHaveLength(2);
     expect([english.answer, spanish.answer].join("")).not.toContain("{{");
+  });
+});
+
+describe("remote work deck", () => {
+  const phrases = PHRASE_GROUPS.flatMap((group) => group.phrases);
+
+  it("has complete, unique entries", () => {
+    expect(phrases.length).toBeGreaterThanOrEqual(200);
+    expect(new Set(phrases.map((p) => p[0])).size).toBe(phrases.length);
+    for (const entry of phrases) {
+      expect(entry.slice(0, 4).every((v) => typeof v === "string" && v.trim() === v && v.length > 0), entry[0]).toBe(true);
+      expect(entry[4] === undefined || (entry[4].trim() === entry[4] && entry[4].length > 0), entry[0]).toBe(true);
+    }
+  });
+
+  it("builds both directions with audio on the English side", () => {
+    const deck = PREMADE_DECKS.find((d) => d.slug === "remote-work")!;
+    const collection = deck.build("es");
+    expect(collection.cards).toHaveLength(phrases.length * 2);
+    expect(new Set(collection.notes.map((n) => n.guid)).size).toBe(phrases.length);
+    expect(new Set(collection.cards.map((c) => c.newPosition)).size).toBe(phrases.length * 2);
+    const [english, spanish] = renderBoth("remote-work", "fc-rw-you-re-on-mute");
+    expect(english.audio.question).toEqual([`tts:en-US:${encodeURIComponent("You're on mute.")}`]);
+    expect(spanish.audio.question).toEqual([]);
+    expect(spanish.audio.answer).toHaveLength(2);
+    expect(spanish.answer).not.toContain("{{");
   });
 });
 
