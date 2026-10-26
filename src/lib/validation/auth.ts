@@ -18,6 +18,17 @@ export const loginSchema = z.object({
   password: z.string().min(1, message("passwordRequired")),
 });
 
+export const RESET_TOKEN_MINUTES = 60;
+
+export const resetRequestSchema = z.object({
+  email: emailSchema,
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1).max(200),
+  password: passwordSchema,
+});
+
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, message("currentPasswordRequired")),
   newPassword: passwordSchema,

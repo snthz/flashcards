@@ -13,6 +13,7 @@ import { useMessages } from "@/lib/i18n/client";
 interface AuthFormProps {
   mode: "login" | "register";
   action: (state: AuthState, formData: FormData) => Promise<AuthState>;
+  showForgotPassword?: boolean;
 }
 
 interface AuthInputProps {
@@ -31,7 +32,7 @@ interface AuthInputProps {
   defaultValue?: string;
 }
 
-function AuthInput({ name, label, type = "text", autoComplete, icon, error, required, minLength, maxLength, inputMode, hint, trailing, defaultValue }: AuthInputProps) {
+export function AuthInput({ name, label, type = "text", autoComplete, icon, error, required, minLength, maxLength, inputMode, hint, trailing, defaultValue }: AuthInputProps) {
   const id = useId();
   return (
     <div className="flex flex-col gap-1.5">
@@ -71,7 +72,21 @@ function AuthInput({ name, label, type = "text", autoComplete, icon, error, requ
   );
 }
 
-export function AuthForm({ mode, action }: AuthFormProps) {
+export function PasswordVisibility({ visible, onToggle }: { visible: boolean; onToggle: () => void }) {
+  const t = useMessages().auth;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={visible ? t.hidePassword : t.showPassword}
+      className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+    >
+      {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+    </button>
+  );
+}
+
+export function AuthForm({ mode, action, showForgotPassword = false }: AuthFormProps) {
   const [state, formAction, pending] = useActionState(action, {});
   const [showPassword, setShowPassword] = useState(false);
   const timezone = useBrowserTimeZone();
@@ -114,17 +129,13 @@ export function AuthForm({ mode, action }: AuthFormProps) {
         minLength={isRegister ? 8 : 1}
         error={state.fieldErrors?.password}
         hint={isRegister ? t.passwordHint : undefined}
-        trailing={
-          <button
-            type="button"
-            onClick={() => setShowPassword((value) => !value)}
-            aria-label={showPassword ? t.hidePassword : t.showPassword}
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          </button>
-        }
+        trailing={<PasswordVisibility visible={showPassword} onToggle={() => setShowPassword((value) => !value)} />}
       />
+      {!isRegister && showForgotPassword ? (
+        <Link href="/forgot-password" className="-mt-3 self-end text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+          {t.forgotPassword}
+        </Link>
+      ) : null}
       <input type="hidden" name="timezone" value={timezone} />
       <Button type="submit" size="lg" loading={pending} className="mt-1 h-12 rounded-xl text-base">
         {isRegister ? t.submitRegister : t.submitLogin}

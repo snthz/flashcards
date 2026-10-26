@@ -28,7 +28,7 @@ An Anki-compatible spaced repetition app, built as an installable Progressive We
 - **Notes and browser** — A note editor with built-in Basic, Basic (and reversed card), Basic (type in the answer), and Cloze note types, plus a card browser with search, filters, and bulk actions. Typed answers are compared character by character, as in Anki.
 - **Export** — Download a deck (with its subdecks) or the whole account as an Anki package (`.apkg`) with scheduling, review history and media, or as Anki's tab-separated plain text format. Exported packages open in Anki and can be imported back without creating duplicates.
 - **Statistics** — Daily reviews, forecast, retention, streaks, a yearly activity heatmap, and card and interval distributions.
-- **Accounts** — Database-backed persistent sessions, with configurable time zone and day rollover hour.
+- **Accounts** — Database-backed persistent sessions, with configurable time zone and day rollover hour, and password reset by email (single-use links that expire after an hour and sign out every other device).
 - **Languages** — English and Spanish, switchable from Settings or the landing page and saved to the account.
 - **PWA** — Installable on iOS, Android, and desktop, with a service worker and an offline fallback page.
 
@@ -71,6 +71,11 @@ The app is then available at [http://localhost:3000](http://localhost:3000).
 | `SESSION_SECRET` | A long random string used to sign session tokens. |
 | `MEDIA_DIR` | Directory where imported images and audio files are stored. |
 | `NEXT_PUBLIC_APP_URL` | Public URL of the application. |
+| `APP_URL` | Public URL used in emails, read at runtime. Falls back to `NEXT_PUBLIC_APP_URL`. Required in production for password reset links. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_SECURE` | SMTP server for outgoing email (password reset). `SMTP_SECURE=true` (or port 465) uses implicit TLS. Alternatively set `SMTP_URL` (for example `smtps://user:pass@smtp.example.com:465`). |
+| `MAIL_FROM` | Sender address, for example `Flashcards <no-reply@example.com>`. Defaults to `SMTP_USER`. |
+
+Without SMTP settings, development builds print password reset emails to the server log; production builds hide the "Forgot your password?" link.
 
 ## Scripts
 
@@ -132,6 +137,7 @@ GitHub Actions builds the image and publishes it to `ghcr.io/snthz/flashcards`; 
    - `SESSION_SECRET` (for example, `openssl rand -base64 48`)
    - `FLASHCARDS_IMAGE=ghcr.io/snthz/flashcards:latest` (optional; pin a `sha-<commit>` tag to deploy a specific revision)
    - `TZ` (optional)
+   - `APP_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` and `MAIL_FROM` (optional; enable password reset emails)
 4. **Domain** — Attach it to the `flashcards` service on port `3000`.
 5. **Network** — The service joins `dokploy-network`, the existing network where Traefik runs.
 6. **Webhook** — Copy the service's deployment webhook URL and store it as the `DOKPLOY_WEBHOOK_URL` repository secret.

@@ -1,20 +1,26 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { prisma } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSession, destroySession } from "@/lib/auth/session";
-import { loginSchema, registerSchema } from "@/lib/validation/auth";
+import { consumeResetToken, findValidResetToken, issueResetToken } from "@/lib/auth/reset";
+import { loginSchema, registerSchema, resetPasswordSchema, resetRequestSchema } from "@/lib/validation/auth";
 import { defaultDeckConfigInput, defaultNoteTypeCreateInputs } from "@/lib/defaults";
 import { resolveLocale } from "@/lib/i18n/config";
 import { getI18n, setLocaleCookie } from "@/lib/i18n/server";
 import { parseOptions } from "@/lib/i18n/validation";
-import type { Messages } from "@/lib/i18n/messages";
+import { dictionaries, type Messages } from "@/lib/i18n/messages";
+import { appOrigin } from "@/lib/app-url";
+import { sendMail } from "@/lib/mail";
+import { passwordResetEmail } from "@/lib/mail/password-reset";
 
 export type AuthState = {
   error?: string;
   fieldErrors?: Record<string, string>;
   values?: { name?: string; email?: string };
+  sent?: boolean;
 };
 
 function valuesFrom(formData: FormData) {
@@ -88,6 +94,47 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
 
   await createSession(user.id);
   await setLocaleCookie(resolveLocale(user.locale));
+  redirect("/decks");
+}
+
+export async function requestPasswordReset(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const { locale, t } = await getI18n();
+  const parsed = resetRequestSchema.safeParse({ email: formData.get("email") }, parseOptions(locale));
+  if (!parsed.success) return { fieldErrors: fieldErrorsFrom(t, parsed.error.issues), values: valuesFrom(formData) };
+  const email = parsed.data.email;
+  const origin = await appOrigin();
+  after(async () => {
+    if (!origin) {
+      console.warn("[auth] APP_URL is not set; password reset links can't be built");
+      return;
+    }
+    const user = await prisma.user.findUnique({ where: { email }, select: { id: true, name: true, locale: true } });
+    if (!user) return;
+    const token = await issueResetToken(user.id);
+    if (!token) return;
+    const messages = dictionaries[resolveLocale(user.locale)].auth;
+    const url = `${origin}/reset-password?token=${encodeURIComponent(token)}`;
+    await sendMail({ to: email, ...passwordResetEmail(messages, user.name, url) }).catch((error) => {
+      console.error("[auth] failed to send the password reset email", error);
+    });
+  });
+  return { sent: true, values: { email } };
+}
+
+export async function resetPassword(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const { locale, t } = await getI18n();
+  const parsed = resetPasswordSchema.safeParse(
+    { token: formData.get("token"), password: formData.get("password") },
+    parseOptions(locale),
+  );
+  if (!parsed.success) return { fieldErrors: fieldErrorsFrom(t, parsed.error.issues) };
+  const record = await findValidResetToken(parsed.data.token);
+  if (!record) return { error: t.auth.resetInvalid };
+  const updated = await consumeResetToken(record.id, record.userId, await hashPassword(parsed.data.password));
+  if (!updated) return { error: t.auth.resetInvalid };
+  const user = await prisma.user.findUnique({ where: { id: record.userId }, select: { locale: true } });
+  await createSession(record.userId);
+  await setLocaleCookie(resolveLocale(user?.locale));
   redirect("/decks");
 }
 
