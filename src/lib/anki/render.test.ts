@@ -75,6 +75,30 @@ describe("renderCard", () => {
   });
 });
 
+describe("type answer", () => {
+  const template = { name: "T", qfmt: "{{Anverso}} {{type:Reverso}}", afmt: "{{FrontSide}}<hr id=answer>{{type:Reverso}}" };
+
+  it("shows an input on the question and keeps it out of FrontSide on the answer", () => {
+    const result = renderCard(input({ template, typeAnswerPlaceholder: "Escribe" }));
+    expect(result.question).toContain('<input class="typeans"');
+    expect(result.question).toContain('placeholder="Escribe"');
+    expect(result.answer).not.toContain("<input");
+  });
+
+  it("stores the expected answer as plain text for the comparison", () => {
+    const fields = { Anverso: "Hola", Reverso: "<b>give</b>&nbsp;up [sound:a.mp3]" };
+    const result = renderCard(input({ template, fields }));
+    expect(result.answer).toContain('data-expected="give up"');
+  });
+
+  it("compares only the active cloze for type-cloze", () => {
+    const fields = { Texto: "{{c1::Francia}} y {{c2::París}}" };
+    const cloze = { name: "Cloze", qfmt: "{{cloze:Texto}} {{type:cloze:Texto}}", afmt: "{{cloze:Texto}} {{type:cloze:Texto}}" };
+    const result = renderCard(input({ kind: "CLOZE", fields, template: cloze, ord: 1 }));
+    expect(result.answer).toContain('data-expected="París"');
+  });
+});
+
 describe("helpers", () => {
   it("detects cloze ordinals", () => {
     expect(clozeOrdinals("{{c2::a}} {{c1::b}} {{c2::c}}")).toEqual([0, 1]);

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { usePrefersDark } from "@/lib/hooks/use-is-client";
 import { AUDIO_MOUNT_CSS, AUDIO_TOGGLE_CSS, AudioDock, AudioToggle, PLAYBACK_RATES } from "./audio-player";
 import { isSpeechSrc, SpeechClip, type Clip } from "./speech-clip";
+import { typeAnswerHtml } from "@/lib/study/type-answer";
 
 interface CardFrameProps {
   html: string;
@@ -12,6 +13,9 @@ interface CardFrameProps {
   ord: number;
   side: "question" | "answer";
   autoplay: string[];
+  typed?: string;
+  onTyped?: (value: string) => void;
+  onSubmitTyped?: () => void;
 }
 
 interface Player {
@@ -48,15 +52,25 @@ const BASE_CSS = `
 .fc-root details.hint summary { cursor: pointer; color: var(--fc-accent, #4f46e5); }
 .fc-root .typeans { font: inherit; font-size: max(16px, 1em); width: 100%; max-width: 24rem; padding: .5rem .75rem; border: 1px solid rgba(127,127,127,.4); border-radius: .5rem; background: transparent; color: inherit; }
 .fc-root .typeans-answer { margin-top: .5rem; font-weight: 600; }
+.fc-root #typeans { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95em; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.fc-root .typeGood { background: rgba(34,197,94,.22); border-radius: 2px; }
+.fc-root .typeBad { background: rgba(239,68,68,.25); border-radius: 2px; }
+.fc-root .typeMissed { background: rgba(127,127,127,.25); border-radius: 2px; }
+.fc-root #typearrow { opacity: .6; }
 .fc-root hr#answer { border: 0; border-top: 1px solid rgba(127,127,127,.35); margin: 1rem 0; }
 ${AUDIO_MOUNT_CSS}`;
 
-export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
+export function CardFrame({ html, css, ord, side, autoplay, typed, onTyped, onSubmitTyped }: CardFrameProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const shadowRef = useRef<ShadowRoot | null>(null);
+  const typingRef = useRef({ onTyped, onSubmitTyped });
   const [players, setPlayers] = useState<Player[]>([]);
   const [active, setActive] = useState(0);
   const dark = usePrefersDark();
+
+  useEffect(() => {
+    typingRef.current = { onTyped, onSubmitTyped };
+  }, [onTyped, onSubmitTyped]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -64,6 +78,28 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
     if (!shadowRef.current) shadowRef.current = host.attachShadow({ mode: "open" });
     const root = shadowRef.current;
     root.innerHTML = `<style>${BASE_CSS}${css}</style><div class="fc-root"><div class="card card${ord + 1} ${side}${dark ? " nightMode night_mode" : ""}">${html}</div></div>`;
+
+    const typeInput = side === "question" ? root.querySelector<HTMLInputElement>("input.typeans") : null;
+    const onTypeInput = () => typingRef.current.onTyped?.(typeInput?.value ?? "");
+    const onTypeKey = (event: KeyboardEvent) => {
+      event.stopPropagation();
+      if (event.key === "Enter" && !event.isComposing) {
+        event.preventDefault();
+        typingRef.current.onSubmitTyped?.();
+      }
+    };
+    const stopClick = (event: MouseEvent) => event.stopPropagation();
+    if (typeInput) {
+      typeInput.addEventListener("input", onTypeInput);
+      typeInput.addEventListener("keydown", onTypeKey);
+      typeInput.addEventListener("click", stopClick);
+      if (window.matchMedia("(pointer: fine)").matches) typeInput.focus({ preventScroll: true });
+    }
+    if (side === "answer") {
+      root.querySelectorAll<HTMLElement>(".typeans-answer[data-expected]").forEach((element) => {
+        element.innerHTML = typeAnswerHtml(typed ?? "", element.dataset.expected ?? "");
+      });
+    }
 
     const rate = readRate();
     const items: Player[] = Array.from(root.querySelectorAll<HTMLElement>(".fc-audio[data-src]"), (mount) => {
@@ -116,6 +152,11 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
 
     return () => {
       cancelled = true;
+      if (typeInput) {
+        typeInput.removeEventListener("input", onTypeInput);
+        typeInput.removeEventListener("keydown", onTypeKey);
+        typeInput.removeEventListener("click", stopClick);
+      }
       listeners.forEach((remove) => remove());
       items.forEach(({ audio }) => {
         audio.pause();
@@ -125,7 +166,7 @@ export function CardFrame({ html, css, ord, side, autoplay }: CardFrameProps) {
         }
       });
     };
-  }, [html, css, ord, side, autoplay, dark]);
+  }, [html, css, ord, side, autoplay, dark, typed]);
 
   const changeRate = useCallback(
     (rate: number) => {

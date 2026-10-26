@@ -30,8 +30,10 @@ export function StudySession({ initial }: { initial: StudyState }) {
   const { locale, t } = useI18n();
   const [state, setState] = useState<StudyState>(initial);
   const [revealed, setRevealed] = useState(false);
+  const [typed, setTyped] = useState("");
   const [pending, startTransition] = useTransition();
   const shownAt = useRef<number>(0);
+  const typedRef = useRef("");
   const card = state.card;
 
   useEffect(() => {
@@ -45,6 +47,8 @@ export function StudySession({ initial }: { initial: StudyState }) {
         if (next) {
           setState(next);
           setRevealed(false);
+          typedRef.current = "";
+          setTyped("");
           shownAt.current = Date.now();
         }
       });
@@ -52,7 +56,14 @@ export function StudySession({ initial }: { initial: StudyState }) {
     [startTransition],
   );
 
-  const reveal = useCallback(() => setRevealed(true), []);
+  const reveal = useCallback(() => {
+    setTyped(typedRef.current);
+    setRevealed(true);
+  }, []);
+
+  const onTyped = useCallback((value: string) => {
+    typedRef.current = value;
+  }, []);
 
   const rate = useCallback(
     (rating: Rating) => {
@@ -70,8 +81,8 @@ export function StudySession({ initial }: { initial: StudyState }) {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+      const target = (event.composedPath()[0] ?? event.target) as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
         undo();
@@ -163,6 +174,9 @@ export function StudySession({ initial }: { initial: StudyState }) {
               ord={card.ord}
               side={revealed ? "answer" : "question"}
               autoplay={revealed ? card.audio.answer : card.audio.question.length > 0 ? card.audio.question : EMPTY}
+              typed={revealed ? typed : undefined}
+              onTyped={onTyped}
+              onSubmitTyped={reveal}
             />
           </section>
 

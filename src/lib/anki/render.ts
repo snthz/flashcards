@@ -28,6 +28,7 @@ const EVENT_ATTR_RE = /\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi;
 const TAG_RE = /<[^>]+>/g;
 const HIDDEN_BLOCK_RE = /<(style|script)\b[^>]*>[\s\S]*?<\/\1>|<!--[\s\S]*?-->/gi;
 const BLOCK_TAG_RE = /<\/?(?:p|div|h[1-6]|ul|ol|table|tr|blockquote|pre|section|article|header|footer)\b[^>]*>/gi;
+const TYPE_INPUT_RE = /<input class="typeans"[^>]*>/g;
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
 
 function stripHtml(value: string) {
@@ -109,6 +110,17 @@ function escapeAttr(value: string) {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
+function typeInput(input: RenderInput) {
+  return `<input class="typeans" type="text" placeholder="${escapeAttr(input.typeAnswerPlaceholder ?? "Type the answer")}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">`;
+}
+
+function typeAnswer(html: string) {
+  const expected = decodeEntities(stripHtml(html.replace(SOUND_RE, "").replace(/<br\s*\/?>/gi, " ")))
+    .replace(/\s+/g, " ")
+    .trim();
+  return `<div class="typeans-answer" data-expected="${escapeAttr(expected)}">${html}</div>`;
+}
+
 export function clozeOrdinals(text: string) {
   const ords = new Set<number>();
   for (const match of text.matchAll(CLOZE_RE)) {
@@ -120,7 +132,8 @@ export function clozeOrdinals(text: string) {
 
 function applyFilters(filters: string[], value: string, fieldName: string, input: RenderInput, side: "question" | "answer") {
   let result = value;
-  for (const filter of [...filters].reverse()) {
+  const chain = filters[0] === "type" && filters[1] === "cloze" ? ["type-cloze", ...filters.slice(2)] : filters;
+  for (const filter of [...chain].reverse()) {
     switch (filter.split(/\s+/)[0]) {
       case "cloze":
         result = renderCloze(result, input.ord, side);
@@ -137,10 +150,10 @@ function applyFilters(filters: string[], value: string, fieldName: string, input
           : "";
         break;
       case "type":
-        result = side === "question" ? `<input class="typeans" type="text" placeholder="${escapeAttr(input.typeAnswerPlaceholder ?? "Type the answer")}" autocomplete="off">` : `<div class="typeans-answer">${result}</div>`;
+        result = side === "question" ? typeInput(input) : typeAnswer(result);
         break;
       case "type-cloze":
-        result = side === "question" ? `<input class="typeans" type="text" autocomplete="off">` : `<div class="typeans-answer">${clozeOnlyText(result, input.ord)}</div>`;
+        result = side === "question" ? typeInput(input) : typeAnswer(clozeOnlyText(result, input.ord));
         break;
       case "tts":
         result = ttsSound(filter, result);
@@ -209,7 +222,7 @@ function renderTemplate(template: string, input: RenderInput, side: "question" |
 
 export function renderCard(input: RenderInput): RenderedCard {
   const rawQuestion = renderTemplate(input.template.qfmt, input, "question", "");
-  const rawAnswer = renderTemplate(input.template.afmt, input, "answer", rawQuestion);
+  const rawAnswer = renderTemplate(input.template.afmt, input, "answer", rawQuestion.replace(TYPE_INPUT_RE, ""));
   const question = extractAudio(sanitize(rewriteMedia(rawQuestion, input.mediaBase)), input.mediaBase);
   const answer = extractAudio(sanitize(rewriteMedia(rawAnswer, input.mediaBase)), input.mediaBase);
   return {

@@ -18,11 +18,12 @@ type DefaultNoteType = {
 
 const defaultNames: Record<
   Locale,
-  { basic: string; reversed: string; front: string; back: string; card: (n: number) => string; text: string; config: string }
+  { basic: string; reversed: string; typed: string; front: string; back: string; card: (n: number) => string; text: string; config: string }
 > = {
   en: {
     basic: "Basic",
     reversed: "Basic (and reversed card)",
+    typed: "Basic (type in the answer)",
     front: "Front",
     back: "Back",
     card: (n) => `Card ${n}`,
@@ -32,6 +33,7 @@ const defaultNames: Record<
   es: {
     basic: "Básico",
     reversed: "Básico (y tarjeta invertida)",
+    typed: "Básico (escribir la respuesta)",
     front: "Anverso",
     back: "Reverso",
     card: (n) => `Tarjeta ${n}`,
@@ -45,7 +47,7 @@ export function defaultConfigName(locale: Locale = defaultLocale) {
 }
 
 export function defaultNoteTypes(locale: Locale = defaultLocale): DefaultNoteType[] {
-  const { basic, reversed, front, back, card, text } = defaultNames[locale];
+  const { basic, reversed, typed, front, back, card, text } = defaultNames[locale];
   return [
     {
       name: basic,
@@ -73,6 +75,18 @@ export function defaultNoteTypes(locale: Locale = defaultLocale): DefaultNoteTyp
           name: card(2),
           qfmt: `{{${back}}}`,
           afmt: `{{FrontSide}}\n\n<hr id=answer>\n\n{{${front}}}`,
+        },
+      ],
+    },
+    {
+      name: typed,
+      kind: "STANDARD",
+      fields: [{ name: front }, { name: back }],
+      templates: [
+        {
+          name: card(1),
+          qfmt: `{{${front}}}\n\n{{type:${back}}}`,
+          afmt: `{{${front}}}\n\n<hr id=answer>\n\n{{type:${back}}}`,
         },
       ],
     },
