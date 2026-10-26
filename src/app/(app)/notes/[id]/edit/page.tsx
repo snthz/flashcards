@@ -29,7 +29,14 @@ export default async function EditNotePage({ params, searchParams }: PageProps<"
       <NoteEditor
         mode="edit"
         decks={decks}
-        noteTypes={noteTypes.map((t) => ({ id: t.id, name: t.name, kind: t.kind, fields: t.fields as Array<{ name: string }> }))}
+        noteTypes={noteTypes.map((t) => ({
+          id: t.id,
+          name: t.name,
+          kind: t.kind,
+          fields: t.fields as Array<{ name: string }>,
+          templates: t.templates as Array<{ name: string; qfmt: string; afmt: string }>,
+          css: t.css,
+        }))}
         initialNoteTypeId={note.noteTypeId}
         noteId={note.id}
         initialFields={note.fields}

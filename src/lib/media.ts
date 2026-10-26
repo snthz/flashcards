@@ -87,3 +87,42 @@ export async function removeMediaFile(relative: string) {
 export async function removeUserMedia(userId: string) {
   await rm(path.join(mediaRoot(), userId), { recursive: true, force: true });
 }
+
+const MB = 1024 * 1024;
+
+export const UPLOAD_TYPES: Record<string, { ext: string; kind: "image" | "audio"; maxBytes: number }> = {
+  "image/jpeg": { ext: ".jpg", kind: "image", maxBytes: 10 * MB },
+  "image/png": { ext: ".png", kind: "image", maxBytes: 10 * MB },
+  "image/gif": { ext: ".gif", kind: "image", maxBytes: 10 * MB },
+  "image/webp": { ext: ".webp", kind: "image", maxBytes: 10 * MB },
+  "image/avif": { ext: ".avif", kind: "image", maxBytes: 10 * MB },
+  "audio/mpeg": { ext: ".mp3", kind: "audio", maxBytes: 20 * MB },
+  "audio/mp4": { ext: ".m4a", kind: "audio", maxBytes: 20 * MB },
+  "audio/x-m4a": { ext: ".m4a", kind: "audio", maxBytes: 20 * MB },
+  "audio/aac": { ext: ".aac", kind: "audio", maxBytes: 20 * MB },
+  "audio/ogg": { ext: ".ogg", kind: "audio", maxBytes: 20 * MB },
+  "audio/wav": { ext: ".wav", kind: "audio", maxBytes: 20 * MB },
+  "audio/x-wav": { ext: ".wav", kind: "audio", maxBytes: 20 * MB },
+  "audio/webm": { ext: ".webm", kind: "audio", maxBytes: 20 * MB },
+};
+
+function startsWith(bytes: Uint8Array, signature: number[], offset = 0) {
+  return signature.every((value, index) => bytes[offset + index] === value);
+}
+
+export function matchesImageType(type: string, bytes: Uint8Array) {
+  switch (type) {
+    case "image/jpeg":
+      return startsWith(bytes, [0xff, 0xd8, 0xff]);
+    case "image/png":
+      return startsWith(bytes, [0x89, 0x50, 0x4e, 0x47]);
+    case "image/gif":
+      return startsWith(bytes, [0x47, 0x49, 0x46, 0x38]);
+    case "image/webp":
+      return startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) && startsWith(bytes, [0x57, 0x45, 0x42, 0x50], 8);
+    case "image/avif":
+      return startsWith(bytes, [0x66, 0x74, 0x79, 0x70], 4);
+    default:
+      return false;
+  }
+}

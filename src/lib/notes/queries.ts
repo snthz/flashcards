@@ -16,7 +16,7 @@ export async function getNoteTypeOptions(userId: string) {
   return prisma.noteType.findMany({
     where: { userId },
     orderBy: { name: "asc" },
-    select: { id: true, name: true, kind: true, fields: true },
+    select: { id: true, name: true, kind: true, fields: true, templates: true, css: true },
   });
 }
 

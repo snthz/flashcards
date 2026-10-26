@@ -26,7 +26,14 @@ export default async function NewNotePage({ searchParams }: PageProps<"/notes/ne
         <NoteEditor
           mode="create"
           decks={decks}
-          noteTypes={noteTypes.map((t) => ({ id: t.id, name: t.name, kind: t.kind, fields: t.fields as Array<{ name: string }> }))}
+          noteTypes={noteTypes.map((t) => ({
+          id: t.id,
+          name: t.name,
+          kind: t.kind,
+          fields: t.fields as Array<{ name: string }>,
+          templates: t.templates as Array<{ name: string; qfmt: string; afmt: string }>,
+          css: t.css,
+        }))}
           initialDeckId={deckId}
         />
       )}

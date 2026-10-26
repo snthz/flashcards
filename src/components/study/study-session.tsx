@@ -333,6 +333,11 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
             </span>
             <span className={cn("text-success", card?.state === "REVIEW" && "underline underline-offset-4")}>{counts.review}</span>
           </div>
+          {card && online ? (
+            <Button variant="ghost" size="icon" onClick={editNote} aria-label={t.study.editNote} title={t.study.editNote}>
+              <Pencil className="size-4" />
+            </Button>
+          ) : null}
           <Button variant="ghost" size="icon" onClick={undo} disabled={!view?.canUndo || undoing} aria-label={t.study.undo}>
             <Undo2 className="size-4" />
           </Button>
@@ -345,9 +350,11 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
                 </span>
               }
             >
-              <MenuItem icon={<Pencil />} onSelect={editNote}>
-                {online ? t.study.editNote : t.study.editNeedsConnection}
-              </MenuItem>
+              {online ? null : (
+                <MenuItem icon={<Pencil />} onSelect={editNote}>
+                  {t.study.editNeedsConnection}
+                </MenuItem>
+              )}
               <MenuItem
                 icon={<Flag />}
                 onSelect={() => record({ id: uuid(), userId, cardId: card.id, at: new Date().toISOString(), kind: "flag", flag: card.flag ? 0 : 1 }, "stay")}
