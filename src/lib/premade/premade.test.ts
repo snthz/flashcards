@@ -3,6 +3,7 @@ import { fieldMap, renderCard } from "@/lib/anki/render";
 import { PREMADE_DECKS } from "./catalog";
 import { KIND_LABELS, WORD_BANDS } from "./english-words";
 import { FALSE_FRIEND_GROUPS } from "./false-friends";
+import { GET_GROUPS, blankOut } from "./get";
 import { PATTERN_GROUPS, SPOKEN_FORMS, spokenForms } from "./irregular-verbs";
 import { PHRASAL_GROUPS } from "./phrasal-verbs";
 import { PHRASE_GROUPS } from "./remote-work";
@@ -222,6 +223,36 @@ describe("remote work deck", () => {
     expect(spanish.audio.question).toEqual([]);
     expect(spanish.audio.answer).toHaveLength(2);
     expect(spanish.answer).not.toContain("{{");
+  });
+});
+
+describe("uses of get deck", () => {
+  const uses = GET_GROUPS.flatMap((group) => group.uses);
+
+  it("has complete entries whose answer appears once in the example", () => {
+    expect(uses.length).toBeGreaterThanOrEqual(110);
+    expect(new Set(uses.map((u) => u[0])).size).toBe(uses.length);
+    for (const [expression, meaning, example, answer, exampleTranslation, note] of uses) {
+      expect([expression, meaning, example, answer, exampleTranslation].every((v) => v.trim() === v && v.length > 0), expression).toBe(true);
+      expect(note === undefined || (note.trim() === note && note.length > 0), expression).toBe(true);
+      expect(example.split(answer).length - 1, expression).toBe(1);
+      expect(answer, expression).toMatch(/^(get|gets|got|gotten|getting)\b/i);
+      expect(blankOut(example, answer)).not.toContain(answer);
+    }
+  });
+
+  it("asks to type the missing chunk and then for the meaning", () => {
+    const deck = PREMADE_DECKS.find((d) => d.slug === "get")!;
+    expect(deck.build("es").cards).toHaveLength(uses.length * 2);
+    const [typed, meaning] = renderBoth("get", "fc-get-get-married");
+    expect(typed.question).toContain("typeans");
+    expect(typed.question).toContain("_____");
+    expect(typed.audio.question).toEqual([]);
+    expect(typed.answer).toContain("data-expected");
+    expect(typed.audio.answer).toHaveLength(1);
+    expect(meaning.audio.question).toEqual(["tts:en-US:get%20married"]);
+    expect(meaning.audio.answer).toHaveLength(2);
+    expect([typed.answer, meaning.answer].join("")).not.toContain("{{");
   });
 });
 

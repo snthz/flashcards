@@ -5,7 +5,7 @@ export const discover: Messages["discover"] = {
   description: "Mazos listos para estudiar. Añádelos a tu colección con un toque.",
   added: "Añadido",
   cardCount: (count, formatted) => (count === 1 ? "1 tarjeta" : `${formatted} tarjetas`),
-  comingSoon: "Pronto habrá más mazos: usos de “get” y más.",
+  comingSoon: "Pronto habrá más mazos.",
   sampleCards: "Algunas tarjetas",
   subdecks: "Submazos",
   openDeck: "Abrir mazo",
