@@ -55,8 +55,8 @@ export function buildPremadeCollection(spec: PremadeCollectionSpec): ParsedColle
   const cards: ParsedCard[] = [];
   // Unless the deck is sequential, interleave groups by relative rank so studying the whole deck
   // mixes them instead of finishing one group first; each group is ordered from most to least common.
-  // In sequential decks siblingGap pushes each extra template that many notes later.
-  const ranked: Array<{ rank: number; index: number }> = [];
+  // siblingGap then pushes each extra template that many notes later.
+  const noteRanks: number[] = [];
   const templateCount = BigInt(spec.noteType.templates.length);
   const now = new Date();
 
@@ -66,6 +66,7 @@ export function buildPremadeCollection(spec: PremadeCollectionSpec): ParsedColle
     group.notes.forEach((note, position) => {
       const noteIndex = BigInt(notes.length);
       const noteId = ids.note + noteIndex;
+      noteRanks.push(spec.sequential ? Number(noteIndex) : (position + 0.5) / group.notes.length);
       notes.push({
         ankiId: noteId,
         guid: `${spec.guidPrefix}-${slugify(note.key)}`,
@@ -74,8 +75,6 @@ export function buildPremadeCollection(spec: PremadeCollectionSpec): ParsedColle
         tags: [spec.tag, group.tag],
       });
       spec.noteType.templates.forEach((_, ord) => {
-        const rank = spec.sequential ? Number(noteIndex) + ord * (spec.siblingGap ?? 0) : (position + 0.5) / group.notes.length;
-        ranked.push({ rank, index: cards.length });
         cards.push({
           ankiId: ids.card + noteIndex * templateCount + BigInt(ord),
           noteAnkiId: noteId,
@@ -99,8 +98,17 @@ export function buildPremadeCollection(spec: PremadeCollectionSpec): ParsedColle
     });
   });
 
-  ranked
+  const noteOrder: number[] = [];
+  noteRanks
+    .map((rank, index) => ({ rank, index }))
     .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .forEach(({ index }, order) => {
+      noteOrder[index] = order;
+    });
+  const gap = spec.siblingGap ?? 0;
+  cards
+    .map((card, index) => ({ index, key: noteOrder[Number(card.noteAnkiId - ids.note)] + card.ord * gap }))
+    .sort((a, b) => a.key - b.key || a.index - b.index)
     .forEach(({ index }, order) => {
       cards[index].newPosition = order;
     });
