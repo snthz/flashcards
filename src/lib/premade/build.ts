@@ -14,6 +14,8 @@ export interface PremadeCollectionSpec {
   description: string;
   noteType: { name: string; fields: string[]; templates: NoteTypeTemplate[]; css: string };
   groups: PremadeGroup[];
+  sequential?: boolean;
+  siblingGap?: number;
 }
 
 // Ids far from Anki's millisecond timestamps so they never clash with a user's own imports.
@@ -51,8 +53,9 @@ export function buildPremadeCollection(spec: PremadeCollectionSpec): ParsedColle
   const decks: ParsedDeck[] = [{ ankiId: ids.rootDeck, name: spec.rootName, description: spec.description, configAnkiId: null }];
   const notes: ParsedNote[] = [];
   const cards: ParsedCard[] = [];
-  // Interleave groups by relative rank so studying the whole deck mixes them instead of
-  // finishing one group first; each group is already ordered from most to least common.
+  // Unless the deck is sequential, interleave groups by relative rank so studying the whole deck
+  // mixes them instead of finishing one group first; each group is ordered from most to least common.
+  // In sequential decks siblingGap pushes each extra template that many notes later.
   const ranked: Array<{ rank: number; index: number }> = [];
   const templateCount = BigInt(spec.noteType.templates.length);
   const now = new Date();
@@ -71,7 +74,8 @@ export function buildPremadeCollection(spec: PremadeCollectionSpec): ParsedColle
         tags: [spec.tag, group.tag],
       });
       spec.noteType.templates.forEach((_, ord) => {
-        ranked.push({ rank: (position + 0.5) / group.notes.length, index: cards.length });
+        const rank = spec.sequential ? Number(noteIndex) + ord * (spec.siblingGap ?? 0) : (position + 0.5) / group.notes.length;
+        ranked.push({ rank, index: cards.length });
         cards.push({
           ankiId: ids.card + noteIndex * templateCount + BigInt(ord),
           noteAnkiId: noteId,
