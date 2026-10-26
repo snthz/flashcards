@@ -16,6 +16,7 @@ An Anki-compatible spaced repetition app, built as an installable Progressive We
 - [Deployment (Dokploy)](#deployment-dokploy)
 - [CI/CD](#cicd)
 - [Exporting Decks from Anki](#exporting-decks-from-anki)
+- [Exporting Decks to Anki](#exporting-decks-to-anki)
 - [License](#license)
 
 ## Features
@@ -24,7 +25,8 @@ An Anki-compatible spaced repetition app, built as an installable Progressive We
 - **Scheduling** — An Anki-style SM-2 scheduler (learning steps, ease, intervals, lapses, leeches) and FSRS via [`ts-fsrs`](https://github.com/open-spaced-repetition/ts-fsrs), selectable per deck preset.
 - **Deck management** — Hierarchical decks with subdecks, daily limits, option presets, and descriptions.
 - **Study sessions** — Four answer buttons with predicted intervals, undo, bury, suspend, flag, audio playback, and keyboard shortcuts.
-- **Notes and browser** — A note editor with built-in Basic, Basic (and reversed card), and Cloze note types, plus a card browser with search, filters, and bulk actions.
+- **Notes and browser** — A note editor with built-in Basic, Basic (and reversed card), Basic (type in the answer), and Cloze note types, plus a card browser with search, filters, and bulk actions. Typed answers are compared character by character, as in Anki.
+- **Export** — Download a deck (with its subdecks) or the whole account as an Anki package (`.apkg`) with scheduling, review history and media, or as Anki's tab-separated plain text format. Exported packages open in Anki and can be imported back without creating duplicates.
 - **Statistics** — Daily reviews, forecast, retention, streaks, a yearly activity heatmap, and card and interval distributions.
 - **Accounts** — Database-backed persistent sessions, with configurable time zone and day rollover hour.
 - **Languages** — English and Spanish, switchable from Settings or the landing page and saved to the account.
@@ -169,6 +171,10 @@ curl -fsS -X POST "$DOKPLOY_URL/api/compose.deploy" \
 In Anki, open the deck's gear menu → **Export**, choose **Anki Deck Package (\*.apkg)**, and enable **Include scheduling information** and **Include media**.
 
 Re-importing the same deck updates existing notes and preserves the scheduling of cards that have already been studied.
+
+## Exporting Decks to Anki
+
+Open a deck and choose **Export**, or use **Settings → Backup** to export every deck. The `.apkg` package uses Anki's legacy collection format, which every Anki version can import. Notes keep a stable GUID, so importing a newer export into Anki (or back into this app) updates the existing notes instead of duplicating them.
 
 ## License
 

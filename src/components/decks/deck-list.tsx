@@ -3,12 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Layers, MoreHorizontal, Pencil, Play, Settings2, Trash2 } from "lucide-react";
+import { ChevronRight, Download, Layers, MoreHorizontal, Pencil, Play, Settings2, Trash2 } from "lucide-react";
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn, formatNumber } from "@/lib/utils";
 import { useI18n, useLocale } from "@/lib/i18n/client";
 import type { DeckNode } from "@/lib/decks/queries";
+import { ExportDialog } from "@/components/export/export-dialog";
 import { CreateDeckButton, DeleteDeckDialog, RenameDeckDialog } from "./deck-dialogs";
 
 function Count({ value, tone }: { value: number; tone: "new" | "learn" | "due" }) {
@@ -26,12 +27,14 @@ function DeckRow({
   expanded,
   onToggle,
   onRename,
+  onExport,
   onDelete,
 }: {
   node: DeckNode;
   expanded: Set<string>;
   onToggle: (id: string) => void;
   onRename: (node: DeckNode) => void;
+  onExport: (node: DeckNode) => void;
   onDelete: (node: DeckNode) => void;
 }) {
   const { t } = useI18n();
@@ -81,6 +84,9 @@ function DeckRow({
           <MenuItem icon={<Pencil />} onSelect={() => onRename(node)}>
             {t.common.rename}
           </MenuItem>
+          <MenuItem icon={<Download />} onSelect={() => onExport(node)}>
+            {t.exporter.export}
+          </MenuItem>
           <MenuSeparator />
           <MenuItem icon={<Trash2 />} tone="danger" onSelect={() => onDelete(node)}>
             {t.common.delete}
@@ -90,7 +96,7 @@ function DeckRow({
       {hasChildren && isOpen ? (
         <div className="flex flex-col">
           {node.children.map((child) => (
-            <DeckRow key={child.id} node={child} expanded={expanded} onToggle={onToggle} onRename={onRename} onDelete={onDelete} />
+            <DeckRow key={child.id} node={child} expanded={expanded} onToggle={onToggle} onRename={onRename} onExport={onExport} onDelete={onDelete} />
           ))}
         </div>
       ) : null}
@@ -103,6 +109,7 @@ export function DeckList({ tree }: { tree: DeckNode[] }) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [renaming, setRenaming] = useState<DeckNode | null>(null);
   const [deleting, setDeleting] = useState<DeckNode | null>(null);
+  const [exporting, setExporting] = useState<DeckNode | null>(null);
 
   if (tree.length === 0) {
     return (
@@ -134,11 +141,16 @@ export function DeckList({ tree }: { tree: DeckNode[] }) {
       </div>
       <div className="flex flex-col">
         {tree.map((node) => (
-          <DeckRow key={node.id} node={node} expanded={expanded} onToggle={toggle} onRename={setRenaming} onDelete={setDeleting} />
+          <DeckRow key={node.id} node={node} expanded={expanded} onToggle={toggle} onRename={setRenaming} onExport={setExporting} onDelete={setDeleting} />
         ))}
       </div>
       <RenameDeckDialog deck={renaming} onClose={() => setRenaming(null)} />
       <DeleteDeckDialog deck={deleting} onClose={() => setDeleting(null)} />
+      <ExportDialog
+        target={exporting ? { id: exporting.id, name: exporting.fullName } : null}
+        open={exporting !== null}
+        onClose={() => setExporting(null)}
+      />
     </div>
   );
 }

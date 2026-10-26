@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["sql.js"],
   outputFileTracingIncludes: {
     "/api/import": ["./node_modules/sql.js/dist/sql-wasm.wasm"],
+    "/api/export": ["./node_modules/sql.js/dist/sql-wasm.wasm"],
   },
   experimental: {
     serverActions: {

@@ -17,7 +17,7 @@ const decoder = new TextDecoder();
 
 let sqlPromise: Promise<SqlJsStatic> | null = null;
 
-function getSql() {
+export function getSql() {
   if (!sqlPromise) sqlPromise = initSqlJs();
   return sqlPromise;
 }
@@ -119,7 +119,19 @@ function clampInt(value: number, min: number, max: number, fallback: number) {
   return Math.min(max, Math.max(min, Math.round(value)));
 }
 
-function parseLegacyDeckConfigs(json: string, fallbackName: string): ParsedDeckConfig[] {
+function numberList(value: unknown) {
+  return Array.isArray(value) ? value.map(Number).filter((n) => Number.isFinite(n)) : [];
+}
+
+function legacyFsrsWeights(conf: Record<string, unknown>) {
+  for (const key of ["fsrsParams6", "fsrsParams5", "fsrsWeights"]) {
+    const weights = numberList(conf[key]);
+    if (weights.length >= 17) return weights;
+  }
+  return [];
+}
+
+function parseLegacyDeckConfigs(json: string, fallbackName: string, fsrsEnabled: boolean): ParsedDeckConfig[] {
   const raw = JSON.parse(json || "{}") as Record<string, Record<string, unknown>>;
   return Object.values(raw).map((conf) => {
     const id = asBigInt(conf.id);
@@ -145,8 +157,19 @@ function parseLegacyDeckConfigs(json: string, fallbackName: string): ParsedDeckC
       maxInterval: clampInt(asNumber(rev.maxIvl, 36500), 1, 36500, 36500),
       leechThreshold: clampInt(asNumber(lapse.leechFails, 8), 0, 9999, 8),
       leechAction: asNumber(lapse.leechAction, 1) === 0 ? "SUSPEND" : "TAG",
+      desiredRetention: Math.min(0.99, Math.max(0.7, asNumber(conf.desiredRetention, 0.9))),
+      fsrsWeights: legacyFsrsWeights(conf),
+      algorithm: conf.fcAlgorithm === "FSRS" || (conf.fcAlgorithm == null && fsrsEnabled) ? "FSRS" : "SM2",
     };
   });
+}
+
+function legacyFsrsEnabled(json: string) {
+  try {
+    return (JSON.parse(json || "{}") as Record<string, unknown>).fsrs === true;
+  } catch {
+    return false;
+  }
 }
 
 function parseModernDeckConfigs(db: Database, fallbackName: string): ParsedDeckConfig[] {
@@ -423,7 +446,7 @@ export async function parseApkg(buffer: Uint8Array, options: ParseOptions = {}):
   const SQL = await getSql();
   const db = new SQL.Database(collectionBytes);
   try {
-    const col = query(db, "SELECT crt, models, decks, dconf, ver FROM col")[0];
+    const col = query(db, "SELECT crt, conf, models, decks, dconf, ver FROM col")[0];
     if (!col) throw new ApkgError("emptyCollection");
     const crt = asNumber(col.crt);
     const modern = tableExists(db, "notetypes") && query(db, "SELECT COUNT(*) AS c FROM notetypes")[0]?.c !== 0;
@@ -432,7 +455,9 @@ export async function parseApkg(buffer: Uint8Array, options: ParseOptions = {}):
 
     const noteTypes = useModern ? parseModernNoteTypes(db, noteTypeName) : parseLegacyNoteTypes(legacyModels, noteTypeName);
     const decks = useModern ? parseModernDecks(db) : parseLegacyDecks(asString(col.decks));
-    const deckConfigs = useModern ? parseModernDeckConfigs(db, deckConfigName) : parseLegacyDeckConfigs(asString(col.dconf), deckConfigName);
+    const deckConfigs = useModern
+      ? parseModernDeckConfigs(db, deckConfigName)
+      : parseLegacyDeckConfigs(asString(col.dconf), deckConfigName, legacyFsrsEnabled(asString(col.conf)));
     const notes = parseNotes(db);
     const cards = parseCards(db, crt, now);
 

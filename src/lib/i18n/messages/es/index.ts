@@ -5,6 +5,7 @@ import { common } from "./common";
 import { deckOptions } from "./deckOptions";
 import { decks } from "./decks";
 import { discover } from "./discover";
+import { exporter } from "./exporter";
 import { importer } from "./importer";
 import { landing } from "./landing";
 import { meta } from "./meta";
@@ -25,6 +26,7 @@ export const es: Messages = {
   deckOptions,
   decks,
   discover,
+  exporter,
   importer,
   landing,
   meta,

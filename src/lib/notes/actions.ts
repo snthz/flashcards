@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/user";
 import { clozeOrdinals, fieldMap, isQuestionEmpty, plainText } from "@/lib/anki/render";
+import { ankiGuid } from "@/lib/anki/guid";
 import type { NoteTypeField, NoteTypeTemplate } from "@/lib/anki/types";
 import { noteInputSchema, noteUpdateSchema } from "@/lib/validation/note";
 import { getI18n } from "@/lib/i18n/server";
@@ -92,6 +93,7 @@ export async function createNote(_prev: NoteActionState, formData: FormData): Pr
       fields,
       tags: parsed.data.tags,
       sortField: plainText(fields[noteType.sortFieldIdx] ?? fields[0] ?? "", 200),
+      ankiGuid: ankiGuid(),
       cards: {
         create: ords.map((ord) => ({ userId: user.id, deckId: deck.id, ord, newPosition: position })),
       },

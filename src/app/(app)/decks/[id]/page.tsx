@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Play, Plus, Search, Settings2 } from "lucide-react";
+import { Download, Play, Plus, Search, Settings2 } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { findNode, getDeckTree } from "@/lib/decks/queries";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonStyles } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CreateDeckButton } from "@/components/decks/deck-dialogs";
+import { ExportButton } from "@/components/export/export-dialog";
 import { ExpandableText } from "@/components/ui/expandable-text";
 import { formatNumber } from "@/lib/utils";
 import { getI18n, getMessages } from "@/lib/i18n/server";
@@ -52,6 +53,10 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
               <Settings2 className="size-4" />
               {t.common.options}
             </Link>
+            <ExportButton target={{ id: deck.id, name: deck.fullName }}>
+              <Download className="size-4" />
+              {t.exporter.export}
+            </ExportButton>
           </>
         }
       />

@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DeleteAccountForm, LogoutButton, PasswordForm, ProfileForm } from "@/components/settings/settings-forms";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { ExportButton } from "@/components/export/export-dialog";
+import { Download } from "lucide-react";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getMessages();
@@ -14,7 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const t = (await getMessages()).settings;
+  const messages = await getMessages();
+  const t = messages.settings;
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={user.email} actions={<LogoutButton />} />
@@ -43,6 +46,18 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <PasswordForm />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{messages.exporter.backupTitle}</CardTitle>
+          <CardDescription>{messages.exporter.backupDescription}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ExportButton target={null} variant="secondary">
+            <Download className="size-4" />
+            {messages.exporter.exportAll}
+          </ExportButton>
         </CardContent>
       </Card>
       <Card className="border-danger/40">
