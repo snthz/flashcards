@@ -11,6 +11,7 @@ import { CreateDeckButton } from "@/components/decks/deck-dialogs";
 import { StreakBadge } from "@/components/stats/streak-badge";
 import { getStreak } from "@/lib/stats/queries";
 import { getMessages } from "@/lib/i18n/server";
+import { OfflinePrefetch } from "@/components/offline/offline-sync";
 import { DeckListSkeleton } from "./loading";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -21,7 +22,13 @@ export async function generateMetadata(): Promise<Metadata> {
 async function Decks() {
   const user = await requireUser();
   const tree = await getDeckTree(user);
-  return <DeckList tree={tree} />;
+  const due = tree.filter((node) => node.counts.fresh + node.counts.learning + node.counts.review > 0).map((node) => node.id);
+  return (
+    <>
+      <DeckList tree={tree} />
+      <OfflinePrefetch userId={user.id} deckIds={due} />
+    </>
+  );
 }
 
 async function Streak() {

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { BarChart3, ChevronDown, Compass, Layers, LogOut, Search, Settings } from "lucide-react";
 import { Menu, MenuLink, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { logout } from "@/app/(auth)/actions";
+import { forgetOfflineData } from "@/lib/study/offline/sync";
 import { useMessages } from "@/lib/i18n/client";
 import type { Messages } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
@@ -104,7 +105,16 @@ function UserMenu({ name, settingsActive }: { name: string; settingsActive: bool
         {t.settings}
       </MenuLink>
       <MenuSeparator />
-      <MenuItem tone="danger" icon={<LogOut />} onSelect={() => startTransition(() => logout())}>
+      <MenuItem
+        tone="danger"
+        icon={<LogOut />}
+        onSelect={() =>
+          startTransition(async () => {
+            await forgetOfflineData();
+            await logout();
+          })
+        }
+      >
         {t.logout}
       </MenuItem>
     </Menu>

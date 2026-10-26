@@ -6,6 +6,7 @@ import { Input, Select } from "@/components/ui/input";
 import { Field, FormError } from "@/components/ui/field";
 import { changePassword, deleteAccount, updateProfile, type SettingsState } from "@/app/(app)/settings/actions";
 import { logout } from "@/app/(auth)/actions";
+import { forgetOfflineData } from "@/lib/study/offline/sync";
 import { useIsClient } from "@/lib/hooks/use-is-client";
 import { useMessages } from "@/lib/i18n/client";
 
@@ -81,7 +82,12 @@ export function PasswordForm() {
 export function LogoutButton() {
   const t = useMessages().settings;
   return (
-    <form action={logout}>
+    <form
+      action={async () => {
+        await forgetOfflineData();
+        await logout();
+      }}
+    >
       <Button type="submit" variant="outline">
         {t.logout}
       </Button>

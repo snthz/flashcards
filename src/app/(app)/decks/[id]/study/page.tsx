@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/user";
-import { getStudyState } from "@/lib/study/queue";
+import { buildStudyPack } from "@/lib/study/queue";
 import { getI18n, getMessages } from "@/lib/i18n/server";
 import { StudySession } from "@/components/study/study-session";
 
@@ -10,10 +10,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t.study.title };
 }
 
-export default async function StudyPage({ params }: PageProps<"/decks/[id]/study">) {
-  const { id } = await params;
+export default async function StudyPage({ params, searchParams }: PageProps<"/decks/[id]/study">) {
+  const [{ id }, query] = await Promise.all([params, searchParams]);
   const [user, { locale }] = await Promise.all([requireUser(), getI18n()]);
-  const state = await getStudyState(user, id, locale);
-  if (!state) notFound();
-  return <StudySession key={state.card?.id ?? "done"} initial={state} />;
+  const pack = await buildStudyPack(user, id, locale);
+  if (!pack) notFound();
+  const preferCardId = typeof query.card === "string" ? query.card : null;
+  return <StudySession key={pack.fetchedAt} initialPack={pack} preferCardId={preferCardId} />;
 }

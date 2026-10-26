@@ -3,58 +3,225 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Eye, EyeOff, Flag, MoreHorizontal, Pencil, PauseCircle, Undo2, X } from "lucide-react";
+import { CheckCircle2, CloudOff, Eye, EyeOff, Flag, MoreHorizontal, Pencil, PauseCircle, RefreshCw, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/client";
 import { intlLocale } from "@/lib/i18n/config";
-import { answerCard, buryCard, flagCard, suspendCard, undoLastReview } from "@/lib/study/actions";
-import type { StudyState } from "@/lib/study/types";
-import type { Rating } from "@/lib/scheduler";
+import { useOnline } from "@/lib/hooks/use-online";
+import { undoLatestReview } from "@/lib/study/actions";
+import { applyOp, createEngine, engineCounts, intervalLabels, LEARN_AHEAD_MS, pickCard, type Engine } from "@/lib/study/engine";
+import { addOp, deleteOps, loadOps, loadPack, savePack, setMeta } from "@/lib/study/offline/store";
+import { flushOps, subscribeSync } from "@/lib/study/offline/sync";
+import { downloadPack } from "@/lib/study/offline/prefetch";
+import type { StudyCounts, StudyOp, StudyPack } from "@/lib/study/types";
+import type { CardState, Rating } from "@/lib/scheduler";
+import { uuid } from "@/lib/uuid";
 import { CardFrame } from "./card-frame";
 
-const RATING_META: Record<Rating, { label: "again" | "hard" | "good" | "easy"; tone: string; key: string }> = {
-  1: { label: "again", tone: "text-danger border-danger/40 hover:bg-danger-soft", key: "1" },
-  2: { label: "hard", tone: "text-warning border-warning/40 hover:bg-warning-soft", key: "2" },
-  3: { label: "good", tone: "text-success border-success/40 hover:bg-success-soft", key: "3" },
-  4: { label: "easy", tone: "text-info border-info/40 hover:bg-info-soft", key: "4" },
+const RATING_META: Record<Rating, { label: "again" | "hard" | "good" | "easy"; tone: string }> = {
+  1: { label: "again", tone: "text-danger border-danger/40 hover:bg-danger-soft" },
+  2: { label: "hard", tone: "text-warning border-warning/40 hover:bg-warning-soft" },
+  3: { label: "good", tone: "text-success border-success/40 hover:bg-success-soft" },
+  4: { label: "easy", tone: "text-info border-info/40 hover:bg-info-soft" },
 };
 
 const FLAG_COLORS = ["", "#ef4444", "#f97316", "#22c55e", "#3b82f6", "#ec4899", "#14b8a6", "#a855f7"];
-
 const EMPTY: string[] = [];
+const SYNC_DELAY_MS = 800;
+const SYNC_INTERVAL_MS = 30_000;
+const PACK_MAX_AGE_MS = 10 * 60_000;
 
-export function StudySession({ initial }: { initial: StudyState }) {
+interface ViewCard {
+  id: string;
+  noteId: string;
+  ord: number;
+  state: CardState;
+  flag: number;
+  question: string;
+  answer: string;
+  css: string;
+  audio: { question: string[]; answer: string[] };
+  intervals: Record<Rating, string>;
+}
+
+interface View {
+  card: ViewCard | null;
+  learnAheadAt: Date | null;
+  counts: StudyCounts;
+  canUndo: boolean;
+}
+
+function lastReviewOp(ops: StudyOp[]) {
+  for (let i = ops.length - 1; i >= 0; i -= 1) if (ops[i].kind === "review") return ops[i];
+  return null;
+}
+
+export function StudySession({ initialPack, preferCardId = null }: { initialPack: StudyPack; preferCardId?: string | null }) {
   const router = useRouter();
   const { locale, t } = useI18n();
-  const [state, setState] = useState<StudyState>(initial);
+  const online = useOnline();
+  const userId = initialPack.userId;
+  const deckId = initialPack.deckId;
+  const engineRef = useRef<Engine | null>(null);
+  const opsRef = useRef<StudyOp[]>([]);
+  const nextPackRef = useRef<StudyPack | null>(null);
+  const shownAt = useRef(0);
+  const typedRef = useRef("");
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [view, setView] = useState<View | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [typed, setTyped] = useState("");
-  const [pending, startTransition] = useTransition();
-  const shownAt = useRef<number>(0);
-  const typedRef = useRef("");
-  const card = state.card;
+  const [pendingOps, setPendingOps] = useState(0);
+  const [syncFailed, setSyncFailed] = useState(false);
+  const [undoing, startUndo] = useTransition();
+
+  const canUndoNow = useCallback(() => {
+    const engine = engineRef.current;
+    const last = lastReviewOp(opsRef.current);
+    if (last && !last.syncedAt) return true;
+    return navigator.onLine && Boolean(engine?.pack.serverUndo || last);
+  }, []);
+
+  const advance = useCallback(
+    (preferId: string | null = null) => {
+      if (nextPackRef.current) {
+        engineRef.current = createEngine(nextPackRef.current, opsRef.current);
+        nextPackRef.current = null;
+      }
+      const engine = engineRef.current;
+      if (!engine) return;
+      const now = new Date();
+      const choice = pickCard(engine, now, { preferId });
+      const packCard = choice.cardId ? engine.pack.cards.find((card) => card.id === choice.cardId) : undefined;
+      const engineCard = choice.cardId ? engine.cards.get(choice.cardId) : undefined;
+      setView({
+        card:
+          packCard && engineCard
+            ? {
+                id: packCard.id,
+                noteId: packCard.noteId,
+                ord: packCard.ord,
+                state: engineCard.state,
+                flag: engineCard.flag,
+                question: packCard.question,
+                answer: packCard.answer,
+                css: engine.pack.styles[packCard.styleId] ?? "",
+                audio: packCard.audio,
+                intervals: intervalLabels(engine, packCard.id, now, locale),
+              }
+            : null,
+        learnAheadAt: choice.learnAheadAt,
+        counts: engineCounts(engine, now),
+        canUndo: canUndoNow(),
+      });
+      setRevealed(false);
+      typedRef.current = "";
+      setTyped("");
+      shownAt.current = Date.now();
+    },
+    [locale, canUndoNow],
+  );
+
+  const refreshPending = useCallback(async () => {
+    const ops = await loadOps(userId);
+    opsRef.current = ops;
+    setPendingOps(ops.filter((op) => !op.syncedAt).length);
+    setView((current) => (current ? { ...current, canUndo: canUndoNow() } : current));
+  }, [userId, canUndoNow]);
+
+  const sync = useCallback(async () => {
+    const result = await flushOps(userId);
+    setSyncFailed(!result.ok);
+    await refreshPending();
+  }, [userId, refreshPending]);
+
+  const scheduleSync = useCallback(() => {
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => void sync(), SYNC_DELAY_MS);
+  }, [sync]);
+
+  const refreshPack = useCallback(
+    async (adoptNow: boolean) => {
+      const pack = await downloadPack(deckId);
+      if (!pack) return;
+      nextPackRef.current = pack;
+      if (adoptNow) advance();
+    },
+    [deckId, advance],
+  );
 
   useEffect(() => {
-    shownAt.current = Date.now();
-  }, [card?.id]);
+    let cancelled = false;
+    (async () => {
+      const stored = await loadPack(userId, deckId);
+      const pack = stored && Date.parse(stored.fetchedAt) > Date.parse(initialPack.fetchedAt) ? stored : initialPack;
+      if (pack === initialPack) await savePack(initialPack);
+      await setMeta("userId", userId);
+      const ops = await loadOps(userId);
+      if (cancelled) return;
+      opsRef.current = ops;
+      engineRef.current = createEngine(pack, ops);
+      setPendingOps(ops.filter((op) => !op.syncedAt).length);
+      advance(preferCardId);
+      void sync();
+      if (navigator.onLine && Date.now() - Date.parse(pack.fetchedAt) > PACK_MAX_AGE_MS) void refreshPack(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialPack, userId, deckId, preferCardId, advance, sync, refreshPack]);
 
-  const apply = useCallback(
-    (work: () => Promise<StudyState | null>) => {
-      startTransition(async () => {
-        const next = await work();
-        if (next) {
-          setState(next);
-          setRevealed(false);
-          typedRef.current = "";
-          setTyped("");
-          shownAt.current = Date.now();
-        }
-      });
+  useEffect(() => subscribeSync(() => void refreshPending()), [refreshPending]);
+
+  useEffect(() => {
+    if (!online) return;
+    const first = setTimeout(() => void sync(), 0);
+    const interval = setInterval(() => void sync(), SYNC_INTERVAL_MS);
+    return () => {
+      clearTimeout(first);
+      clearInterval(interval);
+    };
+  }, [online, sync]);
+
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === "hidden") void flushOps(userId);
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!view || view.card || !view.learnAheadAt) return;
+    const wait = Math.max(1000, view.learnAheadAt.getTime() - LEARN_AHEAD_MS - Date.now());
+    const timer = setTimeout(() => advance(), wait);
+    return () => clearTimeout(timer);
+  }, [view, advance]);
+
+  useEffect(() => {
+    if (!view || view.card || !online) return;
+    const engine = engineRef.current;
+    if (engine && (engine.pack.truncated || Date.now() >= Date.parse(engine.pack.dayEnd))) void refreshPack(true);
+  }, [view, online, refreshPack]);
+
+  const record = useCallback(
+    (op: StudyOp, next: "advance" | "stay") => {
+      const engine = engineRef.current;
+      if (!engine) return;
+      opsRef.current = [...opsRef.current, op];
+      applyOp(engine, op);
+      setPendingOps((count) => count + 1);
+      void addOp(op).then(scheduleSync);
+      if (next === "advance") advance();
+      else advance(op.cardId);
     },
-    [startTransition],
+    [advance, scheduleSync],
   );
+
+  const card = view?.card ?? null;
 
   const reveal = useCallback(() => {
     setTyped(typedRef.current);
@@ -67,17 +234,48 @@ export function StudySession({ initial }: { initial: StudyState }) {
 
   const rate = useCallback(
     (rating: Rating) => {
-      if (!card || pending) return;
-      const duration = Date.now() - shownAt.current;
-      apply(() => answerCard(state.deckId, card.id, rating, duration));
+      if (!card || undoing) return;
+      const durationMs = Date.now() - shownAt.current;
+      record({ id: uuid(), userId, cardId: card.id, at: new Date().toISOString(), kind: "review", rating, durationMs }, "advance");
     },
-    [card, pending, apply, state.deckId],
+    [card, undoing, record, userId],
   );
 
   const undo = useCallback(() => {
-    if (!state.canUndo || pending) return;
-    apply(() => undoLastReview(state.deckId));
-  }, [state.canUndo, state.deckId, pending, apply]);
+    if (!view?.canUndo || undoing) return;
+    const last = lastReviewOp(opsRef.current);
+    if (last && !last.syncedAt) {
+      opsRef.current = opsRef.current.filter((op) => op.id !== last.id);
+      void deleteOps([last.id]);
+      const engine = engineRef.current;
+      if (engine) engineRef.current = createEngine(nextPackRef.current ?? engine.pack, opsRef.current);
+      nextPackRef.current = null;
+      setPendingOps((count) => Math.max(0, count - 1));
+      advance(last.cardId);
+      return;
+    }
+    if (!navigator.onLine) return;
+    startUndo(async () => {
+      await flushOps(userId);
+      const result = await undoLatestReview(deckId);
+      if (result.undoneId) {
+        opsRef.current = opsRef.current.filter((op) => op.id !== result.undoneId);
+        await deleteOps([result.undoneId]);
+      }
+      if (result.pack) {
+        await savePack(result.pack);
+        nextPackRef.current = result.pack;
+      }
+      advance(result.cardId);
+    });
+  }, [view, undoing, userId, deckId, advance]);
+
+  const editNote = useCallback(() => {
+    if (!card || !navigator.onLine) return;
+    void flushOps(userId);
+    const back = `/decks/${deckId}/study?card=${card.id}`;
+    router.push(`/notes/${card.noteId}/edit?from=${encodeURIComponent(back)}`);
+  }, [card, userId, deckId, router]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -88,11 +286,16 @@ export function StudySession({ initial }: { initial: StudyState }) {
         undo();
         return;
       }
-      if (!card) return;
+      if (!card || event.ctrlKey || event.metaKey || event.altKey) return;
       if (event.key === " " || event.key === "Enter") {
         event.preventDefault();
         if (!revealed) reveal();
         else rate(3);
+        return;
+      }
+      if (event.key.toLowerCase() === "e") {
+        event.preventDefault();
+        editNote();
         return;
       }
       if (revealed && ["1", "2", "3", "4"].includes(event.key)) {
@@ -102,26 +305,35 @@ export function StudySession({ initial }: { initial: StudyState }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [card, revealed, reveal, rate, undo]);
+  }, [card, revealed, reveal, rate, undo, editNote]);
+
+  const counts = view?.counts ?? { fresh: 0, learning: 0, review: 0 };
+  const statusLabel = !online ? `${t.study.offline} · ${t.study.offlineHint}` : syncFailed && pendingOps > 0 ? t.study.pendingSync(pendingOps) : null;
 
   return (
     <div className="-mb-24 flex h-[calc(100dvh_-_1rem_-_var(--safe-top))] flex-col md:mb-0 md:h-auto">
       <header className="flex items-center justify-between gap-3 pb-3">
         <div className="flex min-w-0 items-center gap-2">
-          <Link href={`/decks/${state.deckId}`} aria-label={t.study.exit} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+          <Link href={`/decks/${deckId}`} aria-label={t.study.exit} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
             <X className="size-5" />
           </Link>
-          <p className="truncate text-sm font-medium">{state.deckName}</p>
+          <p className="truncate text-sm font-medium">{initialPack.deckName}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 text-sm tabular-nums" aria-label={t.study.remaining}>
-            <span className={cn("text-info", card?.state === "NEW" && "underline underline-offset-4")}>{state.counts.fresh}</span>
-            <span className={cn("text-danger", (card?.state === "LEARNING" || card?.state === "RELEARNING") && "underline underline-offset-4")}>
-              {state.counts.learning}
+          {statusLabel ? (
+            <span title={statusLabel} aria-label={statusLabel} className="flex items-center gap-1 text-xs text-muted-foreground">
+              {online ? <RefreshCw className="size-3.5" /> : <CloudOff className="size-3.5" />}
+              {pendingOps > 0 ? <span className="tabular-nums">{pendingOps}</span> : null}
             </span>
-            <span className={cn("text-success", card?.state === "REVIEW" && "underline underline-offset-4")}>{state.counts.review}</span>
+          ) : null}
+          <div className="flex items-center gap-2 text-sm tabular-nums" aria-label={t.study.remaining}>
+            <span className={cn("text-info", card?.state === "NEW" && "underline underline-offset-4")}>{counts.fresh}</span>
+            <span className={cn("text-danger", (card?.state === "LEARNING" || card?.state === "RELEARNING") && "underline underline-offset-4")}>
+              {counts.learning}
+            </span>
+            <span className={cn("text-success", card?.state === "REVIEW" && "underline underline-offset-4")}>{counts.review}</span>
           </div>
-          <Button variant="ghost" size="icon" onClick={undo} disabled={!state.canUndo || pending} aria-label={t.study.undo}>
+          <Button variant="ghost" size="icon" onClick={undo} disabled={!view?.canUndo || undoing} aria-label={t.study.undo}>
             <Undo2 className="size-4" />
           </Button>
           {card ? (
@@ -133,17 +345,24 @@ export function StudySession({ initial }: { initial: StudyState }) {
                 </span>
               }
             >
-              <MenuItem icon={<Pencil />} onSelect={() => router.push(`/notes/${card.noteId}/edit?from=/decks/${state.deckId}/study`)}>
-                {t.study.editNote}
+              <MenuItem icon={<Pencil />} onSelect={editNote}>
+                {online ? t.study.editNote : t.study.editNeedsConnection}
               </MenuItem>
-              <MenuItem icon={<Flag />} onSelect={() => apply(() => flagCard(state.deckId, card.id, card.flag ? 0 : 1))}>
+              <MenuItem
+                icon={<Flag />}
+                onSelect={() => record({ id: uuid(), userId, cardId: card.id, at: new Date().toISOString(), kind: "flag", flag: card.flag ? 0 : 1 }, "stay")}
+              >
                 {card.flag ? t.study.removeFlag : t.study.flag}
               </MenuItem>
               <MenuSeparator />
-              <MenuItem icon={<EyeOff />} onSelect={() => apply(() => buryCard(state.deckId, card.id))}>
+              <MenuItem icon={<EyeOff />} onSelect={() => record({ id: uuid(), userId, cardId: card.id, at: new Date().toISOString(), kind: "bury" }, "advance")}>
                 {t.study.buryUntilTomorrow}
               </MenuItem>
-              <MenuItem icon={<PauseCircle />} tone="danger" onSelect={() => apply(() => suspendCard(state.deckId, card.id))}>
+              <MenuItem
+                icon={<PauseCircle />}
+                tone="danger"
+                onSelect={() => record({ id: uuid(), userId, cardId: card.id, at: new Date().toISOString(), kind: "suspend" }, "advance")}
+              >
                 {t.study.suspend}
               </MenuItem>
             </Menu>
@@ -151,12 +370,17 @@ export function StudySession({ initial }: { initial: StudyState }) {
         </div>
       </header>
 
-      {card ? (
+      {!view ? (
+        <div className="flex flex-1 flex-col gap-3">
+          <Skeleton className="min-h-0 flex-1 rounded-2xl md:min-h-96" />
+          <Skeleton className="h-16 rounded-xl" />
+        </div>
+      ) : card ? (
         <>
           <section
             className={cn(
               "relative flex min-h-0 flex-1 flex-col overflow-y-auto rounded-2xl border bg-card shadow-sm transition-opacity md:min-h-96",
-              pending && "opacity-60",
+              undoing && "opacity-60",
             )}
             onClick={() => {
               if (!revealed) reveal();
@@ -187,7 +411,7 @@ export function StudySession({ initial }: { initial: StudyState }) {
                   <button
                     key={rating}
                     type="button"
-                    disabled={pending}
+                    disabled={undoing}
                     onClick={() => rate(rating)}
                     className={cn(
                       "flex h-16 flex-col items-center justify-center rounded-xl border bg-card transition-colors disabled:opacity-50",
@@ -204,7 +428,7 @@ export function StudySession({ initial }: { initial: StudyState }) {
                 size="lg"
                 className="h-16 w-full gap-2.5 rounded-xl text-base font-semibold shadow-md active:scale-[0.98]"
                 onClick={reveal}
-                disabled={pending}
+                disabled={undoing}
               >
                 <Eye className="size-5" aria-hidden />
                 {t.study.showAnswer}
@@ -213,9 +437,7 @@ export function StudySession({ initial }: { initial: StudyState }) {
                 </kbd>
               </Button>
             )}
-            <p className="mt-2 hidden text-center text-xs text-muted-foreground md:block">
-              {t.study.shortcutsHint}
-            </p>
+            <p className="mt-2 hidden text-center text-xs text-muted-foreground md:block">{t.study.shortcutsHint}</p>
           </footer>
         </>
       ) : (
@@ -224,17 +446,18 @@ export function StudySession({ initial }: { initial: StudyState }) {
           <div className="flex flex-col gap-1">
             <p className="text-lg font-semibold">{t.study.finishedTitle}</p>
             <p className="max-w-sm text-sm text-muted-foreground">
-              {state.learnAheadAt
-                ? t.study.learnAheadAt(new Date(state.learnAheadAt).toLocaleTimeString(intlLocale(locale), { hour: "2-digit", minute: "2-digit" }))
+              {view.learnAheadAt
+                ? t.study.learnAheadAt(view.learnAheadAt.toLocaleTimeString(intlLocale(locale), { hour: "2-digit", minute: "2-digit" }))
                 : t.study.noMoreCards}
             </p>
+            {pendingOps > 0 ? <p className="text-xs text-muted-foreground">{t.study.pendingSync(pendingOps)}</p> : null}
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push(`/decks/${state.deckId}`)}>
+            <Button variant="outline" onClick={() => router.push(`/decks/${deckId}`)}>
               {t.study.backToDeck}
             </Button>
-            {state.canUndo ? (
-              <Button variant="ghost" onClick={undo} disabled={pending}>
+            {view.canUndo ? (
+              <Button variant="ghost" onClick={undo} disabled={undoing}>
                 <Undo2 className="size-4" />
                 {t.study.undo}
               </Button>

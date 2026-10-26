@@ -25,7 +25,7 @@ const serwist = new Serwist({
       }),
     },
     {
-      matcher: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith("/api/export"),
+      matcher: ({ url, sameOrigin }) => sameOrigin && (url.pathname.startsWith("/api/export") || url.pathname.startsWith("/api/study/")),
       handler: new NetworkOnly(),
     },
     {
