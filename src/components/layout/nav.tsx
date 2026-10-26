@@ -1,15 +1,17 @@
 "use client";
 
-import { useTransition } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, ChevronDown, Compass, Layers, LogOut, Search, Settings } from "lucide-react";
+import { BarChart3, Compass, Layers, LogOut, Search, Settings, Upload } from "lucide-react";
 import { Menu, MenuLink, MenuItem, MenuSeparator } from "@/components/ui/menu";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { logout } from "@/app/(auth)/actions";
 import { forgetOfflineData } from "@/lib/study/offline/sync";
-import { useMessages } from "@/lib/i18n/client";
+import { useI18n, useMessages } from "@/lib/i18n/client";
 import type { Messages } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
+import { CommandMenu } from "./command-menu";
 
 function navItems(t: Messages["nav"]) {
   return [
@@ -32,10 +34,33 @@ function initials(name: string) {
   return `${parts[0][0]}${last[0] ?? ""}`.toUpperCase();
 }
 
+function subscribeNothing() {
+  return () => {};
+}
+
+function useIsMac() {
+  return useSyncExternalStore(
+    subscribeNothing,
+    () => /Mac|iPhone|iPad/.test(navigator.userAgent),
+    () => true,
+  );
+}
+
+function place(marker: HTMLElement, target: HTMLElement, animate: boolean) {
+  if (!animate) marker.style.transition = "none";
+  marker.style.width = `${target.offsetWidth}px`;
+  marker.style.transform = `translateX(${target.offsetLeft}px)`;
+  marker.style.opacity = "1";
+  if (!animate) {
+    void marker.offsetWidth;
+    marker.style.transition = "";
+  }
+}
+
 function Brand() {
   return (
-    <Link href="/decks" className="flex shrink-0 items-center gap-2.5">
-      <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow-sm">
+    <Link href="/decks" className="group flex shrink-0 items-center gap-2.5">
+      <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow-sm transition-transform duration-500 ease-out group-hover:-rotate-12">
         <Layers className="size-4" />
       </span>
       <span className="text-[15px] font-semibold tracking-tight">Flashcards</span>
@@ -43,67 +68,145 @@ function Brand() {
   );
 }
 
-function Tabs({ pathname }: { pathname: string }) {
-  const tabs = navItems(useMessages().nav).slice(0, 4);
-  const index = tabs.findIndex((tab) => isActive(pathname, tab.href));
+function Links({ pathname }: { pathname: string }) {
+  const { locale, t } = useI18n();
+  const links = navItems(t.nav).slice(0, 4);
+  const list = useRef<HTMLDivElement>(null);
+  const underline = useRef<HTMLSpanElement>(null);
+  const hover = useRef<HTMLSpanElement>(null);
+  const placed = useRef(false);
+
+  const syncUnderline = useCallback((animate: boolean) => {
+    const marker = underline.current;
+    const target = list.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!marker) return;
+    if (!target) {
+      marker.style.opacity = "0";
+      return;
+    }
+    place(marker, target, animate);
+  }, []);
+
+  useLayoutEffect(() => {
+    syncUnderline(placed.current);
+    placed.current = true;
+  }, [pathname, locale, syncUnderline]);
+
+  useEffect(() => {
+    const node = list.current;
+    if (!node) return;
+    const observer = new ResizeObserver(() => syncUnderline(false));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [syncUnderline]);
+
+  const showHover = (target: HTMLElement) => {
+    const marker = hover.current;
+    if (marker) place(marker, target, marker.style.opacity === "1");
+  };
+
+  const hideHover = () => {
+    if (hover.current) hover.current.style.opacity = "0";
+  };
+
   return (
-    <nav className="relative grid auto-cols-fr grid-flow-col rounded-full border bg-muted/70 p-1">
-      {index >= 0 ? (
+    <nav aria-label={t.nav.primary} className="flex h-full items-center">
+      <div ref={list} onPointerLeave={hideHover} className="relative flex h-full items-center">
         <span
+          ref={hover}
           aria-hidden
-          className="absolute inset-y-1 left-1 rounded-full border bg-card shadow-sm transition-transform duration-300 ease-out"
-          style={{ width: `calc((100% - 0.5rem) / ${tabs.length})`, transform: `translateX(${index * 100}%)` }}
+          className="pointer-events-none absolute left-0 top-1/2 h-8 -translate-y-1/2 rounded-md bg-muted opacity-0 transition-[transform,width,opacity] duration-200 ease-out"
         />
-      ) : null}
-      {tabs.map((tab) => {
-        const active = index >= 0 && tabs[index].href === tab.href;
-        const Icon = tab.icon;
-        return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "relative z-10 flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
-              active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Icon className="size-4" strokeWidth={active ? 2.2 : 1.9} />
-            {tab.label}
-          </Link>
-        );
-      })}
+        {links.map((link) => {
+          const active = isActive(pathname, link.href);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={active ? "page" : undefined}
+              onPointerEnter={(event) => showHover(event.currentTarget)}
+              onFocus={(event) => showHover(event.currentTarget)}
+              onBlur={hideHover}
+              className={cn(
+                "relative px-3 py-1.5 text-sm font-medium transition-colors",
+                active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+        <span
+          ref={underline}
+          aria-hidden
+          className="pointer-events-none absolute -bottom-px left-0 h-0.5 rounded-full bg-foreground opacity-0 transition-[transform,width,opacity] duration-300 ease-out"
+        />
+      </div>
     </nav>
   );
 }
 
-function UserMenu({ name, settingsActive }: { name: string; settingsActive: boolean }) {
-  const [pending, startTransition] = useTransition();
+function SearchButton({ onOpen }: { onOpen: () => void }) {
   const t = useMessages().nav;
+  const mac = useIsMac();
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={t.searchLabel}
+      aria-keyshortcuts={mac ? "Meta+K" : "Control+K"}
+      className="flex h-9 items-center gap-2 rounded-lg border bg-card px-2.5 text-sm text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground lg:w-60"
+    >
+      <Search className="size-4 shrink-0" />
+      <span className="hidden flex-1 text-left lg:block">{t.search}</span>
+      <kbd className="hidden rounded border bg-muted px-1.5 py-0.5 font-sans text-[11px] font-medium lg:block">
+        {mac ? "⌘K" : "Ctrl K"}
+      </kbd>
+    </button>
+  );
+}
+
+function UserMenu({ name, email, settingsActive }: { name: string; email: string; settingsActive: boolean }) {
+  const [pending, startTransition] = useTransition();
+  const { t } = useI18n();
   return (
     <Menu
       className="shrink-0"
+      contentClassName="mt-2 w-64"
       trigger={
         <span
+          aria-label={t.nav.account}
           className={cn(
-            "flex items-center gap-2 rounded-full border bg-card py-1 pl-1 pr-2.5 text-sm transition-colors hover:bg-muted",
-            settingsActive && "ring-2 ring-ring",
+            "flex size-9 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground ring-offset-2 ring-offset-background transition-shadow hover:ring-2 hover:ring-border",
+            settingsActive && "ring-2 ring-foreground/30",
             pending && "opacity-60",
           )}
         >
-          <span className="flex size-7 items-center justify-center rounded-full bg-accent text-[11px] font-semibold text-accent-foreground">
-            {initials(name)}
-          </span>
-          <span className="max-w-28 truncate font-medium">{name}</span>
-          <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+          {initials(name)}
         </span>
       }
     >
-      <p className="truncate px-2.5 py-2 text-xs text-muted-foreground">{t.signedInAs(name)}</p>
+      <div className="flex items-center gap-3 px-2.5 py-2.5">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+          {initials(name)}
+        </span>
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-sm font-medium">{name}</span>
+          <span className="truncate text-xs text-muted-foreground">{email}</span>
+        </span>
+      </div>
       <MenuSeparator />
       <MenuLink href="/settings" icon={<Settings />}>
-        {t.settings}
+        {t.nav.settings}
       </MenuLink>
+      <MenuLink href="/import" icon={<Upload />}>
+        {t.nav.import}
+      </MenuLink>
+      <MenuSeparator />
+      <div className="flex items-center justify-between gap-3 px-2.5 py-1.5 text-sm" onClick={(event) => event.stopPropagation()}>
+        <span className="text-muted-foreground">{t.landing.language}</span>
+        <LanguageSwitcher label={t.landing.language} size="sm" />
+      </div>
       <MenuSeparator />
       <MenuItem
         tone="danger"
@@ -115,21 +218,38 @@ function UserMenu({ name, settingsActive }: { name: string; settingsActive: bool
           })
         }
       >
-        {t.logout}
+        {t.nav.logout}
       </MenuItem>
     </Menu>
   );
 }
 
-export function TopNav({ name }: { name: string }) {
+export function TopNav({ name, email }: { name: string; email: string }) {
   const pathname = usePathname();
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey)) return;
+      event.preventDefault();
+      setSearching((value) => !value);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
-    <header className="safe-top sticky top-0 z-20 hidden border-b bg-background/75 backdrop-blur-xl md:block">
-      <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-6 px-6">
+    <header className="safe-top sticky top-0 z-20 hidden border-b bg-background/80 backdrop-blur-xl md:block">
+      <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-5 px-6">
         <Brand />
-        <Tabs pathname={pathname} />
-        <UserMenu name={name} settingsActive={isActive(pathname, "/settings")} />
+        <span aria-hidden className="h-5 w-px bg-border" />
+        <Links pathname={pathname} />
+        <div className="ml-auto flex items-center gap-3">
+          <SearchButton onOpen={() => setSearching(true)} />
+          <UserMenu name={name} email={email} settingsActive={isActive(pathname, "/settings")} />
+        </div>
       </div>
+      <CommandMenu open={searching} onClose={() => setSearching(false)} />
     </header>
   );
 }
@@ -138,9 +258,19 @@ export function BottomNav() {
   const pathname = usePathname();
   const items = navItems(useMessages().nav);
   if (pathname.includes("/study")) return null;
+  const index = items.findIndex((item) => isActive(pathname, item.href));
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/85 backdrop-blur-xl safe-bottom md:hidden">
-      <div className="mx-auto grid max-w-md grid-cols-5">
+      <div className="relative mx-auto grid max-w-md grid-cols-5">
+        {index >= 0 ? (
+          <span
+            aria-hidden
+            className="absolute left-0 top-2 flex h-7 w-1/5 justify-center transition-transform duration-300 ease-out"
+            style={{ transform: `translateX(${index * 100}%)` }}
+          >
+            <span className="h-full w-12 rounded-full bg-accent-soft" />
+          </span>
+        ) : null}
         {items.map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;
@@ -149,17 +279,17 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className="flex flex-col items-center gap-1 pt-2 text-[11px] font-medium"
+              className="relative flex flex-col items-center gap-1 pt-2 text-[11px] font-medium transition-transform active:scale-95"
             >
               <span
                 className={cn(
-                  "flex h-7 w-12 items-center justify-center rounded-full transition-colors",
-                  active ? "bg-accent-soft text-accent" : "text-muted-foreground",
+                  "flex h-7 w-12 items-center justify-center transition-colors",
+                  active ? "text-foreground" : "text-muted-foreground",
                 )}
               >
                 <Icon className="size-5" strokeWidth={active ? 2.3 : 1.9} />
               </span>
-              <span className={active ? "text-foreground" : "text-muted-foreground"}>{item.short}</span>
+              <span className={cn("transition-colors", active ? "text-foreground" : "text-muted-foreground")}>{item.short}</span>
             </Link>
           );
         })}

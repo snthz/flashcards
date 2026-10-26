@@ -8,7 +8,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex min-h-dvh flex-col">
       <StatusBarScrim className="md:hidden" />
-      <TopNav name={user.name} />
+      <TopNav name={user.name} email={user.email} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-[calc(1rem_+_var(--safe-top))] md:px-6 md:pb-12 md:pt-8">{children}</main>
       <BottomNav />
       <OfflineSync userId={user.id} />

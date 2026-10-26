@@ -11,9 +11,10 @@ interface MenuProps {
   children: ReactNode;
   align?: "left" | "right";
   className?: string;
+  contentClassName?: string;
 }
 
-export function Menu({ trigger, children, align = "right", className }: MenuProps) {
+export function Menu({ trigger, children, align = "right", className, contentClassName }: MenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
@@ -64,6 +65,7 @@ export function Menu({ trigger, children, align = "right", className }: MenuProp
           className={cn(
             "absolute z-30 mt-1 min-w-44 overflow-hidden rounded-lg border bg-card p-1 shadow-lg animate-in",
             align === "right" ? "right-0" : "left-0",
+            contentClassName,
           )}
         >
           {children}

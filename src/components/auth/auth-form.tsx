@@ -30,9 +30,10 @@ interface AuthInputProps {
   hint?: string;
   trailing?: React.ReactNode;
   defaultValue?: string;
+  placeholder?: string;
 }
 
-export function AuthInput({ name, label, type = "text", autoComplete, icon, error, required, minLength, maxLength, inputMode, hint, trailing, defaultValue }: AuthInputProps) {
+export function AuthInput({ name, label, type = "text", autoComplete, icon, error, required, minLength, maxLength, inputMode, hint, trailing, defaultValue, placeholder }: AuthInputProps) {
   const id = useId();
   return (
     <div className="flex flex-col gap-1.5">
@@ -56,6 +57,7 @@ export function AuthInput({ name, label, type = "text", autoComplete, icon, erro
           maxLength={maxLength}
           inputMode={inputMode}
           defaultValue={defaultValue}
+          placeholder={placeholder}
           aria-invalid={Boolean(error)}
           className="h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none sm:text-sm placeholder:text-muted-foreground"
         />
@@ -101,6 +103,7 @@ export function AuthForm({ mode, action, showForgotPassword = false }: AuthFormP
           name="name"
           label={t.name}
           autoComplete="name"
+          placeholder={t.namePlaceholder}
           icon={<User />}
           required
           maxLength={80}
@@ -114,6 +117,7 @@ export function AuthForm({ mode, action, showForgotPassword = false }: AuthFormP
         type="email"
         autoComplete="email"
         inputMode="email"
+        placeholder={t.emailPlaceholder}
         icon={<Mail />}
         required
         error={state.fieldErrors?.email}
@@ -124,6 +128,7 @@ export function AuthForm({ mode, action, showForgotPassword = false }: AuthFormP
         label={t.password}
         type={showPassword ? "text" : "password"}
         autoComplete={isRegister ? "new-password" : "current-password"}
+        placeholder={isRegister ? t.newPasswordPlaceholder : t.passwordPlaceholder}
         icon={<Lock />}
         required
         minLength={isRegister ? 8 : 1}

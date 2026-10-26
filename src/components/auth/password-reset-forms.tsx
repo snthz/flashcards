@@ -43,6 +43,7 @@ export function ForgotPasswordForm() {
         type="email"
         autoComplete="email"
         inputMode="email"
+        placeholder={t.emailPlaceholder}
         icon={<Mail />}
         required
         error={state.fieldErrors?.email}
@@ -70,6 +71,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
         label={t.newPassword}
         type={visible ? "text" : "password"}
         autoComplete="new-password"
+        placeholder={t.newPasswordPlaceholder}
         icon={<Lock />}
         required
         minLength={8}
