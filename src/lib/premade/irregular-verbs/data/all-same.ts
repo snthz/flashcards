@@ -1,0 +1,26 @@
+import type { IrregularVerb } from "../types";
+
+export const allSame: IrregularVerb[] = [
+  ["put", "put", "put", "poner; meter", "She put the keys on the table.", "Puso las llaves en la mesa."],
+  ["let", "let", "let", "dejar; permitir", "My parents let me stay out late.", "Mis papás me dejaron quedarme fuera hasta tarde.", "«Let's…»: vamos a…, como en «let's go»."],
+  ["set", "set", "set", "poner; fijar; establecer", "We set the date for the wedding.", "Fijamos la fecha de la boda.", "«Set up»: montar o instalar algo."],
+  ["cut", "cut", "cut", "cortar", "I cut my finger while I was cooking.", "Me corté el dedo mientras cocinaba."],
+  ["hit", "hit", "hit", "golpear; pegar; chocar", "The ball hit the window.", "La pelota le pegó a la ventana."],
+  ["cost", "cost", "cost", "costar", "The tickets cost fifty dollars.", "Los boletos costaron cincuenta dólares."],
+  ["read", "read", "read", "leer", "I've read this book three times.", "He leído este libro tres veces.", "Se escribe igual, pero en pasado y participio se pronuncia /red/, como «red»."],
+  ["hurt", "hurt", "hurt", "lastimar; doler", "I hurt my back lifting the box.", "Me lastimé la espalda al levantar la caja.", "«My head hurts»: me duele la cabeza."],
+  ["shut", "shut", "shut", "cerrar", "He shut the door behind him.", "Cerró la puerta detrás de él.", "«Shut up»: cállate (es grosero)."],
+  ["quit", "quit", "quit", "renunciar; dejar (de hacer algo)", "She quit her job to travel.", "Renunció a su trabajo para viajar.", "En inglés británico también se usa quitted."],
+  ["spread", "spread", "spread", "extender; untar; propagar(se)", "The news spread quickly.", "La noticia se propagó rápido.", "Se pronuncia /spred/."],
+  ["bet", "bet", "bet", "apostar", "He bet all his money on one horse.", "Apostó todo su dinero a un caballo.", "«I bet…»: seguro que…, a que…"],
+  ["burst", "burst", "burst", "reventar; estallar", "The balloon burst in my hand.", "El globo me reventó en la mano.", "«Burst into tears»: romper a llorar."],
+  ["cast", "cast", "cast", "lanzar; elegir (para un papel)", "She was cast as the lead in the movie.", "La eligieron como protagonista de la película.", "Cast también es el reparto de una película y el yeso para un hueso roto."],
+  ["broadcast", "broadcast", "broadcast", "transmitir; emitir", "The game was broadcast live.", "El partido se transmitió en vivo."],
+  ["split", "split", "split", "dividir; partir; separarse", "We split the bill four ways.", "Dividimos la cuenta entre cuatro.", "«Split up»: separarse (una pareja)."],
+  ["upset", "upset", "upset", "molestar; disgustar", "His comment really upset me.", "Su comentario me molestó mucho.", "«Upset stomach»: malestar estomacal."],
+  ["fit", "fit", "fit", "quedar (bien); caber", "These jeans fit me perfectly last year.", "Estos jeans me quedaban perfecto el año pasado.", "En inglés británico se usa fitted."],
+  ["forecast", "forecast", "forecast", "pronosticar", "They forecast rain for the weekend.", "Pronosticaron lluvia para el fin de semana.", "También se acepta forecasted."],
+  ["shed", "shed", "shed", "derramar (lágrimas); mudar (piel, pelo)", "She shed a few tears at the end of the movie.", "Derramó algunas lágrimas al final de la película.", "Shed también es un cobertizo."],
+  ["bid", "bid", "bid", "pujar; ofrecer (en una subasta)", "He bid two hundred dollars for the guitar.", "Ofreció doscientos dólares por la guitarra."],
+  ["rid", "rid", "rid", "librar(se) de", "We finally got rid of the old sofa.", "Por fin nos deshicimos del sillón viejo.", "Casi siempre aparece como «get rid of»: deshacerse de."],
+];

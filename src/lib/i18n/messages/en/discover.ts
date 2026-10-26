@@ -3,7 +3,7 @@ export const discover = {
   description: "Ready-made decks to study. Add them to your collection in one tap.",
   added: "Added",
   cardCount: (count: number, formatted: string) => (count === 1 ? "1 card" : `${formatted} cards`),
-  comingSoon: "More decks are coming soon: irregular verbs, uses of “get” and more.",
+  comingSoon: "More decks are coming soon: uses of “get” and more.",
   sampleCards: "Sample cards",
   subdecks: "Subdecks",
   openDeck: "Open deck",
