@@ -20,7 +20,15 @@ export const deckOptions: Messages["deckOptions"] = {
   algorithmSm2: "SM-2 (Anki clásico)",
   leechTagOnly: "Solo etiquetar",
   leechSuspend: "Suspender tarjeta",
-  fsrsWeightsHint: "Pega los parámetros optimizados desde Anki o déjalo vacío para usar los predeterminados.",
+  fsrsWeightsHint: "Optimízalos con tu historial, pega los de Anki o déjalo vacío para usar los predeterminados.",
+  optimize: "Optimizar parámetros",
+  optimizeHint: "Ajusta FSRS a tu historial de repasos en todos los mazos que usan este preajuste. Vuelve a hacerlo cada mes más o menos.",
+  optimizeNotEnough: (reviews, required) =>
+    `Todavía no hay suficiente historial: ${reviews} de ${required} repasos en días posteriores. Sigue estudiando con este preajuste y vuelve a intentarlo.`,
+  optimizeUpdated: (before, after, reviews) =>
+    `Parámetros actualizados con ${reviews} repasos. El error de predicción bajó de ${before} a ${after}.`,
+  optimizeOptimal: (error, reviews) => `Tus parámetros actuales ya son los que mejor se ajustan a tus ${reviews} repasos (error de predicción ${error}).`,
+  optimizeFailed: "No se pudieron optimizar los parámetros. Inténtalo más tarde.",
   labels: {
     name: "Nombre del preajuste",
     newPerDay: "Tarjetas nuevas por día",

@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth/user";
 import { createDeckSchema, deckConfigSchema, renameDeckSchema } from "@/lib/validation/deck";
 import { getI18n } from "@/lib/i18n/server";
 import { issueMessage, parseOptions } from "@/lib/i18n/validation";
+import { optimizeParameters, type OptimizeResult } from "@/lib/fsrs/optimize";
 
 export type ActionState = { error?: string; success?: string };
 
@@ -167,4 +168,19 @@ export async function deleteDeckConfig(deckId: string, configId: string) {
   await prisma.deck.updateMany({ where: { userId: user.id, configId: config.id }, data: { configId: fallback.id } });
   await prisma.deckConfig.delete({ where: { id: config.id } });
   revalidatePath(`/decks/${deckId}/options`);
+}
+
+export async function optimizeFsrs(deckId: string): Promise<OptimizeResult | { status: "failed" }> {
+  const user = await requireUser();
+  const deck = await prisma.deck.findFirst({ where: { id: deckId, userId: user.id }, select: { configId: true } });
+  if (!deck) return { status: "failed" };
+  try {
+    const result = await optimizeParameters(user, deck.configId);
+    if (!result) return { status: "failed" };
+    if (result.status === "updated") revalidatePath(`/decks/${deckId}/options`);
+    return result;
+  } catch (error) {
+    console.error("[fsrs] optimization failed", error);
+    return { status: "failed" };
+  }
 }

@@ -1,12 +1,14 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Field, FormError } from "@/components/ui/field";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { createDeckConfig, deleteDeckConfig, saveDeckConfig, setDeckConfig, type ActionState } from "@/lib/decks/actions";
-import { useMessages } from "@/lib/i18n/client";
+import { createDeckConfig, deleteDeckConfig, optimizeFsrs, saveDeckConfig, setDeckConfig, type ActionState } from "@/lib/decks/actions";
+import { useI18n } from "@/lib/i18n/client";
+import { formatNumber } from "@/lib/utils";
 
 interface ConfigValues {
   id: string;
@@ -45,14 +47,32 @@ function stepsToText(steps: number[]) {
     .join(" ");
 }
 
+function percent(value: number, locale: Parameters<typeof formatNumber>[1]) {
+  return `${formatNumber(Math.round(value * 1000) / 10, locale)}%`;
+}
+
 export function DeckOptionsForm({ deckId, config, configs }: Props) {
-  const t = useMessages();
+  const { locale, t } = useI18n();
   const o = t.deckOptions;
   const l = o.labels;
   const [state, action, pending] = useActionState<ActionState, FormData>(saveDeckConfig.bind(null, config.id), {});
   const [algorithm, setAlgorithm] = useState(config.algorithm);
   const [switching, startSwitch] = useTransition();
   const [newName, setNewName] = useState("");
+  const [weights, setWeights] = useState(config.fsrsWeights.join(", "));
+  const [optimizing, startOptimize] = useTransition();
+  const [optimizeMessage, setOptimizeMessage] = useState<{ tone: "success" | "info" | "danger"; text: string } | null>(null);
+
+  const optimize = () =>
+    startOptimize(async () => {
+      setOptimizeMessage(null);
+      const result = await optimizeFsrs(deckId);
+      if (result.status === "failed") return setOptimizeMessage({ tone: "danger", text: o.optimizeFailed });
+      if (result.status === "not_enough") return setOptimizeMessage({ tone: "info", text: o.optimizeNotEnough(result.reviews, result.required) });
+      if (result.status === "optimal") return setOptimizeMessage({ tone: "info", text: o.optimizeOptimal(percent(result.before.rmse, locale), result.reviews) });
+      setWeights(result.weights.join(", "));
+      setOptimizeMessage({ tone: "success", text: o.optimizeUpdated(percent(result.before.rmse, locale), percent(result.after.rmse, locale), result.reviews) });
+    });
 
   return (
     <div className="flex flex-col gap-6">
@@ -201,8 +221,31 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
                   <Input id="desiredRetention" name="desiredRetention" type="number" step="0.01" min={0.7} max={0.99} defaultValue={config.desiredRetention} />
                 </Field>
                 <Field label={l.fsrsWeights} htmlFor="fsrsWeights" hint={o.fsrsWeightsHint} className="sm:col-span-2">
-                  <Input id="fsrsWeights" name="fsrsWeights" defaultValue={config.fsrsWeights.join(", ")} />
+                  <Input id="fsrsWeights" name="fsrsWeights" value={weights} onChange={(event) => setWeights(event.target.value)} />
                 </Field>
+                <div className="flex flex-col gap-2 sm:col-span-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Button type="button" variant="secondary" onClick={optimize} loading={optimizing} className="shrink-0">
+                      {optimizing ? null : <Sparkles className="size-4" />}
+                      {o.optimize}
+                    </Button>
+                    <p className="text-xs text-muted-foreground">{o.optimizeHint}</p>
+                  </div>
+                  {optimizeMessage ? (
+                    <p
+                      role="status"
+                      className={
+                        optimizeMessage.tone === "success"
+                          ? "rounded-lg bg-success-soft px-3 py-2 text-sm text-success"
+                          : optimizeMessage.tone === "danger"
+                            ? "rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger"
+                            : "rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground"
+                      }
+                    >
+                      {optimizeMessage.text}
+                    </p>
+                  ) : null}
+                </div>
               </>
             ) : (
               <>
@@ -216,7 +259,7 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
                   <Input id="intervalModifier" name="intervalModifier" type="number" step="0.05" min={0.1} max={3} defaultValue={config.intervalModifier} />
                 </Field>
                 <input type="hidden" name="desiredRetention" value={config.desiredRetention} />
-                <input type="hidden" name="fsrsWeights" value={config.fsrsWeights.join(", ")} />
+                <input type="hidden" name="fsrsWeights" value={weights} />
               </>
             )}
             {algorithm === "FSRS" ? (

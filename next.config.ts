@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/import": ["./node_modules/sql.js/dist/sql-wasm.wasm"],
     "/api/export": ["./node_modules/sql.js/dist/sql-wasm.wasm"],
+    "/decks/\\[id\\]/options": ["./node_modules/@open-spaced-repetition/**/*"],
   },
   experimental: {
     serverActions: {

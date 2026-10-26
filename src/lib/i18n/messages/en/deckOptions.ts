@@ -18,7 +18,15 @@ export const deckOptions = {
   algorithmSm2: "SM-2 (classic Anki)",
   leechTagOnly: "Tag only",
   leechSuspend: "Suspend card",
-  fsrsWeightsHint: "Paste the optimized parameters from Anki, or leave it empty to use the defaults.",
+  fsrsWeightsHint: "Optimize them from your history, paste parameters from Anki, or leave it empty to use the defaults.",
+  optimize: "Optimize parameters",
+  optimizeHint: "Fits FSRS to your review history in every deck that uses this preset. Run it again every month or so.",
+  optimizeNotEnough: (reviews: number, required: number) =>
+    `Not enough history yet: ${reviews} of ${required} reviews on later days. Keep studying with this preset and try again.`,
+  optimizeUpdated: (before: string, after: string, reviews: number) =>
+    `Parameters updated from ${reviews} reviews. Prediction error went from ${before} to ${after}.`,
+  optimizeOptimal: (error: string, reviews: number) => `Your current parameters already fit your ${reviews} reviews best (prediction error ${error}).`,
+  optimizeFailed: "The parameters couldn't be optimized. Try again later.",
   labels: {
     name: "Preset name",
     newPerDay: "New cards/day",
