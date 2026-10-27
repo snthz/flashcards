@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, CloudOff, Eye, EyeOff, Flag, MoreHorizontal, Pencil, PauseCircle, RefreshCw, Undo2, X } from "lucide-react";
+import { CheckCircle2, CloudOff, Eye, EyeOff, Flag, Info, MoreHorizontal, Pencil, PauseCircle, RefreshCw, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/menu";
@@ -21,6 +21,8 @@ import type { CardState, Rating } from "@/lib/scheduler";
 import { uuid } from "@/lib/uuid";
 import { customStudyQuery } from "@/lib/study/custom";
 import { CardFrame } from "./card-frame";
+import { markSwipeHintSeen, shouldShowSwipeHint, SwipeHint, SwipeTint, useSwipe, type SwipeDirection } from "./swipe";
+import { CardInfoDialog } from "@/components/browse/card-info-dialog";
 
 const RATING_META: Record<Rating, { label: "again" | "hard" | "good" | "easy"; tone: string }> = {
   1: { label: "again", tone: "text-danger border-danger/40 hover:bg-danger-soft" },
@@ -79,6 +81,9 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
   const [pendingOps, setPendingOps] = useState(0);
   const [syncFailed, setSyncFailed] = useState(false);
   const [undoing, startUndo] = useTransition();
+  const [swipeHint, setSwipeHint] = useState(false);
+  const [infoCard, setInfoCard] = useState<string | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
 
   const canUndoNow = useCallback(() => {
     const engine = engineRef.current;
@@ -228,6 +233,12 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
   const reveal = useCallback(() => {
     setTyped(typedRef.current);
     setRevealed(true);
+    if (shouldShowSwipeHint()) setSwipeHint(true);
+  }, []);
+
+  const endSwipeHint = useCallback(() => {
+    markSwipeHintSeen();
+    setSwipeHint(false);
   }, []);
 
   const onTyped = useCallback((value: string) => {
@@ -242,6 +253,16 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
     },
     [card, undoing, record, userId],
   );
+
+  const onSwipe = useCallback(
+    (direction: SwipeDirection) => {
+      endSwipeHint();
+      rate(direction === "right" ? 3 : 1);
+    },
+    [endSwipeHint, rate],
+  );
+
+  const swipe = useSwipe(revealed && !undoing && Boolean(card), onSwipe);
 
   const undo = useCallback(() => {
     if (!view?.canUndo || undoing) return;
@@ -364,6 +385,11 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
               >
                 {card.flag ? t.study.removeFlag : t.study.flag}
               </MenuItem>
+              {online ? (
+                <MenuItem icon={<Info />} onSelect={() => setInfoCard(card.id)}>
+                  {t.cardInfo.open}
+                </MenuItem>
+              ) : null}
               <MenuSeparator />
               <MenuItem icon={<EyeOff />} onSelect={() => record({ id: uuid(), userId, cardId: card.id, at: new Date().toISOString(), kind: "bury" }, "advance")}>
                 {t.study.buryUntilTomorrow}
@@ -387,32 +413,39 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
         </div>
       ) : card ? (
         <>
-          <section
-            className={cn(
-              "relative flex min-h-0 flex-1 flex-col overflow-y-auto rounded-2xl border bg-card shadow-sm transition-opacity md:min-h-96",
-              undoing && "opacity-60",
-            )}
-            onClick={() => {
-              if (!revealed) reveal();
-            }}
-          >
-            {card.flag ? (
-              <span className="absolute right-3 top-3" style={{ color: FLAG_COLORS[card.flag] }}>
-                <Flag className="size-4 fill-current" />
-              </span>
-            ) : null}
-            <CardFrame
-              key={`${card.id}-${revealed ? "a" : "q"}`}
-              html={revealed ? card.answer : card.question}
-              css={card.css}
-              ord={card.ord}
-              side={revealed ? "answer" : "question"}
-              autoplay={revealed ? card.audio.answer : card.audio.question.length > 0 ? card.audio.question : EMPTY}
-              typed={revealed ? typed : undefined}
-              onTyped={onTyped}
-              onSubmitTyped={reveal}
-            />
-          </section>
+          <div className="relative flex min-h-0 flex-1 flex-col">
+            <section
+              ref={sectionRef}
+              className={cn(
+                "relative flex min-h-0 flex-1 flex-col overflow-y-auto rounded-2xl border bg-card shadow-sm transition-opacity md:min-h-96",
+                undoing && "opacity-60",
+              )}
+              style={swipe.style}
+              {...swipe.handlers}
+              onClick={() => {
+                if (!revealed) reveal();
+              }}
+            >
+              <SwipeTint direction={swipe.direction} progress={swipe.progress} rightLabel={t.study.good} leftLabel={t.study.again} />
+              {card.flag ? (
+                <span className="absolute right-3 top-3" style={{ color: FLAG_COLORS[card.flag] }}>
+                  <Flag className="size-4 fill-current" />
+                </span>
+              ) : null}
+              <CardFrame
+                key={`${card.id}-${revealed ? "a" : "q"}`}
+                html={revealed ? card.answer : card.question}
+                css={card.css}
+                ord={card.ord}
+                side={revealed ? "answer" : "question"}
+                autoplay={revealed ? card.audio.answer : card.audio.question.length > 0 ? card.audio.question : EMPTY}
+                typed={revealed ? typed : undefined}
+                onTyped={onTyped}
+                onSubmitTyped={reveal}
+              />
+            </section>
+            {swipeHint && revealed ? <SwipeHint target={sectionRef} text={t.study.swipeHint} onDone={endSwipeHint} /> : null}
+          </div>
 
           <footer className="safe-bottom pt-3">
             {revealed ? (
@@ -448,6 +481,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
               </Button>
             )}
             <p className="mt-2 hidden text-center text-xs text-muted-foreground md:block">{t.study.shortcutsHint}</p>
+            {revealed ? <p className="mt-2 text-center text-xs text-muted-foreground md:hidden">{t.study.swipeShortHint}</p> : null}
           </footer>
         </>
       ) : (
@@ -475,6 +509,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
           </div>
         </div>
       )}
+      <CardInfoDialog cardId={infoCard} onClose={() => setInfoCard(null)} />
     </div>
   );
 }

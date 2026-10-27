@@ -1,0 +1,25 @@
+import type { Messages } from "../types";
+
+export const cardInfo: Messages["cardInfo"] = {
+  open: "Información de la tarjeta",
+  title: "Información de la tarjeta",
+  added: "Añadida",
+  firstReview: "Primer repaso",
+  lastReview: "Último repaso",
+  due: "Vence",
+  interval: "Intervalo",
+  ease: "Facilidad",
+  stability: "Estabilidad",
+  difficulty: "Dificultad",
+  retrievability: "Probabilidad de recordarla ahora",
+  reviews: "Repasos",
+  lapses: "Olvidos",
+  averageTime: "Tiempo medio",
+  totalTime: "Tiempo total",
+  position: "Tarjeta",
+  history: "Historial de repasos",
+  noHistory: "Esta tarjeta todavía no se ha repasado.",
+  ratings: ["", "Otra vez", "Difícil", "Bien", "Fácil"],
+  never: "—",
+  failed: "No se pudo cargar la tarjeta.",
+};

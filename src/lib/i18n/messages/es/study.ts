@@ -23,6 +23,8 @@ export const study: Messages["study"] = {
   offlineHint: "Tus respuestas se guardan en este dispositivo y se sincronizarán cuando vuelvas a tener conexión.",
   pendingSync: (count) => (count === 1 ? "1 respuesta pendiente de sincronizar" : `${count} respuestas pendientes de sincronizar`),
   editNeedsConnection: "Para editar necesitas conexión",
+  swipeHint: "Desliza a la derecha para Bien y a la izquierda para Otra vez",
+  swipeShortHint: "Desliza la tarjeta: → Bien · ← Otra vez",
   finishedTitle: "¡Terminaste por hoy!",
   learnAheadAt: (time: string) => `Tienes tarjetas en aprendizaje que estarán listas a las ${time}.`,
   noMoreCards: "No hay más tarjetas pendientes en este mazo. Vuelve mañana o añade tarjetas nuevas.",

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Flag } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flag, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox, Select } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import type { BrowseRow } from "@/lib/notes/queries";
 import { formatInterval } from "@/lib/scheduler/format";
 import { cn, formatDate, formatNumber } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/client";
+import { CardInfoDialog } from "./card-info-dialog";
 
 const STATE_TONE: Record<BrowseRow["state"], "accent" | "danger" | "success" | "warning"> = {
   NEW: "accent",
@@ -38,6 +39,7 @@ export function BrowseTable({ rows, total, page, pages, decks }: Props) {
   const searchParams = useSearchParams();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
+  const [infoCard, setInfoCard] = useState<string | null>(null);
   const [moveTo, setMoveTo] = useState("");
 
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
@@ -121,6 +123,9 @@ export function BrowseTable({ rows, total, page, pages, decks }: Props) {
               <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">{t.browse.columns.due}</th>
               <th className="hidden px-2 py-2 text-right font-medium lg:table-cell">{t.browse.columns.interval}</th>
               <th className="hidden px-2 py-2 text-right font-medium lg:table-cell">{t.browse.columns.ease}</th>
+              <th className="w-10 px-2 py-2">
+                <span className="sr-only">{t.cardInfo.open}</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -166,11 +171,23 @@ export function BrowseTable({ rows, total, page, pages, decks }: Props) {
                 <td className="hidden px-2 py-2 text-right tabular-nums text-muted-foreground lg:table-cell">
                   {row.state === "NEW" ? "—" : `${Math.round(row.ease / 10)}%`}
                 </td>
+                <td className="px-2 py-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => setInfoCard(row.id)}
+                    aria-label={t.cardInfo.open}
+                    title={t.cardInfo.open}
+                    className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <Info className="size-4" />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      <CardInfoDialog cardId={infoCard} onClose={() => setInfoCard(null)} />
 
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>{t.browse.cardCount(total, formatNumber(total, locale))}</span>

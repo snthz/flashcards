@@ -21,6 +21,8 @@ export const study = {
   offlineHint: "Your answers are saved on this device and will sync when you're back online.",
   pendingSync: (count: number) => (count === 1 ? "1 answer waiting to sync" : `${count} answers waiting to sync`),
   editNeedsConnection: "Editing needs a connection",
+  swipeHint: "Swipe right for Good, left for Again",
+  swipeShortHint: "Swipe the card: → Good · ← Again",
   finishedTitle: "Congratulations! You have finished this deck for now.",
   learnAheadAt: (time: string) => `Some learning cards will be ready at ${time}.`,
   noMoreCards: "There are no more cards due in this deck. Come back tomorrow or add new cards.",

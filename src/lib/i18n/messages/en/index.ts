@@ -1,5 +1,6 @@
 import { auth } from "./auth";
 import { browse } from "./browse";
+import { cardInfo } from "./cardInfo";
 import { common } from "./common";
 import { custom } from "./custom";
 import { deckOptions } from "./deckOptions";
@@ -23,6 +24,7 @@ import { validation } from "./validation";
 export const en = {
   auth,
   browse,
+  cardInfo,
   common,
   custom,
   deckOptions,
