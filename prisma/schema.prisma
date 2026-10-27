@@ -39,6 +39,7 @@ model User {
   email        String   @unique
   passwordHash String
   name         String
+  avatar       String?
   timezone     String   @default("UTC")
   dayStartHour Int      @default(4)
   locale       String   @default("en")
@@ -198,10 +199,22 @@ model Note {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  cards Card[]
+  cards    Card[]
+  practice PracticeEnrichment?
 
   @@index([userId, noteTypeId])
   @@index([userId, ankiGuid])
+}
+
+model PracticeEnrichment {
+  noteId    String   @id
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  userId    String
+  hash      String
+  data      Json
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Card {

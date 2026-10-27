@@ -19,7 +19,7 @@ export function isSpeechSrc(src: string) {
 const QUALITY_RE = /premium|enhanced|neural|natural|siri/i;
 
 // Best installed voice for the language: exact region first, then higher-quality and on-device voices.
-function pickVoice(lang: string) {
+export function pickVoice(lang: string) {
   if (typeof speechSynthesis === "undefined") return null;
   const target = lang.toLowerCase();
   const base = target.split("-")[0];

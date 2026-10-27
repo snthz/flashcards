@@ -9,6 +9,8 @@ export const nav: Messages["nav"] = {
   settings: "Ajustes",
   translate: "Traductor",
   dictionary: "Diccionario",
+  grammar: "Gramática",
+  grammarHint: "Gramática del inglés por nivel, con quizzes",
   practice: "Práctica",
   practiceHint: "Ejercicios con las palabras que aprendiste",
   more: "Más",

@@ -51,7 +51,7 @@ export function AssistantBubble() {
         title={t.open}
         aria-expanded={open}
         className={cn(
-          "fixed bottom-[calc(5.25rem+var(--safe-bottom))] right-4 z-30 flex size-12 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg ring-1 ring-black/5 transition-[transform,opacity] hover:scale-105 active:scale-95 md:bottom-6 md:right-6",
+          "fixed bottom-[calc(var(--dock-offset)+5.25rem)] right-4 z-30 flex size-12 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg ring-1 ring-black/5 transition-[transform,opacity] hover:scale-105 active:scale-95 md:bottom-6 md:right-6",
           open && "pointer-events-none scale-90 opacity-0",
         )}
       >

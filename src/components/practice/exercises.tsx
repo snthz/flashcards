@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { Turtle, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,20 +9,21 @@ import { useI18n } from "@/lib/i18n/client";
 import { intlLocale } from "@/lib/i18n/config";
 import { makeCloze } from "@/lib/practice/extract";
 import { grade } from "@/lib/practice/grade";
-import { reviewSentence } from "@/lib/practice/actions";
 import { shuffle } from "@/lib/practice/session";
-import type { Exercise, Grade, PracticeItem } from "@/lib/practice/types";
+import type { Exercise, Grade, PendingGrade, PracticeItem, SentenceAttempt } from "@/lib/practice/types";
 import { speechLocale } from "@/lib/translate/vocabulary";
 import { cn } from "@/lib/utils";
 
 export interface Outcome {
-  grade: Grade;
+  grade: PendingGrade;
   detail?: ReactNode;
+  attempt?: SentenceAttempt;
 }
 
 export interface ExerciseProps<K extends Exercise["kind"]> {
   exercise: Extract<Exercise, { kind: K }>;
   done: boolean;
+  hasKey: boolean;
   onDone: (outcome: Outcome) => void;
 }
 
@@ -379,40 +380,25 @@ export function ListenExercise({ exercise, done, onDone }: ExerciseProps<"listen
   );
 }
 
-export function SentenceExercise({ exercise, done, onDone }: ExerciseProps<"sentence">) {
+export function SentenceExercise({ exercise, done, onDone, hasKey }: ExerciseProps<"sentence">) {
   const { t } = useI18n();
   const p = t.practice;
   const { item } = exercise;
   const [value, setValue] = useState("");
-  const [selfCheck, setSelfCheck] = useState<{ reason: string | null } | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [selfCheck, setSelfCheck] = useState(false);
   const usesTerm = makeCloze(value, [item.answer, item.term].filter(Boolean)) !== null;
 
-  const submit = () =>
-    startTransition(async () => {
-      const result = await reviewSentence({ term: item.term, meaning: item.meaning, language: item.language, sentence: value }).catch(() => ({ status: "unavailable" as const }));
-      if (result.status === "ok") {
-        const { review } = result;
-        onDone({
-          grade: review.verdict,
-          detail: (
-            <>
-              {review.feedback ? <span className="block text-foreground">{review.feedback}</span> : null}
-              {review.corrected ? (
-                <span className="mt-2 block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{p.corrected}</span>
-                  <span className="block font-medium text-foreground" lang={item.language ?? undefined}>
-                    {review.corrected}
-                  </span>
-                </span>
-              ) : null}
-            </>
-          ),
-        });
-        return;
-      }
-      setSelfCheck({ reason: result.status === "no-key" ? p.selfCheckHint : p.reviewFailed });
-    });
+  const submit = () => {
+    if (hasKey) {
+      onDone({
+        grade: "pending",
+        attempt: { id: exercise.id, term: item.term, meaning: item.meaning, language: item.language, sentence: value.trim() },
+        detail: <span className="block text-muted-foreground">{p.savedForReviewHint}</span>,
+      });
+      return;
+    }
+    setSelfCheck(true);
+  };
 
   const judge = (good: boolean) => {
     onDone({ grade: good ? "correct" : "wrong", detail: <ExampleLine item={item} /> });
@@ -432,7 +418,7 @@ export function SentenceExercise({ exercise, done, onDone }: ExerciseProps<"sent
       <Textarea
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        readOnly={done || pending || Boolean(selfCheck)}
+        readOnly={done || selfCheck}
         autoFocus
         rows={3}
         maxLength={400}
@@ -444,16 +430,12 @@ export function SentenceExercise({ exercise, done, onDone }: ExerciseProps<"sent
       {value.trim().length > 3 && !usesTerm && !done ? <p className="text-xs text-muted-foreground">{p.missingTerm(item.term)}</p> : null}
       {selfCheck && !done ? (
         <div className="flex flex-col gap-3 rounded-xl border bg-muted/40 p-4 text-sm animate-in">
-          {selfCheck.reason ? (
-            <p className="text-muted-foreground">
-              {selfCheck.reason}{" "}
-              {selfCheck.reason === p.selfCheckHint ? (
-                <Link href="/settings?tab=translator" className="font-medium text-foreground underline underline-offset-2">
-                  {t.assistant.noKeyAction}
-                </Link>
-              ) : null}
-            </p>
-          ) : null}
+          <p className="text-muted-foreground">
+            {p.selfCheckHint}{" "}
+            <Link href="/settings?tab=translator" className="font-medium text-foreground underline underline-offset-2">
+              {t.assistant.noKeyAction}
+            </Link>
+          </p>
           {item.example ? (
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{p.selfCheck}</p>
@@ -475,11 +457,11 @@ export function SentenceExercise({ exercise, done, onDone }: ExerciseProps<"sent
       ) : null}
       {done || selfCheck ? null : (
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-          <Button variant="ghost" onClick={() => onDone({ grade: "wrong", detail: <ExampleLine item={item} /> })} disabled={pending}>
+          <Button variant="ghost" onClick={() => onDone({ grade: "wrong", detail: <ExampleLine item={item} /> })}>
             {p.skip}
           </Button>
-          <Button onClick={submit} loading={pending} disabled={value.trim().length < 3} className="sm:min-w-36">
-            {pending ? p.reviewing : p.check}
+          <Button onClick={submit} disabled={value.trim().length < 3} className="sm:min-w-36">
+            {p.check}
           </Button>
         </div>
       )}

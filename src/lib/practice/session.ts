@@ -28,22 +28,36 @@ function distinctBy(items: PracticeItem[], key: (item: PracticeItem) => string) 
   });
 }
 
+function generated(item: PracticeItem, reverse: boolean) {
+  return (reverse ? item.distractors?.terms : item.distractors?.meanings) ?? [];
+}
+
 function options(item: PracticeItem, pool: PracticeItem[], reverse: boolean, random: Random) {
   const label = (entry: PracticeItem) => (reverse ? entry.term : entry.meaning);
+  const right = label(item).toLowerCase();
+  const own = generated(item, reverse).filter((value) => value.toLowerCase() !== right);
   const others = distinctBy(
-    pool.filter((entry) => entry.id !== item.id && label(entry).toLowerCase() !== label(item).toLowerCase()),
+    pool.filter((entry) => entry.id !== item.id && label(entry).toLowerCase() !== right),
     label,
   );
   const sameLanguage = others.filter((entry) => entry.language === item.language);
-  const picked = shuffle(sameLanguage.length >= 3 ? sameLanguage : others, random).slice(0, 3);
+  const fromPool = shuffle(sameLanguage.length >= 3 ? sameLanguage : others, random).map(label);
+  const useOwn = own.length >= 3 && (fromPool.length < 3 || random() < 0.5);
+  const picked = (useOwn ? own : fromPool).slice(0, 3);
   if (picked.length < 3) return null;
-  return shuffle([label(item), ...picked.map(label)], random);
+  return shuffle([label(item), ...picked], random);
+}
+
+function distinctMeanings(item: PracticeItem, pool: PracticeItem[]) {
+  return new Set(pool.filter((entry) => entry.id !== item.id).map((entry) => entry.meaning.toLowerCase())).size;
 }
 
 export function applicableKinds(item: PracticeItem, pool: PracticeItem[], options: SessionOptions): ExerciseKind[] {
-  const others = new Set(pool.filter((entry) => entry.id !== item.id).map((entry) => entry.meaning.toLowerCase())).size;
+  const others = distinctMeanings(item, pool);
+  const ownChoices = generated(item, false).length >= 3 || generated(item, true).length >= 3;
   return options.kinds.filter((kind) => {
-    if (kind === "choice" || kind === "match") return others >= 3;
+    if (kind === "choice") return others >= 3 || ownChoices;
+    if (kind === "match") return others >= 3;
     if (kind === "cloze") return itemCloze(item) !== null;
     if (kind === "listen") return options.canSpeak && item.language !== null && item.term.length <= 60;
     if (kind === "forms") return Boolean(item.past && item.participle);
@@ -70,7 +84,8 @@ export function buildSession(pool: PracticeItem[], settings: SessionOptions, ran
     const id = `${exercises.length}-${item.id}-${kind}`;
     let exercise: Exercise | null = null;
     if (kind === "choice") {
-      const reverse = random() < 0.5;
+      const first = random() < 0.5;
+      const reverse = options(item, pool, first, random) ? first : !first;
       const choices = options(item, pool, reverse, random);
       if (choices) exercise = { id, kind, item, reverse, options: choices };
     } else if (kind === "cloze") {
@@ -96,4 +111,20 @@ export function buildSession(pool: PracticeItem[], settings: SessionOptions, ran
     exercises.push(exercise);
   }
   return exercises;
+}
+
+export type Unavailable = "few-words" | "no-examples" | "no-language" | "no-speech" | "no-verbs";
+
+export function kindAvailability(pool: PracticeItem[], canSpeak: boolean): Record<ExerciseKind, Unavailable | null> {
+  const settings = (kind: ExerciseKind): SessionOptions => ({ kinds: [kind], length: 1, canSpeak });
+  const fits = (kind: ExerciseKind) => pool.some((item) => applicableKinds(item, pool, settings(kind)).length > 0);
+  return {
+    choice: fits("choice") ? null : "few-words",
+    type: pool.length > 0 ? null : "few-words",
+    cloze: fits("cloze") ? null : "no-examples",
+    listen: !canSpeak ? "no-speech" : fits("listen") ? null : "no-language",
+    sentence: pool.length > 0 ? null : "few-words",
+    forms: fits("forms") ? null : "no-verbs",
+    match: fits("match") ? null : "few-words",
+  };
 }

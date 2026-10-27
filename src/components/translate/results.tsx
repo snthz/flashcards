@@ -183,11 +183,19 @@ export function DictionaryView({
   const full = size === "full";
   const mixed = result.entries.some((entry) => entry.language !== result.entries[0]?.language);
 
+  const say = () => speak(result.word, result.entries[0]?.language ?? "en");
+
   const play = () => {
-    if (!result.audio) return;
     audioRef.current?.pause();
-    audioRef.current = new Audio(result.audio);
-    void audioRef.current.play().catch(() => null);
+    if (!result.audio) {
+      say();
+      return;
+    }
+    const audio = new Audio(result.audio);
+    audioRef.current = audio;
+    audio.play().catch(() => {
+      if (audioRef.current === audio) say();
+    });
   };
 
   return (
@@ -198,20 +206,18 @@ export function DictionaryView({
           {result.phonetic ? <span className="font-mono text-sm text-muted-foreground">{result.phonetic}</span> : null}
         </div>
         <div className="flex items-center gap-1">
-          {result.audio ? (
-            <button
-              type="button"
-              onClick={play}
-              aria-label={t.playPronunciation}
-              title={t.playPronunciation}
-              className={cn(
-                "flex items-center justify-center rounded-full border text-foreground transition-colors hover:bg-muted active:scale-95",
-                full ? "size-10" : "size-8",
-              )}
-            >
-              <Volume2 className="size-4" />
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={play}
+            aria-label={t.playPronunciation}
+            title={t.playPronunciation}
+            className={cn(
+              "flex items-center justify-center rounded-full border text-foreground transition-colors hover:bg-muted active:scale-95",
+              full ? "size-10" : "size-8",
+            )}
+          >
+            <Volume2 className="size-4" />
+          </button>
           <Button size="sm" variant={full ? "outline" : "ghost"} onClick={() => onTranslate(result.word)}>
             <Languages className="size-4" />
             {t.translateWord}

@@ -12,9 +12,49 @@ import { isValidTimeZone } from "@/lib/scheduler";
 import { getI18n } from "@/lib/i18n/server";
 import { issueMessage, parseOptions } from "@/lib/i18n/validation";
 import { isPushEndpoint, sendToUser } from "@/lib/reminders/push";
+import { AVATAR_MAX_BYTES, AVATAR_TYPES, parseAvatar } from "@/lib/avatar";
+import { removeAvatar, writeAvatar } from "@/lib/avatar/storage";
+import { matchesImageType, removeUserMedia, sha1 } from "@/lib/media";
 import { z } from "zod";
 
 export type SettingsState = { error?: string; success?: string; fieldErrors?: Record<string, string> };
+
+export type AvatarError = "unsupported" | "too_large" | "failed";
+export type AvatarResult = { ok: true } | { ok: false; error: AvatarError };
+
+async function replaceAvatar(userId: string, next: string | null) {
+  const record = await prisma.user.findUnique({ where: { id: userId }, select: { avatar: true } });
+  await prisma.user.update({ where: { id: userId }, data: { avatar: next } });
+  const previous = parseAvatar(record?.avatar);
+  if (previous?.kind === "upload" && record?.avatar !== next) await removeAvatar(userId, previous.file);
+  revalidatePath("/", "layout");
+}
+
+export async function chooseAvatar(value: string | null): Promise<AvatarResult> {
+  const user = await requireUser();
+  if (value !== null && parseAvatar(value)?.kind !== "preset") return { ok: false, error: "unsupported" };
+  await replaceAvatar(user.id, value);
+  return { ok: true };
+}
+
+export async function uploadAvatar(formData: FormData): Promise<AvatarResult> {
+  const user = await requireUser();
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "failed" };
+  const extension = AVATAR_TYPES[file.type];
+  if (!extension) return { ok: false, error: "unsupported" };
+  if (file.size > AVATAR_MAX_BYTES) return { ok: false, error: "too_large" };
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (!matchesImageType(file.type, bytes)) return { ok: false, error: "unsupported" };
+  const name = `avatar-${sha1(bytes).slice(0, 16)}${extension}`;
+  try {
+    await writeAvatar(user.id, name, bytes);
+  } catch {
+    return { ok: false, error: "failed" };
+  }
+  await replaceAvatar(user.id, `upload:${name}`);
+  return { ok: true };
+}
 
 export async function updateProfile(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
   const user = await requireUser();
@@ -67,6 +107,7 @@ export async function deleteAccount(formData: FormData) {
   if (confirmation !== user.email) return;
   await destroyAllSessions(user.id);
   await prisma.user.delete({ where: { id: user.id } });
+  await removeUserMedia(user.id);
   redirect("/register");
 }
 

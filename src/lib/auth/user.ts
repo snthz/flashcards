@@ -6,6 +6,7 @@ export type CurrentUser = {
   id: string;
   email: string;
   name: string;
+  avatar: string | null;
   timezone: string;
   dayStartHour: number;
   locale: string;

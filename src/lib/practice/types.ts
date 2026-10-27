@@ -11,6 +11,37 @@ export interface PracticeItem {
   past: string;
   participle: string;
   deckName: string;
+  distractors: Distractors | null;
+}
+
+export interface Distractors {
+  meanings: string[];
+  terms: string[];
+}
+
+export interface Enrichment {
+  language: string;
+  example: string;
+  exampleTranslation: string;
+  answer: string;
+  past: string;
+  participle: string;
+  wrongMeanings: string[];
+  wrongTerms: string[];
+}
+
+export interface PracticeData {
+  items: PracticeItem[];
+  hasKey: boolean;
+  pending: number;
+}
+
+export interface SentenceAttempt {
+  id: string;
+  term: string;
+  meaning: string;
+  language: string | null;
+  sentence: string;
 }
 
 export const EXERCISE_KINDS = ["choice", "type", "cloze", "listen", "sentence", "forms", "match"] as const;
@@ -35,6 +66,8 @@ export type Exercise =
   | { id: string; kind: "match"; item: PracticeItem; items: PracticeItem[] };
 
 export type Grade = "correct" | "almost" | "wrong";
+
+export type PendingGrade = Grade | "pending";
 
 export interface SentenceReview {
   verdict: Grade;

@@ -80,13 +80,25 @@ async function fetchWiktionary(word: string) {
   return (await response.json()) as WiktionaryResponse;
 }
 
+async function reachable(url: string | null) {
+  if (!url) return null;
+  try {
+    const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(3_000), cache: "no-store" });
+    return response.ok ? url : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchPhonetics(word: string) {
   try {
     const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`, {
       signal: AbortSignal.timeout(6_000),
       cache: "no-store",
     });
-    return response.ok ? parsePhonetics(await response.json()) : EMPTY_SOUND;
+    if (!response.ok) return EMPTY_SOUND;
+    const sound = parsePhonetics(await response.json());
+    return { ...sound, audio: await reachable(sound.audio) };
   } catch {
     return EMPTY_SOUND;
   }

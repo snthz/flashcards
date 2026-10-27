@@ -8,6 +8,7 @@ import { deckOptions } from "./deckOptions";
 import { decks } from "./decks";
 import { discover } from "./discover";
 import { exporter } from "./exporter";
+import { grammar } from "./grammar";
 import { importer } from "./importer";
 import { landing } from "./landing";
 import { meta } from "./meta";
@@ -36,6 +37,7 @@ export const en = {
   decks,
   discover,
   exporter,
+  grammar,
   importer,
   landing,
   meta,

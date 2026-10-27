@@ -3,7 +3,8 @@ import { PREMADE_DECKS } from "@/lib/premade/catalog";
 import { vocabularyFields, vocabularyNoteType } from "@/lib/translate/vocabulary";
 import { extractItem, fieldLanguages, itemCloze, makeCloze, type NoteTypeShape } from "./extract";
 import { acceptedAnswers, grade } from "./grade";
-import { buildSession } from "./session";
+import { applyEnrichment, enrichmentHash, toEnrichment } from "./enrich";
+import { buildSession, kindAvailability } from "./session";
 import type { PracticeItem } from "./types";
 
 function premade(slug: string) {
@@ -23,7 +24,7 @@ function seeded(seed = 7) {
 }
 
 function item(term: string, meaning: string, extra: Partial<PracticeItem> = {}): PracticeItem {
-  return { id: term, term, meaning, language: "en", example: "", exampleTranslation: "", answer: "", past: "", participle: "", deckName: "Deck", ...extra };
+  return { id: term, term, meaning, language: "en", example: "", exampleTranslation: "", answer: "", past: "", participle: "", deckName: "Deck", distractors: null, ...extra };
 }
 
 describe("extractItem", () => {
@@ -130,5 +131,61 @@ describe("buildSession", () => {
     const exercises = buildSession(small, { kinds: ["choice", "listen", "type"], length: 4, canSpeak: false }, seeded());
     expect(exercises.every((exercise) => exercise.kind === "type")).toBe(true);
     expect(buildSession(pool, { kinds: [], length: 5, canSpeak: true })).toEqual([]);
+  });
+});
+
+describe("generated distractors", () => {
+  const lonely = [
+    item("craving", "antojo", { distractors: { meanings: ["ansiedad", "almuerzo", "cosecha"], terms: ["carving", "crawling", "caring"] } }),
+    item("thrive", "prosperar", { distractors: { meanings: ["sufrir", "dormir", "nadar"], terms: ["strive", "drive", "thrift"] } }),
+  ];
+
+  it("unlock multiple choice when there are few studied words", () => {
+    const exercises = buildSession(lonely, { kinds: ["choice"], length: 4, canSpeak: false }, seeded(3));
+    expect(exercises).toHaveLength(4);
+    for (const exercise of exercises) {
+      if (exercise.kind !== "choice") throw new Error("expected choice");
+      expect(exercise.options).toHaveLength(4);
+      expect(exercise.options).toContain(exercise.reverse ? exercise.item.term : exercise.item.meaning);
+    }
+  });
+
+  it("explains why a kind is unavailable", () => {
+    const availability = kindAvailability(lonely, false);
+    expect(availability.choice).toBeNull();
+    expect(availability.match).toBe("few-words");
+    expect(availability.cloze).toBe("no-examples");
+    expect(availability.listen).toBe("no-speech");
+    expect(availability.forms).toBe("no-verbs");
+  });
+});
+
+describe("applyEnrichment", () => {
+  const output = {
+    id: "1",
+    language: "en",
+    example: "I have a craving for tacos.",
+    example_translation: "Tengo antojo de tacos.",
+    cloze_answer: "craving",
+    wrong_meanings: ["antojo", "cosecha", "almuerzo", "ruido"],
+    wrong_terms: ["carving", "craving", "crawling", "caring"],
+    past: "",
+    participle: "",
+  };
+
+  it("fills missing data without overriding the card", () => {
+    const base = item("craving", "antojo", { language: null });
+    const data = toEnrichment(output, base);
+    expect(data.wrongMeanings).toEqual(["cosecha", "almuerzo", "ruido"]);
+    expect(data.wrongTerms).toEqual(["carving", "crawling", "caring"]);
+    const enriched = applyEnrichment(base, data);
+    expect(enriched).toMatchObject({ language: "en", example: "I have a craving for tacos.", exampleTranslation: "Tengo antojo de tacos.", answer: "craving" });
+    const own = applyEnrichment(item("craving", "antojo", { example: "She was craving pizza." }), data);
+    expect(own.example).toBe("She was craving pizza.");
+    expect(own.exampleTranslation).toBe("");
+  });
+
+  it("changes the hash when the card changes", () => {
+    expect(enrichmentHash(item("a", "b"))).not.toBe(enrichmentHash(item("a", "c")));
   });
 });

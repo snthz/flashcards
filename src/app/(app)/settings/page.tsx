@@ -3,9 +3,9 @@ import { requireUser } from "@/lib/auth/user";
 import { getI18n } from "@/lib/i18n/server";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserAvatar } from "@/components/ui/avatar";
 import { DeleteAccountForm, LogoutButton, PasswordForm, ProfileForm, StudyDayForm } from "@/components/settings/settings-forms";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
+import { AvatarEditor } from "@/components/settings/avatar-editor";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ExportButton } from "@/components/export/export-dialog";
@@ -37,7 +37,7 @@ export default async function SettingsPage() {
     <>
       <Card className="flex flex-col gap-5 p-5">
         <div className="flex items-center gap-4">
-          <UserAvatar name={user.name} className="size-16 text-lg" />
+          <AvatarEditor name={user.name} avatar={user.avatar} />
           <div className="flex min-w-0 flex-col gap-0.5">
             <p className="truncate text-lg font-semibold tracking-tight">{user.name}</p>
             <p className="truncate text-sm text-muted-foreground">{user.email}</p>

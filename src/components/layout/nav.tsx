@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, BookOpen, ChevronDown, Compass, Dumbbell, Languages, Layers, LayoutGrid, LogOut, Search, Settings, Upload, X, type LucideIcon } from "lucide-react";
+import { BarChart3, BookOpen, ChevronDown, Compass, Dumbbell, GraduationCap, Languages, Layers, LayoutGrid, LogOut, Search, Settings, Upload, X, type LucideIcon } from "lucide-react";
 import { Menu, MenuLabel, MenuLink, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { logout } from "@/app/(auth)/actions";
@@ -12,6 +12,7 @@ import { useI18n, useMessages } from "@/lib/i18n/client";
 import type { Messages } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 import { BrandName } from "@/components/landing/studio-mark";
+import { UserAvatar } from "@/components/ui/avatar";
 import { CommandMenu } from "./command-menu";
 
 function navItems(t: Messages["nav"]) {
@@ -44,6 +45,7 @@ function moreSections(t: Messages["nav"]): Array<{ label: string; items: MoreIte
       items: [
         { href: "/translate", label: t.translate, hint: t.translateHint, icon: Languages },
         { href: "/dictionary", label: t.dictionary, hint: t.dictionaryHint, icon: BookOpen },
+        { href: "/grammar", label: t.grammar, hint: t.grammarHint, icon: GraduationCap },
       ],
     },
   ];
@@ -55,13 +57,6 @@ function settingsSection(t: Messages["nav"]) {
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  const last = parts.length > 1 ? parts[parts.length - 1] : "";
-  return `${parts[0][0]}${last[0] ?? ""}`.toUpperCase();
 }
 
 function subscribeNothing() {
@@ -267,7 +262,7 @@ function SearchButton({ onOpen }: { onOpen: () => void }) {
   );
 }
 
-function UserMenu({ name, email, settingsActive }: { name: string; email: string; settingsActive: boolean }) {
+function UserMenu({ name, email, avatar, settingsActive }: { name: string; email: string; avatar: string | null; settingsActive: boolean }) {
   const [pending, startTransition] = useTransition();
   const { t } = useI18n();
   return (
@@ -278,19 +273,17 @@ function UserMenu({ name, email, settingsActive }: { name: string; email: string
         <span
           aria-label={t.nav.account}
           className={cn(
-            "flex size-9 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground ring-offset-2 ring-offset-background transition-shadow hover:ring-2 hover:ring-border",
+            "flex rounded-full ring-offset-2 ring-offset-background transition-shadow hover:ring-2 hover:ring-border",
             settingsActive && "ring-2 ring-foreground/30",
             pending && "opacity-60",
           )}
         >
-          {initials(name)}
+          <UserAvatar name={name} avatar={avatar} className="size-9 text-xs" />
         </span>
       }
     >
       <div className="flex items-center gap-3 px-2.5 py-2.5">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-          {initials(name)}
-        </span>
+        <UserAvatar name={name} avatar={avatar} className="size-9 text-xs" />
         <span className="flex min-w-0 flex-col">
           <span className="truncate text-sm font-medium">{name}</span>
           <span className="truncate text-xs text-muted-foreground">{email}</span>
@@ -325,7 +318,7 @@ function UserMenu({ name, email, settingsActive }: { name: string; email: string
   );
 }
 
-export function TopNav({ name, email }: { name: string; email: string }) {
+export function TopNav({ name, email, avatar }: { name: string; email: string; avatar: string | null }) {
   const pathname = usePathname();
   const [searching, setSearching] = useState(false);
 
@@ -347,7 +340,7 @@ export function TopNav({ name, email }: { name: string; email: string }) {
         <Links pathname={pathname} />
         <div className="ml-auto flex items-center gap-3">
           <SearchButton onOpen={() => setSearching(true)} />
-          <UserMenu name={name} email={email} settingsActive={isActive(pathname, "/settings")} />
+          <UserMenu name={name} email={email} avatar={avatar} settingsActive={isActive(pathname, "/settings")} />
         </div>
       </div>
       <CommandMenu open={searching} onClose={() => setSearching(false)} />
@@ -418,39 +411,41 @@ export function BottomNav() {
   const more = [...moreSections(t), settingsSection(t)].some((section) => section.items.some((item) => isActive(pathname, item.href)));
   const primary = items.findIndex((item) => isActive(pathname, item.href));
   const index = sheetOpen || more ? items.length : primary;
-  const cell = "relative flex flex-col items-center gap-1 pt-2 text-[11px] font-medium transition-transform active:scale-95";
-  const icon = (active: boolean) => cn("flex h-7 w-12 items-center justify-center transition-colors", active ? "text-foreground" : "text-muted-foreground");
-  const caption = (active: boolean) => cn("transition-colors", active ? "text-foreground" : "text-muted-foreground");
+  const cell = (active: boolean) =>
+    cn(
+      "relative flex h-14 flex-col items-center justify-center gap-0.5 rounded-full text-[10.5px] font-medium tracking-tight outline-none transition-[color,transform] duration-200 active:scale-90 focus-visible:ring-2 focus-visible:ring-ring",
+      active ? "text-foreground" : "text-muted-foreground",
+    );
   return (
     <>
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/85 backdrop-blur-xl safe-bottom md:hidden">
-        <div className="relative mx-auto grid max-w-md grid-cols-4">
+      <span
+        aria-hidden
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-20 h-[calc(var(--dock-offset)+3rem)] bg-linear-to-t from-background/90 to-transparent md:hidden"
+      />
+      <nav aria-label={t.primary} className="pointer-events-none fixed inset-x-0 bottom-[var(--dock-offset)] z-20 px-4 md:hidden">
+        <div className="pointer-events-auto relative mx-auto grid max-w-sm grid-cols-4 rounded-full border border-foreground/10 bg-card/70 p-1.5 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.35),0_2px_8px_-2px_rgb(0_0_0/0.08),inset_0_1px_0_rgb(255_255_255/0.08)] backdrop-blur-xl backdrop-saturate-150">
           {index >= 0 ? (
             <span
               aria-hidden
-              className="absolute left-0 top-2 flex h-7 w-1/4 justify-center transition-transform duration-300 ease-out"
+              className="absolute inset-y-1.5 left-1.5 w-[calc((100%-0.75rem)/4)] transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)]"
               style={{ transform: `translateX(${index * 100}%)` }}
             >
-              <span className="h-full w-12 rounded-full bg-accent-soft" />
+              <span className="block size-full rounded-full bg-foreground/7 ring-1 ring-foreground/5 ring-inset" />
             </span>
           ) : null}
           {items.map((item) => {
             const active = isActive(pathname, item.href) && !sheetOpen;
             const Icon = item.icon;
             return (
-              <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={cell}>
-                <span className={icon(active)}>
-                  <Icon className="size-5" strokeWidth={active ? 2.3 : 1.9} />
-                </span>
-                <span className={caption(active)}>{item.short}</span>
+              <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={cell(active)}>
+                <Icon className="size-5.5" strokeWidth={active ? 2.2 : 1.8} />
+                <span>{item.short}</span>
               </Link>
             );
           })}
-          <button type="button" aria-haspopup="dialog" aria-expanded={sheetOpen} onClick={() => setSheet(sheetOpen ? null : pathname)} className={cell}>
-            <span className={icon(more || sheetOpen)}>
-              <LayoutGrid className="size-5" strokeWidth={more || sheetOpen ? 2.3 : 1.9} />
-            </span>
-            <span className={caption(more || sheetOpen)}>{t.more}</span>
+          <button type="button" aria-haspopup="dialog" aria-expanded={sheetOpen} onClick={() => setSheet(sheetOpen ? null : pathname)} className={cell(more || sheetOpen)}>
+            <LayoutGrid className="size-5.5" strokeWidth={more || sheetOpen ? 2.2 : 1.8} />
+            <span>{t.more}</span>
           </button>
         </div>
       </nav>

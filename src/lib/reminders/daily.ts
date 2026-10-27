@@ -29,6 +29,7 @@ export async function sendDueReminders(now = new Date()) {
       id: true,
       email: true,
       name: true,
+      avatar: true,
       timezone: true,
       dayStartHour: true,
       locale: true,

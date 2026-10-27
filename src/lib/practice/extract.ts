@@ -115,6 +115,7 @@ export function extractItem(id: string, noteType: NoteTypeShape, values: string[
     past: value(PAST),
     participle: value(PARTICIPLE),
     deckName,
+    distractors: null,
   };
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
+import { pickVoice } from "@/components/study/speech-clip";
 import { Select } from "@/components/ui/select";
 import { useI18n } from "@/lib/i18n/client";
 import { intlLocale } from "@/lib/i18n/config";
@@ -143,6 +144,7 @@ export function speak(text: string, language: string) {
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = language;
+  utterance.voice = pickVoice(language);
   speechSynthesis.speak(utterance);
 }
 
