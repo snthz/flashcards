@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { useMessages } from "@/lib/i18n/client";
 import { removeTranslatorKey, saveTranslatorKey, saveTranslatorModel, type KeyState } from "@/lib/translate/actions";
 import { CLAUDE_MODELS, type ClaudeModel } from "@/lib/translate/types";
@@ -18,6 +19,7 @@ export function TranslatorSettings({ keyHint, model }: { keyHint: string | null;
   const [editing, setEditing] = useState(!keyHint);
   const [status, setStatus] = useState<KeyState["status"]>("idle");
   const [pending, startTransition] = useTransition();
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
   const ok = status === "saved" || status === "removed";
 
   const save = () =>
@@ -30,12 +32,12 @@ export function TranslatorSettings({ keyHint, model }: { keyHint: string | null;
       }
     });
 
-  const remove = () =>
-    startTransition(async () => {
-      const result = await removeTranslatorKey();
-      setStatus(result.status);
-      setEditing(true);
-    });
+  const remove = async () => {
+    const result = await removeTranslatorKey();
+    setStatus(result.status);
+    setEditing(true);
+    setConfirmingRemove(false);
+  };
 
   const changeModel = (value: ClaudeModel) => {
     setChosen(value);
@@ -62,10 +64,19 @@ export function TranslatorSettings({ keyHint, model }: { keyHint: string | null;
               <Button size="sm" variant="ghost" onClick={() => setEditing(true)} disabled={pending}>
                 {t.replaceKey}
               </Button>
-              <Button size="sm" variant="ghost" className="text-danger" onClick={remove} disabled={pending}>
+              <Button size="sm" variant="ghost" className="text-danger" onClick={() => setConfirmingRemove(true)} disabled={pending}>
                 {t.removeKey}
               </Button>
             </div>
+            <ConfirmDialog
+              open={confirmingRemove}
+              onClose={() => setConfirmingRemove(false)}
+              onConfirm={remove}
+              title={t.removeKeyTitle}
+              description={t.removeKeyDescription}
+              confirmLabel={t.removeKey}
+              icon={<KeyRound />}
+            />
           </div>
         ) : (
           <form

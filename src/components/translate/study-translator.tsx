@@ -130,7 +130,7 @@ export function StudyTranslator({ cardHtml, cardRef, deckId, open, onOpenChange:
                   </button>
                 </div>
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
-                  <Translator key={session.id} compact autoFocus={session.focus} initialText={session.text} cardText={context} deckId={deckId} />
+                  <Translator key={session.id} autoFocus={session.focus} initialText={session.text} cardText={context} deckId={deckId} />
                 </div>
               </div>
             </div>,

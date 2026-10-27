@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Compass, Languages, Layers, LogOut, Search, Settings, Upload } from "lucide-react";
-import { Menu, MenuLink, MenuItem, MenuSeparator } from "@/components/ui/menu";
+import { BarChart3, BookOpen, ChevronDown, Compass, Languages, Layers, LayoutGrid, LogOut, Search, Settings, Upload, X, type LucideIcon } from "lucide-react";
+import { Menu, MenuLabel, MenuLink, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { logout } from "@/app/(auth)/actions";
 import { forgetOfflineData } from "@/lib/study/offline/sync";
@@ -17,11 +17,38 @@ function navItems(t: Messages["nav"]) {
   return [
     { href: "/decks", label: t.decks, short: t.decks, icon: Layers },
     { href: "/discover", label: t.discover, short: t.discover, icon: Compass },
-    { href: "/browse", label: t.browse, short: t.browse, icon: Search },
     { href: "/stats", label: t.stats, short: t.statsShort, icon: BarChart3 },
-    { href: "/translate", label: t.translate, short: t.translate, icon: Languages },
-    { href: "/settings", label: t.settings, short: t.settings, icon: Settings },
   ];
+}
+
+interface MoreItem {
+  href: string;
+  label: string;
+  hint: string;
+  icon: LucideIcon;
+}
+
+function moreSections(t: Messages["nav"]): Array<{ label: string; items: MoreItem[] }> {
+  return [
+    {
+      label: t.sectionStudy,
+      items: [
+        { href: "/browse", label: t.browse, hint: t.browseHint, icon: Search },
+        { href: "/import", label: t.import, hint: t.importHint, icon: Upload },
+      ],
+    },
+    {
+      label: t.sectionLanguage,
+      items: [
+        { href: "/translate", label: t.translate, hint: t.translateHint, icon: Languages },
+        { href: "/dictionary", label: t.dictionary, hint: t.dictionaryHint, icon: BookOpen },
+      ],
+    },
+  ];
+}
+
+function settingsSection(t: Messages["nav"]) {
+  return { label: t.sectionAccount, items: [{ href: "/settings", label: t.settings, hint: t.settingsHint, icon: Settings }] };
 }
 
 function isActive(pathname: string, href: string) {
@@ -69,9 +96,78 @@ function Brand() {
   );
 }
 
+function MoreRow({ item, active, onNavigate, menu = false }: { item: MoreItem; active: boolean; onNavigate?: () => void; menu?: boolean }) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      role={menu ? "menuitem" : undefined}
+      tabIndex={menu ? -1 : undefined}
+      aria-current={active ? "page" : undefined}
+      onClick={onNavigate}
+      className="group flex items-center gap-3 rounded-lg px-2 py-2 outline-none transition-colors hover:bg-muted focus-visible:bg-muted"
+    >
+      <span
+        className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
+          active ? "border-transparent bg-accent text-accent-foreground" : "bg-background text-muted-foreground group-hover:text-foreground",
+        )}
+      >
+        <Icon className="size-[18px]" strokeWidth={1.9} />
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="text-sm font-medium text-foreground">{item.label}</span>
+        <span className="truncate text-xs text-muted-foreground">{item.hint}</span>
+      </span>
+    </Link>
+  );
+}
+
+function MoreMenu({ pathname, active, onHover }: { pathname: string; active: boolean; onHover: (target: HTMLElement) => void }) {
+  const t = useMessages().nav;
+  const mac = useIsMac();
+  return (
+    <div data-current={active || undefined} className="flex h-full items-center" onPointerEnter={(event) => onHover(event.currentTarget)}>
+      <Menu
+        align="left"
+        label={t.moreLabel}
+        triggerClassName="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        contentClassName="mt-3 w-[21rem] p-0"
+        trigger={(open) => (
+          <span
+            className={cn(
+              "relative flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors",
+              active || open ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t.more}
+            <ChevronDown className={cn("size-3.5 transition-transform duration-200", open && "rotate-180")} />
+          </span>
+        )}
+      >
+        <div className="flex flex-col p-1.5">
+          {moreSections(t).map((section) => (
+            <div key={section.label} role="group" aria-label={section.label}>
+              <MenuLabel>{section.label}</MenuLabel>
+              {section.items.map((item) => (
+                <MoreRow key={item.href} item={item} active={isActive(pathname, item.href)} menu />
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center justify-between gap-2 border-t bg-muted/40 px-4 py-2.5 text-xs text-muted-foreground">
+          <span>{t.moreFooter}</span>
+          <kbd className="rounded border bg-card px-1.5 py-0.5 font-sans text-[11px] font-medium text-foreground">{mac ? "⌘K" : "Ctrl K"}</kbd>
+        </div>
+      </Menu>
+    </div>
+  );
+}
+
 function Links({ pathname }: { pathname: string }) {
   const { locale, t } = useI18n();
-  const links = navItems(t.nav).slice(0, 5);
+  const links = navItems(t.nav);
+  const moreActive = moreSections(t.nav).some((section) => section.items.some((item) => isActive(pathname, item.href)));
   const list = useRef<HTMLDivElement>(null);
   const underline = useRef<HTMLSpanElement>(null);
   const hover = useRef<HTMLSpanElement>(null);
@@ -79,7 +175,7 @@ function Links({ pathname }: { pathname: string }) {
 
   const syncUnderline = useCallback((animate: boolean) => {
     const marker = underline.current;
-    const target = list.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    const target = list.current?.querySelector<HTMLElement>("[data-current]");
     if (!marker) return;
     if (!target) {
       marker.style.opacity = "0";
@@ -125,6 +221,7 @@ function Links({ pathname }: { pathname: string }) {
               key={link.href}
               href={link.href}
               aria-current={active ? "page" : undefined}
+              data-current={active || undefined}
               onPointerEnter={(event) => showHover(event.currentTarget)}
               onFocus={(event) => showHover(event.currentTarget)}
               onBlur={hideHover}
@@ -137,6 +234,7 @@ function Links({ pathname }: { pathname: string }) {
             </Link>
           );
         })}
+        <MoreMenu pathname={pathname} active={moreActive} onHover={showHover} />
         <span
           ref={underline}
           aria-hidden
@@ -255,46 +353,106 @@ export function TopNav({ name, email }: { name: string; email: string }) {
   );
 }
 
+function MoreSheet({ open, pathname, onClose }: { open: boolean; pathname: string; onClose: () => void }) {
+  const t = useMessages().nav;
+  const panel = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    panel.current?.querySelector<HTMLElement>("a")?.focus({ preventScroll: true });
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-40 md:hidden">
+      <button type="button" aria-label={t.moreLabel} tabIndex={-1} onClick={onClose} className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-in" />
+      <div
+        ref={panel}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t.moreLabel}
+        className="sheet-up absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col overflow-y-auto rounded-t-2xl border-t bg-card pb-[max(1rem,var(--safe-bottom))] shadow-2xl"
+      >
+        <div className="sticky top-0 flex items-center justify-between bg-card px-4 pb-1 pt-2">
+          <span aria-hidden className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-border" />
+          <h2 className="pt-4 text-base font-semibold">{t.more}</h2>
+          <button type="button" onClick={onClose} aria-label={t.moreLabel} className="mt-3 rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+            <X className="size-4" />
+          </button>
+        </div>
+        <nav aria-label={t.moreLabel} className="flex flex-col px-2">
+          {[...moreSections(t), settingsSection(t)].map((section) => (
+            <div key={section.label} role="group" aria-label={section.label}>
+              <MenuLabel>{section.label}</MenuLabel>
+              {section.items.map((item) => (
+                <MoreRow key={item.href} item={item} active={isActive(pathname, item.href)} onNavigate={onClose} />
+              ))}
+            </div>
+          ))}
+        </nav>
+      </div>
+    </div>
+  );
+}
+
 export function BottomNav() {
   const pathname = usePathname();
-  const items = navItems(useMessages().nav);
+  const t = useMessages().nav;
+  const [sheet, setSheet] = useState<string | null>(null);
+  const closeSheet = useCallback(() => setSheet(null), []);
+  const sheetOpen = sheet === pathname;
   if (pathname.includes("/study")) return null;
-  const index = items.findIndex((item) => isActive(pathname, item.href));
+  const items = navItems(t);
+  const more = [...moreSections(t), settingsSection(t)].some((section) => section.items.some((item) => isActive(pathname, item.href)));
+  const primary = items.findIndex((item) => isActive(pathname, item.href));
+  const index = sheetOpen || more ? items.length : primary;
+  const cell = "relative flex flex-col items-center gap-1 pt-2 text-[11px] font-medium transition-transform active:scale-95";
+  const icon = (active: boolean) => cn("flex h-7 w-12 items-center justify-center transition-colors", active ? "text-foreground" : "text-muted-foreground");
+  const caption = (active: boolean) => cn("transition-colors", active ? "text-foreground" : "text-muted-foreground");
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/85 backdrop-blur-xl safe-bottom md:hidden">
-      <div className="relative mx-auto grid max-w-md grid-cols-6">
-        {index >= 0 ? (
-          <span
-            aria-hidden
-            className="absolute left-0 top-2 flex h-7 w-1/6 justify-center transition-transform duration-300 ease-out"
-            style={{ transform: `translateX(${index * 100}%)` }}
-          >
-            <span className="h-full w-11 rounded-full bg-accent-soft" />
-          </span>
-        ) : null}
-        {items.map((item) => {
-          const active = isActive(pathname, item.href);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className="relative flex flex-col items-center gap-1 pt-2 text-[11px] font-medium transition-transform active:scale-95"
+    <>
+      <nav className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/85 backdrop-blur-xl safe-bottom md:hidden">
+        <div className="relative mx-auto grid max-w-md grid-cols-4">
+          {index >= 0 ? (
+            <span
+              aria-hidden
+              className="absolute left-0 top-2 flex h-7 w-1/4 justify-center transition-transform duration-300 ease-out"
+              style={{ transform: `translateX(${index * 100}%)` }}
             >
-              <span
-                className={cn(
-                  "flex h-7 w-11 items-center justify-center transition-colors",
-                  active ? "text-foreground" : "text-muted-foreground",
-                )}
-              >
-                <Icon className="size-5" strokeWidth={active ? 2.3 : 1.9} />
-              </span>
-              <span className={cn("transition-colors", active ? "text-foreground" : "text-muted-foreground")}>{item.short}</span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+              <span className="h-full w-12 rounded-full bg-accent-soft" />
+            </span>
+          ) : null}
+          {items.map((item) => {
+            const active = isActive(pathname, item.href) && !sheetOpen;
+            const Icon = item.icon;
+            return (
+              <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={cell}>
+                <span className={icon(active)}>
+                  <Icon className="size-5" strokeWidth={active ? 2.3 : 1.9} />
+                </span>
+                <span className={caption(active)}>{item.short}</span>
+              </Link>
+            );
+          })}
+          <button type="button" aria-haspopup="dialog" aria-expanded={sheetOpen} onClick={() => setSheet(sheetOpen ? null : pathname)} className={cell}>
+            <span className={icon(more || sheetOpen)}>
+              <LayoutGrid className="size-5" strokeWidth={more || sheetOpen ? 2.3 : 1.9} />
+            </span>
+            <span className={caption(more || sheetOpen)}>{t.more}</span>
+          </button>
+        </div>
+      </nav>
+      <MoreSheet open={sheetOpen} pathname={pathname} onClose={closeSheet} />
+    </>
   );
 }
