@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, CloudOff, Eye, EyeOff, Flag, Info, MoreHorizontal, Pencil, PauseCircle, RefreshCw, Undo2, X } from "lucide-react";
+import { CheckCircle2, CloudOff, Eye, EyeOff, Flag, Info, Languages, MoreHorizontal, Pencil, PauseCircle, RefreshCw, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/menu";
@@ -24,7 +24,7 @@ import { CardFrame } from "./card-frame";
 import { markSwipeHintSeen, shouldShowSwipeHint, SwipeHint, SwipeTint, useSwipe, type SwipeDirection } from "./swipe";
 import { CardInfoDialog } from "@/components/browse/card-info-dialog";
 import { StudyTimerButton, TimerBreak, TimerNotice, useStudyTimer } from "./study-timer";
-import { StudyTranslator } from "@/components/translate/study-translator";
+import { StudyTranslator, type StudyTranslatorHandle } from "@/components/translate/study-translator";
 
 const RATING_META: Record<Rating, { label: "again" | "hard" | "good" | "easy"; tone: string }> = {
   1: { label: "again", tone: "text-danger border-danger/40 hover:bg-danger-soft" },
@@ -87,6 +87,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
   const [infoCard, setInfoCard] = useState<string | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const [translating, setTranslating] = useState(false);
+  const translator = useRef<StudyTranslatorHandle>(null);
   const timer = useStudyTimer();
   const onBreak = timer.state?.phase === "break";
 
@@ -341,7 +342,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
   const statusLabel = !online ? `${t.study.offline} · ${t.study.offlineHint}` : syncFailed && pendingOps > 0 ? t.study.pendingSync(pendingOps) : null;
 
   return (
-    <div className={cn("relative -mb-24 flex h-[calc(100dvh_-_1rem_-_var(--safe-top))] flex-col md:mb-0 md:h-auto", translating && card && "translator-docked")}>
+    <div className="relative -mb-24 flex h-[calc(100dvh_-_1rem_-_var(--safe-top))] flex-col md:mb-0 md:h-auto">
       <TimerNotice timer={timer} onFinish={() => router.push(`/decks/${deckId}`)} />
       <header className="flex items-center justify-between gap-3 pb-3">
         <div className="flex min-w-0 items-center gap-2">
@@ -366,6 +367,19 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
             <span className={cn("text-success", card?.state === "REVIEW" && "underline underline-offset-4")}>{counts.review}</span>
           </div>
           <StudyTimerButton timer={timer} />
+          {card ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onPointerDown={() => translator.current?.prepare()}
+              onClick={() => translator.current?.show()}
+              aria-label={t.translate.helperOpen}
+              aria-expanded={translating}
+            >
+              <Languages className="size-4" />
+            </Button>
+          ) : null}
           {card && online ? (
             <Button variant="ghost" size="icon" onClick={editNote} aria-label={t.study.editNote} title={t.study.editNote}>
               <Pencil className="size-4" />
@@ -456,7 +470,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
               />
             </section>
             {swipeHint && revealed ? <SwipeHint target={sectionRef} text={t.study.swipeHint} onDone={endSwipeHint} /> : null}
-            <StudyTranslator cardHtml={revealed ? card.answer : card.question} cardRef={sectionRef} deckId={deckId} open={translating} onOpenChange={setTranslating} />
+            <StudyTranslator ref={translator} cardHtml={revealed ? card.answer : card.question} cardRef={sectionRef} deckId={deckId} open={translating} onOpenChange={setTranslating} />
           </div>
 
           <footer className="safe-bottom pt-3">

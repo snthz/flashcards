@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type Ref, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Languages, MessageCircle, X } from "lucide-react";
 import { useMessages } from "@/lib/i18n/client";
@@ -32,13 +32,19 @@ interface StudyTranslatorProps {
   deckId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  ref?: Ref<StudyTranslatorHandle>;
+}
+
+export interface StudyTranslatorHandle {
+  prepare: () => void;
+  show: () => void;
 }
 
 function wideScreen() {
   return window.matchMedia("(min-width: 768px)").matches;
 }
 
-export function StudyTranslator({ cardHtml, cardRef, deckId, open, onOpenChange: setOpen }: StudyTranslatorProps) {
+export function StudyTranslator({ cardHtml, cardRef, deckId, open, onOpenChange: setOpen, ref }: StudyTranslatorProps) {
   const messages = useMessages();
   const t = messages.translate;
   const [session, setSession] = useState({ id: 0, text: "", focus: false });
@@ -50,6 +56,12 @@ export function StudyTranslator({ cardHtml, cardRef, deckId, open, onOpenChange:
     setSession((current) => ({ id: current.id + 1, text, focus: wideScreen() }));
     setOpen(true);
   };
+
+  const prepare = () => {
+    triggerSelection.current = selectedText(cardRef.current);
+  };
+
+  useImperativeHandle(ref, () => ({ prepare, show }));
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -86,18 +98,15 @@ export function StudyTranslator({ cardHtml, cardRef, deckId, open, onOpenChange:
     <>
       <button
         type="button"
-        onPointerDown={() => {
-          triggerSelection.current = selectedText(cardRef.current);
-        }}
+        onPointerDown={prepare}
         onClick={show}
         aria-label={t.helperOpen}
         title={`${t.helperOpen} (T)`}
         aria-expanded={open}
         data-translator
         className={cn(
-          "absolute bottom-3 right-3 z-20 flex size-10 items-center justify-center rounded-full border bg-card/95 text-muted-foreground shadow-md backdrop-blur transition-[transform,opacity] hover:text-foreground active:scale-95",
-          "md:fixed md:bottom-6 md:right-6 md:size-12 md:bg-accent md:text-accent-foreground md:shadow-lg md:hover:text-accent-foreground",
-          open && "md:pointer-events-none md:scale-90 md:opacity-0",
+          "fixed bottom-6 right-6 z-20 hidden size-12 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg transition-[transform,opacity] hover:scale-105 active:scale-95 md:flex",
+          open && "pointer-events-none scale-90 opacity-0",
         )}
       >
         <Languages className="size-5" />
