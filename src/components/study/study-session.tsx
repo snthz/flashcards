@@ -367,21 +367,8 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
             <span className={cn("text-success", card?.state === "REVIEW" && "underline underline-offset-4")}>{counts.review}</span>
           </div>
           <StudyTimerButton timer={timer} />
-          {card ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onPointerDown={() => translator.current?.prepare()}
-              onClick={() => translator.current?.show()}
-              aria-label={t.translate.helperOpen}
-              aria-expanded={translating}
-            >
-              <Languages className="size-4" />
-            </Button>
-          ) : null}
           {card && online ? (
-            <Button variant="ghost" size="icon" onClick={editNote} aria-label={t.study.editNote} title={t.study.editNote}>
+            <Button variant="ghost" size="icon" className="hidden md:inline-flex" onClick={editNote} aria-label={t.study.editNote} title={t.study.editNote}>
               <Pencil className="size-4" />
             </Button>
           ) : null}
@@ -390,6 +377,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
           </Button>
           {card ? (
             <Menu
+              contentClassName="w-64"
               trigger={
                 <span className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
                   <MoreHorizontal className="size-4" />
@@ -397,11 +385,13 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
                 </span>
               }
             >
-              {online ? null : (
-                <MenuItem icon={<Pencil />} onSelect={editNote}>
-                  {t.study.editNeedsConnection}
-                </MenuItem>
-              )}
+              <MenuItem icon={<Languages />} onSelect={() => translator.current?.show()}>
+                {t.translate.helperTitle}
+              </MenuItem>
+              <MenuItem icon={<Pencil />} onSelect={editNote}>
+                {online ? t.study.editNote : t.study.editNeedsConnection}
+              </MenuItem>
+              <MenuSeparator />
               <MenuItem
                 icon={<Flag />}
                 onSelect={() => record({ id: uuid(), userId, cardId: card.id, at: new Date().toISOString(), kind: "flag", flag: card.flag ? 0 : 1 }, "stay")}
