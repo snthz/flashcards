@@ -92,8 +92,8 @@ export const translate = {
   saved: "Card saved.",
   noDecks: "Create a deck first to save cards.",
   cardInvalid: "Fill in both sides of the card.",
-  helperOpen: "Translate and look up",
-  helperTitle: "Translator",
+  helperOpen: "Translate, look up and ask",
+  helperTitle: "Language help",
   close: "Close",
   settingsTitle: "Translator",
   settingsDescription:

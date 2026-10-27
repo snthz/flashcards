@@ -19,7 +19,11 @@ const outputSchema = z.object({
 
 const SERVER_FALLBACK: ClaudeModel[] = ["claude-opus-5-5", "claude-sonnet-5-5"];
 
-function languageName(code: string) {
+export function fallbackOptions(model: ClaudeModel) {
+  return SERVER_FALLBACK.includes(model) ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {};
+}
+
+export function languageName(code: string) {
   try {
     return new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? code;
   } catch {
@@ -51,7 +55,7 @@ export function userPrompt(input: TranslateInput) {
   return parts.join("\n");
 }
 
-function client(apiKey: string) {
+export function client(apiKey: string) {
   return new Anthropic({ apiKey, timeout: 60_000, maxRetries: 1 });
 }
 
@@ -60,7 +64,7 @@ export async function translateWithClaude(apiKey: string, model: ClaudeModel, in
     const response = await client(apiKey).beta.messages.parse({
       model,
       max_tokens: 16000,
-      ...(SERVER_FALLBACK.includes(model) ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
+      ...fallbackOptions(model),
       output_config: { effort: "medium", format: betaZodOutputFormat(outputSchema) },
       system: systemPrompt(uiLanguage),
       messages: [{ role: "user", content: userPrompt(input) }],

@@ -180,6 +180,17 @@ body {
   .sheet-up {
     animation: sheet-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
+
+  .panel-pop {
+    animation: sheet-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @media (min-width: 48rem) {
+    .panel-pop {
+      transform-origin: bottom right;
+      animation: menu-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+  }
 }
 
 @keyframes menu-pop {

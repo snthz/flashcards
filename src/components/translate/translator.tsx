@@ -244,7 +244,7 @@ export function Translator({ autoFocus = false, initialText = "", cardText = nul
       ) : null}
 
       {extraTab ? (
-        <div hidden={tab !== "extra"} className="flex min-h-0 flex-1 flex-col">
+        <div hidden={tab !== "extra"} className="flex flex-1 flex-col">
           {extraTab.content}
         </div>
       ) : null}

@@ -1,3 +1,4 @@
+import { assistant } from "./assistant";
 import { auth } from "./auth";
 import { browse } from "./browse";
 import { cardInfo } from "./cardInfo";
@@ -24,6 +25,7 @@ import { translate } from "./translate";
 import { validation } from "./validation";
 
 export const en = {
+  assistant,
   auth,
   browse,
   cardInfo,

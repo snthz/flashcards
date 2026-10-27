@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { Languages, X } from "lucide-react";
+import { Languages, MessageCircle, X } from "lucide-react";
 import { useMessages } from "@/lib/i18n/client";
 import { htmlToText } from "@/lib/anki/render";
 import { MAX_TEXT } from "@/lib/translate/types";
 import { cn } from "@/lib/utils";
+import { AssistantChat } from "@/components/assistant/assistant-chat";
 import { Translator } from "./translator";
 
 type SelectableRoot = ShadowRoot & { getSelection?: () => Selection | null };
@@ -38,7 +39,8 @@ function wideScreen() {
 }
 
 export function StudyTranslator({ cardHtml, cardRef, deckId, open, onOpenChange: setOpen }: StudyTranslatorProps) {
-  const t = useMessages().translate;
+  const messages = useMessages();
+  const t = messages.translate;
   const [session, setSession] = useState({ id: 0, text: "", focus: false });
   const triggerSelection = useRef("");
 
@@ -130,7 +132,14 @@ export function StudyTranslator({ cardHtml, cardRef, deckId, open, onOpenChange:
                   </button>
                 </div>
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
-                  <Translator key={session.id} autoFocus={session.focus} initialText={session.text} cardText={context} deckId={deckId} />
+                  <Translator
+                    key={session.id}
+                    autoFocus={session.focus}
+                    initialText={session.text}
+                    cardText={context}
+                    deckId={deckId}
+                    extraTab={{ label: messages.assistant.tab, icon: <MessageCircle className="size-4" />, content: <AssistantChat card={context} embedded /> }}
+                  />
                 </div>
               </div>
             </div>,

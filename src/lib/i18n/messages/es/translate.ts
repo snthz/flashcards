@@ -92,8 +92,8 @@ export const translate: Messages["translate"] = {
   saved: "Tarjeta guardada.",
   noDecks: "Crea un mazo primero para guardar tarjetas.",
   cardInvalid: "Completa ambos lados de la tarjeta.",
-  helperOpen: "Traducir y buscar",
-  helperTitle: "Traductor",
+  helperOpen: "Traducir, buscar y preguntar",
+  helperTitle: "Ayuda de idioma",
   close: "Cerrar",
   settingsTitle: "Traductor",
   settingsDescription:
