@@ -281,7 +281,7 @@ export function AssistantChat({ card = null, autoFocus = false, embedded = false
         {blocked && empty ? (
           <Notice icon={<KeyRound />} title={t.noKeyTitle}>
             <p className="text-sm text-muted-foreground">{t.noKeyDescription}</p>
-            <Link href="/settings#translator" className={buttonStyles("primary", "sm", "mt-3 self-center")}>
+            <Link href="/settings?tab=translator" className={buttonStyles("primary", "sm", "mt-3 self-center")}>
               {t.noKeyAction}
             </Link>
           </Notice>
@@ -333,7 +333,7 @@ export function AssistantChat({ card = null, autoFocus = false, embedded = false
                             {t.retry}
                           </button>
                         ) : (
-                          <Link href="/settings#translator" className="font-medium text-foreground underline underline-offset-2">
+                          <Link href="/settings?tab=translator" className="font-medium text-foreground underline underline-offset-2">
                             {t.noKeyAction}
                           </Link>
                         )}

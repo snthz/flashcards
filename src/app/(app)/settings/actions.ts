@@ -7,7 +7,7 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/user";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { destroyAllSessions } from "@/lib/auth/session";
-import { changePasswordSchema, profileSchema } from "@/lib/validation/auth";
+import { changePasswordSchema, profileSchema, studyDaySchema } from "@/lib/validation/auth";
 import { isValidTimeZone } from "@/lib/scheduler";
 import { getI18n } from "@/lib/i18n/server";
 import { issueMessage, parseOptions } from "@/lib/i18n/validation";
@@ -19,9 +19,18 @@ export type SettingsState = { error?: string; success?: string; fieldErrors?: Re
 export async function updateProfile(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
   const user = await requireUser();
   const { locale, t } = await getI18n();
-  const parsed = profileSchema.safeParse(
+  const parsed = profileSchema.safeParse({ name: formData.get("name") }, parseOptions(locale));
+  if (!parsed.success) return { error: issueMessage(t, parsed.error.issues[0]) };
+  await prisma.user.update({ where: { id: user.id }, data: parsed.data });
+  revalidatePath("/", "layout");
+  return { success: t.settings.profileUpdated };
+}
+
+export async function updateStudyDay(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
+  const user = await requireUser();
+  const { locale, t } = await getI18n();
+  const parsed = studyDaySchema.safeParse(
     {
-      name: formData.get("name"),
       timezone: formData.get("timezone"),
       dayStartHour: formData.get("dayStartHour"),
     },
@@ -31,7 +40,7 @@ export async function updateProfile(_prev: SettingsState, formData: FormData): P
   if (!isValidTimeZone(parsed.data.timezone)) return { fieldErrors: { timezone: t.settings.invalidTimezone } };
   await prisma.user.update({ where: { id: user.id }, data: parsed.data });
   revalidatePath("/", "layout");
-  return { success: t.settings.profileUpdated };
+  return { success: t.settings.studyDayUpdated };
 }
 
 export async function changePassword(_prev: SettingsState, formData: FormData): Promise<SettingsState> {

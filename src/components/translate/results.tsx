@@ -61,7 +61,7 @@ export function FreeHint({ className }: { className?: string }) {
     <p className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground", className)}>
       <Sparkles className="size-3.5 shrink-0" />
       <span className="min-w-0 flex-1">{t.freeHint}</span>
-      <Link href="/settings#translator" className="font-medium text-foreground underline underline-offset-2">
+      <Link href="/settings?tab=translator" className="font-medium text-foreground underline underline-offset-2">
         {t.freeHintAction}
       </Link>
     </p>

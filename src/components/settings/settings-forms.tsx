@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Field, FormError } from "@/components/ui/field";
 import { ConfirmDialog } from "@/components/ui/dialog";
-import { changePassword, deleteAccount, updateProfile, type SettingsState } from "@/app/(app)/settings/actions";
+import { changePassword, deleteAccount, updateProfile, updateStudyDay, type SettingsState } from "@/app/(app)/settings/actions";
 import { logout } from "@/app/(auth)/actions";
 import { forgetOfflineData } from "@/lib/study/offline/sync";
 import { useIsClient } from "@/lib/hooks/use-is-client";
@@ -18,8 +18,27 @@ function SuccessMessage({ message }: { message?: string }) {
   return <p className="rounded-lg bg-success-soft px-3 py-2 text-sm text-success">{message}</p>;
 }
 
-export function ProfileForm({ name, timezone, dayStartHour }: { name: string; timezone: string; dayStartHour: number }) {
+export function ProfileForm({ name }: { name: string }) {
   const [state, action, pending] = useActionState<SettingsState, FormData>(updateProfile, {});
+  const t = useMessages().settings;
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <FormError message={state.error} />
+      <SuccessMessage message={state.success} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <Field label={t.name} htmlFor="name" error={state.fieldErrors?.name} className="flex-1">
+          <Input id="name" name="name" defaultValue={name} required maxLength={80} autoComplete="name" />
+        </Field>
+        <Button type="submit" loading={pending} className="sm:w-28">
+          {t.save}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+export function StudyDayForm({ timezone, dayStartHour }: { timezone: string; dayStartHour: number }) {
+  const [state, action, pending] = useActionState<SettingsState, FormData>(updateStudyDay, {});
   const isClient = useIsClient();
   const t = useMessages().settings;
   const zones = isClient && typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [timezone];
@@ -27,28 +46,27 @@ export function ProfileForm({ name, timezone, dayStartHour }: { name: string; ti
     <form action={action} className="flex flex-col gap-4">
       <FormError message={state.error} />
       <SuccessMessage message={state.success} />
-      <Field label={t.name} htmlFor="name" error={state.fieldErrors?.name}>
-        <Input id="name" name="name" defaultValue={name} required maxLength={80} />
-      </Field>
-      <Field label={t.timezone} htmlFor="timezone" error={state.fieldErrors?.timezone}>
-        <Select id="timezone" name="timezone" defaultValue={timezone}>
-          {zones.includes(timezone) ? null : <option value={timezone}>{timezone}</option>}
-          {zones.map((zone) => (
-            <option key={zone} value={zone}>
-              {zone}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label={t.dayStart} htmlFor="dayStartHour" hint={t.dayStartHint}>
-        <Select id="dayStartHour" name="dayStartHour" defaultValue={String(dayStartHour)}>
-          {hours.map((hour) => (
-            <option key={hour} value={hour}>
-              {String(hour).padStart(2, "0")}:00
-            </option>
-          ))}
-        </Select>
-      </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={t.timezone} htmlFor="timezone" error={state.fieldErrors?.timezone}>
+          <Select id="timezone" name="timezone" defaultValue={timezone}>
+            {zones.includes(timezone) ? null : <option value={timezone}>{timezone}</option>}
+            {zones.map((zone) => (
+              <option key={zone} value={zone}>
+                {zone}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label={t.dayStart} htmlFor="dayStartHour" hint={t.dayStartHint}>
+          <Select id="dayStartHour" name="dayStartHour" defaultValue={String(dayStartHour)}>
+            {hours.map((hour) => (
+              <option key={hour} value={hour}>
+                {String(hour).padStart(2, "0")}:00
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
       <div>
         <Button type="submit" loading={pending}>
           {t.save}

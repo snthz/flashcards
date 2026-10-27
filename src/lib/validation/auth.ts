@@ -36,6 +36,9 @@ export const changePasswordSchema = z.object({
 
 export const profileSchema = z.object({
   name: z.string().trim().min(1, message("nameRequired")).max(80),
+});
+
+export const studyDaySchema = z.object({
   timezone: z.string().min(1).max(64),
   dayStartHour: z.coerce.number().int().min(0).max(23),
 });
