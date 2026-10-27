@@ -25,6 +25,7 @@ export const auth = {
   home: "Home",
   emailTaken: "An account with this email already exists",
   wrongCredentials: "Wrong email or password",
+  tooManyAttempts: (minutes: number) => `Too many attempts. Try again in ${minutes === 1 ? "1 minute" : `${minutes} minutes`}.`,
   asideHeading: "Review like you do in Anki, from wherever you are.",
   asideLead: "Your account keeps decks, history and statistics so you can continue on any device.",
   highlights: [

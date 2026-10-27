@@ -27,6 +27,7 @@ export const auth: Messages["auth"] = {
   home: "Inicio",
   emailTaken: "Ya existe una cuenta con este correo",
   wrongCredentials: "Correo o contraseña incorrectos",
+  tooManyAttempts: (minutes) => `Demasiados intentos. Vuelve a intentarlo en ${minutes === 1 ? "1 minuto" : `${minutes} minutos`}.`,
   asideHeading: "Repasa como en Anki, desde donde quieras.",
   asideLead: "Tu cuenta guarda mazos, historial y estadísticas para que continúes en cualquier dispositivo.",
   highlights: [

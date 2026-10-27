@@ -3,9 +3,10 @@
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { prisma } from "@/lib/db";
-import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import { hashPassword, verifyMissingUser, verifyPassword } from "@/lib/auth/password";
 import { createSession, destroySession } from "@/lib/auth/session";
 import { consumeResetToken, findValidResetToken, issueResetToken } from "@/lib/auth/reset";
+import { blockedFor, clearAttempts, clientIp, LOGIN_EMAIL, LOGIN_IP, recordAttempt, REGISTER_IP, RESET_IP } from "@/lib/auth/rate-limit";
 import { loginSchema, registerSchema, resetPasswordSchema, resetRequestSchema } from "@/lib/validation/auth";
 import { defaultDeckConfigInput, defaultNoteTypeCreateInputs } from "@/lib/defaults";
 import { resolveLocale } from "@/lib/i18n/config";
@@ -40,6 +41,10 @@ function fieldErrorsFrom(t: Messages, issues: Array<{ path: PropertyKey[]; messa
   return errors;
 }
 
+function minutes(ms: number) {
+  return Math.max(1, Math.ceil(ms / 60_000));
+}
+
 export async function register(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const { locale, t } = await getI18n();
   const parsed = registerSchema.safeParse(
@@ -51,6 +56,11 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     parseOptions(locale),
   );
   if (!parsed.success) return { fieldErrors: fieldErrorsFrom(t, parsed.error.issues), values: valuesFrom(formData) };
+
+  const ipKey = `register:ip:${await clientIp()}`;
+  const wait = await blockedFor([{ key: ipKey, ...REGISTER_IP }]);
+  if (wait > 0) return { error: t.auth.tooManyAttempts(minutes(wait)), values: valuesFrom(formData) };
+  await recordAttempt([ipKey]);
 
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email }, select: { id: true } });
   if (existing) return { fieldErrors: { email: t.auth.emailTaken }, values: valuesFrom(formData) };
@@ -88,10 +98,22 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   );
   if (!parsed.success) return { fieldErrors: fieldErrorsFrom(t, parsed.error.issues), values: valuesFrom(formData) };
 
-  const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-  const valid = user ? await verifyPassword(parsed.data.password, user.passwordHash) : false;
-  if (!user || !valid) return { error: t.auth.wrongCredentials, values: valuesFrom(formData) };
+  const emailKey = `login:email:${parsed.data.email}`;
+  const ipKey = `login:ip:${await clientIp()}`;
+  const wait = await blockedFor([
+    { key: emailKey, ...LOGIN_EMAIL },
+    { key: ipKey, ...LOGIN_IP },
+  ]);
+  if (wait > 0) return { error: t.auth.tooManyAttempts(minutes(wait)), values: valuesFrom(formData) };
 
+  const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+  const valid = user ? await verifyPassword(parsed.data.password, user.passwordHash) : await verifyMissingUser(parsed.data.password);
+  if (!user || !valid) {
+    await recordAttempt([emailKey, ipKey]);
+    return { error: t.auth.wrongCredentials, values: valuesFrom(formData) };
+  }
+
+  await clearAttempts(emailKey);
   await createSession(user.id);
   await setLocaleCookie(resolveLocale(user.locale));
   redirect("/decks");
@@ -102,6 +124,10 @@ export async function requestPasswordReset(_prev: AuthState, formData: FormData)
   const parsed = resetRequestSchema.safeParse({ email: formData.get("email") }, parseOptions(locale));
   if (!parsed.success) return { fieldErrors: fieldErrorsFrom(t, parsed.error.issues), values: valuesFrom(formData) };
   const email = parsed.data.email;
+  const ipKey = `reset:ip:${await clientIp()}`;
+  const wait = await blockedFor([{ key: ipKey, ...RESET_IP }]);
+  if (wait > 0) return { error: t.auth.tooManyAttempts(minutes(wait)), values: { email } };
+  await recordAttempt([ipKey]);
   const origin = await appOrigin();
   after(async () => {
     if (!origin) {

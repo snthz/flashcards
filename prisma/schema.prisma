@@ -83,6 +83,15 @@ model PasswordResetToken {
   @@index([userId, createdAt])
 }
 
+model AuthAttempt {
+  id        String   @id @default(uuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+  @@index([createdAt])
+}
+
 model PushSubscription {
   id        String   @id @default(uuid())
   userId    String
