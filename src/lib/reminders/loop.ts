@@ -7,7 +7,7 @@ const TASK_INTERVAL_MS = 60_000;
 const state = globalThis as typeof globalThis & { __flashcardsReminders?: boolean };
 
 export function startReminderLoop() {
-  if (state.__flashcardsReminders || !isPushConfigured() || process.env.REMINDERS === "off") return;
+  if (state.__flashcardsReminders || process.env.REMINDERS === "off") return;
   state.__flashcardsReminders = true;
   const run = async () => {
     try {
@@ -25,8 +25,10 @@ export function startReminderLoop() {
       console.error("[reminders] task run failed", error);
     }
   };
-  setTimeout(run, FIRST_RUN_MS).unref();
-  setInterval(run, INTERVAL_MS).unref();
+  if (isPushConfigured()) {
+    setTimeout(run, FIRST_RUN_MS).unref();
+    setInterval(run, INTERVAL_MS).unref();
+  }
   setTimeout(runTasks, FIRST_RUN_MS).unref();
   setInterval(runTasks, TASK_INTERVAL_MS).unref();
 }

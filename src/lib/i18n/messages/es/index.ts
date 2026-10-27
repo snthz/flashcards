@@ -16,6 +16,7 @@ import { landing } from "./landing";
 import { meta } from "./meta";
 import { nav } from "./nav";
 import { notes } from "./notes";
+import { notifications } from "./notifications";
 import { offline } from "./offline";
 import { practice } from "./practice";
 import { pwa } from "./pwa";
@@ -46,6 +47,7 @@ export const es: Messages = {
   meta,
   nav,
   notes,
+  notifications,
   offline,
   practice,
   pwa,

@@ -4,6 +4,8 @@ export const agenda: Messages["agenda"] = {
   title: "Agenda",
   description: "Tu calendario de estudio: los días que completaste tu sesión, notas de tus clases y tareas con recordatorio.",
   today: "Hoy",
+  tomorrow: "Mañana",
+  viewAgenda: "Ver agenda",
   previousMonth: "Mes anterior",
   nextMonth: "Mes siguiente",
   legendStudy: "Sesión completada",

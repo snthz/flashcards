@@ -4,6 +4,7 @@ import { getStreak } from "@/lib/stats/queries";
 import { dayKey } from "@/lib/scheduler";
 import { resolveLocale } from "@/lib/i18n/config";
 import { dictionaries } from "@/lib/i18n/messages";
+import { createNotification } from "@/lib/notifications/store";
 import { isPushConfigured, sendToUser } from "./push";
 import { dueStage, localHour, studyMinutes } from "./rules";
 import { reminderMessage, shouldNotify } from "./messages";
@@ -64,7 +65,10 @@ export async function sendDueReminders(now = new Date()) {
     const minutes = studyMinutes(due, stage === 2 ? await averageReviewMs(user.id) : null);
     const message = reminderMessage(dictionaries[locale].reminders, stage, due, streak, minutes, `${today}:${stage}`);
     const result = await sendToUser(user.id, { ...message, url: "/decks", tag: "daily-reminder" });
-    if (result.sent > 0) notified += 1;
+    if (result.sent > 0) {
+      notified += 1;
+      await createNotification(user.id, { kind: "study", title: message.title, body: message.body, url: "/decks" });
+    }
   }
   return notified;
 }

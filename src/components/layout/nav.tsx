@@ -13,6 +13,7 @@ import type { Messages } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 import { BrandName } from "@/components/landing/studio-mark";
 import { UserAvatar } from "@/components/ui/avatar";
+import { NotificationsDockButton, NotificationsMenu } from "@/components/notifications/notifications-bell";
 import { CommandMenu } from "./command-menu";
 
 function navItems(t: Messages["nav"]) {
@@ -341,6 +342,7 @@ export function TopNav({ name, email, avatar }: { name: string; email: string; a
         <Links pathname={pathname} />
         <div className="ml-auto flex items-center gap-3">
           <SearchButton onOpen={() => setSearching(true)} />
+          <NotificationsMenu />
           <UserMenu name={name} email={email} avatar={avatar} settingsActive={isActive(pathname, "/settings")} />
         </div>
       </div>
@@ -411,7 +413,7 @@ export function BottomNav() {
   const items = navItems(t);
   const more = [...moreSections(t), settingsSection(t)].some((section) => section.items.some((item) => isActive(pathname, item.href)));
   const primary = items.findIndex((item) => isActive(pathname, item.href));
-  const index = sheetOpen || more ? items.length : primary;
+  const index = sheetOpen || more ? items.length + 1 : primary;
   const cell = (active: boolean) =>
     cn(
       "relative flex h-14 flex-col items-center justify-center gap-0.5 rounded-full text-[10.5px] font-medium tracking-tight outline-none transition-[color,transform] duration-200 active:scale-90 focus-visible:ring-2 focus-visible:ring-ring",
@@ -424,11 +426,11 @@ export function BottomNav() {
         className="pointer-events-none fixed inset-x-0 bottom-0 z-20 h-[calc(var(--dock-offset)+3rem)] bg-linear-to-t from-background/90 to-transparent md:hidden"
       />
       <nav aria-label={t.primary} className="pointer-events-none fixed inset-x-0 bottom-[var(--dock-offset)] z-20 px-4 md:hidden">
-        <div className="pointer-events-auto relative mx-auto grid max-w-sm grid-cols-4 rounded-full border border-foreground/10 bg-card/70 p-1.5 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.35),0_2px_8px_-2px_rgb(0_0_0/0.08),inset_0_1px_0_rgb(255_255_255/0.08)] backdrop-blur-xl backdrop-saturate-150">
+        <div className="pointer-events-auto relative mx-auto grid max-w-sm grid-cols-5 rounded-full border border-foreground/10 bg-card/70 p-1.5 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.35),0_2px_8px_-2px_rgb(0_0_0/0.08),inset_0_1px_0_rgb(255_255_255/0.08)] backdrop-blur-xl backdrop-saturate-150">
           {index >= 0 ? (
             <span
               aria-hidden
-              className="absolute inset-y-1.5 left-1.5 w-[calc((100%-0.75rem)/4)] transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)]"
+              className="absolute inset-y-1.5 left-1.5 w-[calc((100%-0.75rem)/5)] transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)]"
               style={{ transform: `translateX(${index * 100}%)` }}
             >
               <span className="block size-full rounded-full bg-foreground/7 ring-1 ring-foreground/5 ring-inset" />
@@ -444,6 +446,7 @@ export function BottomNav() {
               </Link>
             );
           })}
+          <NotificationsDockButton className={cell(false)} />
           <button type="button" aria-haspopup="dialog" aria-expanded={sheetOpen} onClick={() => setSheet(sheetOpen ? null : pathname)} className={cell(more || sheetOpen)}>
             <LayoutGrid className="size-5.5" strokeWidth={more || sheetOpen ? 2.2 : 1.8} />
             <span>{t.more}</span>

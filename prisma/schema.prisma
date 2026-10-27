@@ -64,6 +64,7 @@ model User {
   media       Media[]
   agendaNotes AgendaNote[]
   agendaTasks AgendaTask[]
+  notifications Notification[]
 }
 
 model Session {
@@ -323,4 +324,18 @@ model AgendaTask {
 
   @@index([userId, day])
   @@index([remindAt, remindedAt])
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  title     String
+  body      String    @default("")
+  url       String    @default("/")
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  @@index([userId, createdAt])
 }

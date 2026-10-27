@@ -2,6 +2,8 @@ export const agenda = {
   title: "Agenda",
   description: "Your study calendar: the days you finished a session, notes from your classes and tasks with reminders.",
   today: "Today",
+  tomorrow: "Tomorrow",
+  viewAgenda: "Open agenda",
   previousMonth: "Previous month",
   nextMonth: "Next month",
   legendStudy: "Session done",

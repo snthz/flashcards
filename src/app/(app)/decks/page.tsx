@@ -12,6 +12,9 @@ import { StreakBadge } from "@/components/stats/streak-badge";
 import { getStreak } from "@/lib/stats/queries";
 import { getMessages } from "@/lib/i18n/server";
 import { OfflinePrefetch } from "@/components/offline/offline-sync";
+import { upcomingTasks } from "@/lib/agenda/queries";
+import { localDay } from "@/lib/agenda/time";
+import { UpcomingCard } from "@/components/agenda/upcoming-card";
 import { DeckListSkeleton } from "./loading";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,6 +32,13 @@ async function Decks() {
       <OfflinePrefetch userId={user.id} deckIds={due} />
     </>
   );
+}
+
+async function Upcoming() {
+  const user = await requireUser();
+  const tasks = await upcomingTasks(user);
+  if (tasks.length === 0) return null;
+  return <UpcomingCard tasks={tasks.slice(0, 3)} today={localDay(new Date(), user.timezone)} />;
 }
 
 async function Streak() {
@@ -59,6 +69,9 @@ export default async function DecksPage() {
           </>
         }
       />
+      <Suspense fallback={null}>
+        <Upcoming />
+      </Suspense>
       <Suspense fallback={<DeckListSkeleton />}>
         <Decks />
       </Suspense>

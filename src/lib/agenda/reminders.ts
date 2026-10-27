@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { intlLocale, resolveLocale } from "@/lib/i18n/config";
 import { dictionaries } from "@/lib/i18n/messages";
+import { createNotification } from "@/lib/notifications/store";
 import { isPushConfigured, sendToUser } from "@/lib/reminders/push";
 import { addDays, localDay } from "./time";
 
@@ -17,7 +18,7 @@ export function dueLabel(t: (typeof dictionaries)["en"]["agenda"], day: string, 
 }
 
 export async function sendTaskReminders(now = new Date()) {
-  if (!isPushConfigured()) return 0;
+  const push = isPushConfigured();
   const tasks = await prisma.agendaTask.findMany({
     where: { remindAt: { lte: now }, remindedAt: null, doneAt: null },
     orderBy: { remindAt: "asc" },
@@ -30,12 +31,10 @@ export async function sendTaskReminders(now = new Date()) {
     if (task.remindAt && now.getTime() - task.remindAt.getTime() > STALE_MS) continue;
     const t = dictionaries[resolveLocale(task.user.locale)].agenda;
     const today = localDay(now, task.user.timezone);
-    const result = await sendToUser(task.user.id, {
-      title: t.push.title(task.title),
-      body: dueLabel(t, task.day, task.time, today, task.user.locale),
-      url: `/agenda?day=${task.day}`,
-      tag: `task-${task.id}`,
-    });
+    const message = { title: t.push.title(task.title), body: dueLabel(t, task.day, task.time, today, task.user.locale), url: `/agenda?day=${task.day}` };
+    await createNotification(task.user.id, { kind: "task", ...message });
+    if (!push) continue;
+    const result = await sendToUser(task.user.id, { ...message, tag: `task-${task.id}` });
     sent += result.sent;
   }
   return sent;
