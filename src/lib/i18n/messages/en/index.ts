@@ -14,6 +14,7 @@ import { meta } from "./meta";
 import { nav } from "./nav";
 import { notes } from "./notes";
 import { offline } from "./offline";
+import { practice } from "./practice";
 import { pwa } from "./pwa";
 import { reminders } from "./reminders";
 import { settings } from "./settings";
@@ -41,6 +42,7 @@ export const en = {
   nav,
   notes,
   offline,
+  practice,
   pwa,
   reminders,
   settings,

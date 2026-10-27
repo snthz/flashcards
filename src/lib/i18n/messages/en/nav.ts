@@ -7,6 +7,8 @@ export const nav = {
   settings: "Settings",
   translate: "Translator",
   dictionary: "Dictionary",
+  practice: "Practice",
+  practiceHint: "Exercises with the words you've learned",
   more: "More",
   moreLabel: "More pages",
   sectionStudy: "Study tools",

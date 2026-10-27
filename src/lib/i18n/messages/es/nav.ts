@@ -9,6 +9,8 @@ export const nav: Messages["nav"] = {
   settings: "Ajustes",
   translate: "Traductor",
   dictionary: "Diccionario",
+  practice: "Práctica",
+  practiceHint: "Ejercicios con las palabras que aprendiste",
   more: "Más",
   moreLabel: "Más secciones",
   sectionStudy: "Herramientas de estudio",

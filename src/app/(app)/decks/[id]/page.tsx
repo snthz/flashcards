@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Download, Play, Plus, Search, Settings2 } from "lucide-react";
+import { Download, Dumbbell, Play, Plus, Search, Settings2 } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { findNode, getDeckTree, subtreeIds } from "@/lib/decks/queries";
 import { prisma } from "@/lib/db";
@@ -90,6 +90,10 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
         <Link href={`/notes/new?deck=${deck.id}`} className={buttonStyles("outline", "lg", "h-14")}>
           <Plus className="size-5" />
           {t.decks.addCard}
+        </Link>
+        <Link href={`/practice?deck=${deck.id}`} className={buttonStyles("outline", "lg", "h-14")}>
+          <Dumbbell className="size-5" />
+          {t.practice.title}
         </Link>
         <CustomStudyButton deckId={deck.id} tags={tags} flags={flags} />
       </div>

@@ -21,6 +21,10 @@ const TTS_LANG: Record<LanguageCode, string> = {
   sv: "sv_SE",
 };
 
+export function speechLocale(language: LanguageCode) {
+  return TTS_LANG[language].replace("_", "-");
+}
+
 const NAMES: Record<Locale, { noteType: (language: string) => string; fields: string[]; synonyms: string; forward: string; reverse: string }> = {
   en: {
     noteType: (language) => `Translator word (${language})`,
