@@ -122,7 +122,7 @@ export function TimePicker({ value, defaultValue, onChange, id, name, label, pla
                 role="listbox"
                 aria-label={column.label}
                 onKeyDown={(event) => onColumnKey(event, column.key)}
-                className="relative h-56 overflow-y-auto overscroll-contain max-md:h-64"
+                className="relative h-56 overflow-y-auto overscroll-contain py-2 [mask-image:linear-gradient(to_bottom,transparent,black_1.25rem,black_calc(100%-1.25rem),transparent)] max-md:h-64"
               >
                 {column.items.map((item) => {
                   const chosen = item === column.chosen;

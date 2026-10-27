@@ -206,8 +206,7 @@ export function DatePicker({
                   onClick={() => choose(day)}
                   className={cn(
                     "relative flex h-9 items-center justify-center rounded-lg text-sm tabular-nums outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30 max-md:h-11 max-md:text-base",
-                    inMonth ? "text-foreground" : "text-muted-foreground/50",
-                    chosen ? "bg-foreground font-semibold text-background" : "hover:bg-muted",
+                    chosen ? "bg-foreground font-semibold text-background" : cn("hover:bg-muted", inMonth ? "text-foreground" : "text-muted-foreground/50"),
                     isToday && !chosen && "font-semibold after:absolute after:bottom-1 after:size-1 after:rounded-full after:bg-foreground",
                   )}
                 >
