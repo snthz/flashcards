@@ -8,6 +8,7 @@ import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ExportButton } from "@/components/export/export-dialog";
 import { ReminderSettings } from "@/components/settings/reminder-settings";
+import { FocusSettings } from "@/components/settings/focus-settings";
 import { vapidPublicKey } from "@/lib/reminders/push";
 import { prisma } from "@/lib/db";
 import { Download } from "lucide-react";
@@ -44,6 +45,7 @@ export default async function SettingsPage() {
           <ReminderSettings publicKey={vapidPublicKey()} initialHour={reminder?.reminderHour ?? null} initialNudges={reminder?.reminderNudges ?? true} />
         </CardContent>
       </Card>
+      <FocusSettings />
       <Card>
         <CardHeader>
           <CardTitle>{t.languageTitle}</CardTitle>

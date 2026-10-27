@@ -23,6 +23,7 @@ import { customStudyQuery } from "@/lib/study/custom";
 import { CardFrame } from "./card-frame";
 import { markSwipeHintSeen, shouldShowSwipeHint, SwipeHint, SwipeTint, useSwipe, type SwipeDirection } from "./swipe";
 import { CardInfoDialog } from "@/components/browse/card-info-dialog";
+import { StudyTimerButton, TimerBreak, TimerNotice, useStudyTimer } from "./study-timer";
 
 const RATING_META: Record<Rating, { label: "again" | "hard" | "good" | "easy"; tone: string }> = {
   1: { label: "again", tone: "text-danger border-danger/40 hover:bg-danger-soft" },
@@ -84,6 +85,8 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
   const [swipeHint, setSwipeHint] = useState(false);
   const [infoCard, setInfoCard] = useState<string | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const timer = useStudyTimer();
+  const onBreak = timer.state?.phase === "break";
 
   const canUndoNow = useCallback(() => {
     const engine = engineRef.current;
@@ -262,7 +265,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
     [endSwipeHint, rate],
   );
 
-  const swipe = useSwipe(revealed && !undoing && Boolean(card), onSwipe);
+  const swipe = useSwipe(revealed && !undoing && Boolean(card) && !onBreak, onSwipe);
 
   const undo = useCallback(() => {
     if (!view?.canUndo || undoing) return;
@@ -302,6 +305,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (onBreak) return;
       const target = (event.composedPath()[0] ?? event.target) as HTMLElement | null;
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
@@ -328,13 +332,14 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [card, revealed, reveal, rate, undo, editNote]);
+  }, [card, revealed, reveal, rate, undo, editNote, onBreak]);
 
   const counts = view?.counts ?? { fresh: 0, learning: 0, review: 0 };
   const statusLabel = !online ? `${t.study.offline} · ${t.study.offlineHint}` : syncFailed && pendingOps > 0 ? t.study.pendingSync(pendingOps) : null;
 
   return (
-    <div className="-mb-24 flex h-[calc(100dvh_-_1rem_-_var(--safe-top))] flex-col md:mb-0 md:h-auto">
+    <div className="relative -mb-24 flex h-[calc(100dvh_-_1rem_-_var(--safe-top))] flex-col md:mb-0 md:h-auto">
+      <TimerNotice timer={timer} onFinish={() => router.push(`/decks/${deckId}`)} />
       <header className="flex items-center justify-between gap-3 pb-3">
         <div className="flex min-w-0 items-center gap-2">
           <Link href={`/decks/${deckId}`} aria-label={t.study.exit} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
@@ -357,6 +362,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
             </span>
             <span className={cn("text-success", card?.state === "REVIEW" && "underline underline-offset-4")}>{counts.review}</span>
           </div>
+          <StudyTimerButton timer={timer} />
           {card && online ? (
             <Button variant="ghost" size="icon" onClick={editNote} aria-label={t.study.editNote} title={t.study.editNote}>
               <Pencil className="size-4" />
@@ -411,6 +417,8 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
           <Skeleton className="min-h-0 flex-1 rounded-2xl md:min-h-96" />
           <Skeleton className="h-16 rounded-xl" />
         </div>
+      ) : onBreak ? (
+        <TimerBreak timer={timer} />
       ) : card ? (
         <>
           <div className="relative flex min-h-0 flex-1 flex-col">

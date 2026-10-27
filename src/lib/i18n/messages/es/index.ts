@@ -20,6 +20,7 @@ import { settings } from "./settings";
 import { stats } from "./stats";
 import { study } from "./study";
 import { time } from "./time";
+import { timer } from "./timer";
 import { validation } from "./validation";
 
 export const es: Messages = {
@@ -44,5 +45,6 @@ export const es: Messages = {
   stats,
   study,
   time,
+  timer,
   validation,
 };
