@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Select } from "@/components/ui/input";
-import { deletePushSubscription, savePushSubscription, saveReminderHour, sendTestReminder } from "@/app/(app)/settings/actions";
+import { deletePushSubscription, savePushSubscription, saveReminderHour, saveReminderNudges, sendTestReminder } from "@/app/(app)/settings/actions";
 import { useI18n } from "@/lib/i18n/client";
 
 type Support = "checking" | "unsupported" | "install" | "denied" | "ready";
@@ -32,12 +32,13 @@ function detectSupport(): Support {
   return Notification.permission === "denied" ? "denied" : "ready";
 }
 
-export function ReminderSettings({ publicKey, initialHour }: { publicKey: string | null; initialHour: number | null }) {
+export function ReminderSettings({ publicKey, initialHour, initialNudges }: { publicKey: string | null; initialHour: number | null; initialNudges: boolean }) {
   const { t } = useI18n();
   const s = t.settings;
   const [support, setSupport] = useState<Support>("checking");
   const [subscribed, setSubscribed] = useState(false);
   const [hour, setHour] = useState(initialHour ?? 19);
+  const [nudges, setNudges] = useState(initialNudges);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -138,6 +139,24 @@ export function ReminderSettings({ publicKey, initialHour }: { publicKey: string
       <p className="text-sm text-muted-foreground">
         {support === "denied" ? s.pushDenied : subscribed ? s.reminderOn(time) : s.reminderOff}
       </p>
+      {subscribed ? (
+        <label className="flex cursor-pointer items-start gap-3">
+          <Checkbox
+            checked={nudges}
+            disabled={pending}
+            onChange={(event) => {
+              const value = event.target.checked;
+              setNudges(value);
+              startTransition(() => saveReminderNudges(value));
+            }}
+            className="mt-0.5"
+          />
+          <span className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">{s.reminderNudges}</span>
+            <span className="text-xs text-muted-foreground">{s.reminderNudgesHint}</span>
+          </span>
+        </label>
+      ) : null}
       {subscribed ? (
         <div>
           <Button variant="secondary" size="sm" onClick={test} loading={pending}>

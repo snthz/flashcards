@@ -30,6 +30,8 @@ export const settings: Messages["settings"] = {
   reminderTime: "Hora",
   reminderOn: (time) => `Activado en este dispositivo. Recibirás una notificación alrededor de las ${time} los días con tarjetas pendientes.`,
   reminderOff: "Desactivado en este dispositivo.",
+  reminderNudges: "Recuérdame otra vez si no he estudiado",
+  reminderNudgesHint: "Hasta dos avisos más: unas horas después y a las 21:00 si tu racha está en juego. Nunca después de las 22:00, y paran en cuanto repasas.",
   sendTest: "Enviar una notificación de prueba",
   testSent: "Notificación de prueba enviada.",
   testNone: "Todavía no hay ningún dispositivo suscrito.",

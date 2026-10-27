@@ -21,7 +21,7 @@ export default async function SettingsPage() {
   const user = await requireUser();
   const messages = await getMessages();
   const t = messages.settings;
-  const reminder = await prisma.user.findUnique({ where: { id: user.id }, select: { reminderHour: true } });
+  const reminder = await prisma.user.findUnique({ where: { id: user.id }, select: { reminderHour: true, reminderNudges: true } });
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={user.email} actions={<LogoutButton />} />
@@ -41,7 +41,7 @@ export default async function SettingsPage() {
           <CardDescription>{t.remindersDescription}</CardDescription>
         </CardHeader>
         <CardContent>
-          <ReminderSettings publicKey={vapidPublicKey()} initialHour={reminder?.reminderHour ?? null} />
+          <ReminderSettings publicKey={vapidPublicKey()} initialHour={reminder?.reminderHour ?? null} initialNudges={reminder?.reminderNudges ?? true} />
         </CardContent>
       </Card>
       <Card>

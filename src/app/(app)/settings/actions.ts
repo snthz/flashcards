@@ -69,7 +69,12 @@ const subscriptionSchema = z.object({
 export async function saveReminderHour(hour: number | null) {
   const user = await requireUser();
   const value = hour == null ? null : Math.max(0, Math.min(23, Math.round(hour)));
-  await prisma.user.update({ where: { id: user.id }, data: { reminderHour: value, reminderSentOn: null } });
+  await prisma.user.update({ where: { id: user.id }, data: { reminderHour: value, reminderSentOn: null, reminderStage: 0 } });
+}
+
+export async function saveReminderNudges(enabled: boolean) {
+  const user = await requireUser();
+  await prisma.user.update({ where: { id: user.id }, data: { reminderNudges: Boolean(enabled) } });
 }
 
 export async function savePushSubscription(input: unknown) {

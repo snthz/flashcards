@@ -44,6 +44,8 @@ model User {
   locale       String   @default("en")
   reminderHour   Int?
   reminderSentOn String?
+  reminderStage  Int      @default(0)
+  reminderNudges Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

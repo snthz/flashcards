@@ -28,6 +28,8 @@ export const settings = {
   reminderTime: "Time",
   reminderOn: (time: string) => `On for this device. You'll get a notification around ${time} on days with cards due.`,
   reminderOff: "Off on this device.",
+  reminderNudges: "Remind me again if I haven't studied",
+  reminderNudgesHint: "Up to two more: a few hours later and at 9 pm if your streak is at stake. Never after 10 pm, and they stop as soon as you review.",
   sendTest: "Send a test notification",
   testSent: "Test notification sent.",
   testNone: "No device is subscribed yet.",

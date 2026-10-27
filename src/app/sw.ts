@@ -67,8 +67,9 @@ self.addEventListener("push", (event) => {
       body: message.body,
       icon: "/icons/icon-192.png",
       tag: message.tag ?? "flashcards",
+      renotify: true,
       data: { url: message.url ?? "/decks" },
-    }),
+    } as NotificationOptions),
   );
 });
 
