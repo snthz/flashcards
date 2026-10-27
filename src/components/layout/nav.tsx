@@ -11,6 +11,7 @@ import { forgetOfflineData } from "@/lib/study/offline/sync";
 import { useI18n, useMessages } from "@/lib/i18n/client";
 import type { Messages } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
+import { BrandName } from "@/components/landing/studio-mark";
 import { CommandMenu } from "./command-menu";
 
 function navItems(t: Messages["nav"]) {
@@ -87,11 +88,11 @@ function place(marker: HTMLElement, target: HTMLElement, animate: boolean) {
 
 function Brand() {
   return (
-    <Link href="/decks" className="group flex shrink-0 items-center gap-2.5">
+    <Link href="/decks" aria-label="Flashcards" className="group flex shrink-0 items-center gap-2.5">
       <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow-sm transition-transform duration-500 ease-out group-hover:-rotate-12">
         <Layers className="size-4" />
       </span>
-      <span className="text-[15px] font-semibold tracking-tight">Flashcards</span>
+      <BrandName />
     </Link>
   );
 }

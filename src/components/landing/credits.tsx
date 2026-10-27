@@ -1,17 +1,11 @@
 import { ArrowUpRight } from "lucide-react";
 import { getMessages } from "@/lib/i18n/server";
-import { cn } from "@/lib/utils";
+import { StudioMark } from "./studio-mark";
 
 const AUTHOR_URL = "https://axlsantos.dev";
 const STUDIO_URL = "https://fallxn.studio";
 
-export function StudioMark({ className }: { className?: string }) {
-  return (
-    <span className={cn("font-normal tracking-tight", className)}>
-      Fallxn<span className="font-bold">Studio</span>
-    </span>
-  );
-}
+export { StudioMark };
 
 export async function CreditLine({ className }: { className?: string }) {
   const c = (await getMessages()).landing.credits;
