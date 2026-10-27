@@ -3,7 +3,8 @@ import { fieldMap, renderCard } from "@/lib/anki/render";
 import { PREMADE_DECKS } from "./catalog";
 import { KIND_LABELS, WORD_BANDS } from "./english-words";
 import { FALSE_FRIEND_GROUPS } from "./false-friends";
-import { GET_GROUPS, blankOut } from "./get";
+import { blankOut } from "./chunks";
+import { GET_GROUPS } from "./get";
 import { PATTERN_GROUPS, SPOKEN_FORMS, spokenForms } from "./irregular-verbs";
 import { PHRASAL_GROUPS } from "./phrasal-verbs";
 import { PHRASE_GROUPS } from "./remote-work";
@@ -227,7 +228,7 @@ describe("remote work deck", () => {
 });
 
 describe("uses of get deck", () => {
-  const uses = GET_GROUPS.flatMap((group) => group.uses);
+  const uses = GET_GROUPS.flatMap((group) => group.entries);
 
   it("has complete entries whose answer appears once in the example", () => {
     expect(uses.length).toBeGreaterThanOrEqual(110);
