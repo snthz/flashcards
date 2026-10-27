@@ -34,7 +34,11 @@ export const browse: Messages["browse"] = {
   moveTo: "Mover a",
   moveToPlaceholder: "Mover a…",
   move: "Mover",
-  deleteConfirm: (count, formatted) => (count === 1 ? "¿Eliminar 1 tarjeta y su nota?" : `¿Eliminar ${formatted} tarjetas y sus notas?`),
+  deleteTitle: (count, formatted) => (count === 1 ? "¿Eliminar 1 tarjeta y su nota?" : `¿Eliminar ${formatted} tarjetas y sus notas?`),
+  deleteDescription: "También se eliminan las demás tarjetas de esas notas, con su historial de repaso. No se puede deshacer.",
+  resetTitle: (count, formatted) => (count === 1 ? "¿Reiniciar 1 tarjeta?" : `¿Reiniciar ${formatted} tarjetas?`),
+  resetDescription: "Vuelven a ser nuevas y se borra su historial de repaso, así que el programador empieza de cero. No se puede deshacer.",
+  resetConfirm: "Reiniciar progreso",
   selectAll: "Seleccionar todo",
   select: "Seleccionar",
   columns: {

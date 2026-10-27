@@ -131,6 +131,70 @@ body {
   }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  dialog.modal {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+    transition:
+      opacity 0.18s ease-out,
+      transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+      overlay 0.18s allow-discrete,
+      display 0.18s allow-discrete;
+  }
+
+  dialog.modal[open] {
+    opacity: 1;
+    transform: none;
+  }
+
+  @starting-style {
+    dialog.modal[open] {
+      opacity: 0;
+      transform: translateY(8px) scale(0.97);
+    }
+  }
+
+  dialog.modal::backdrop {
+    opacity: 0;
+    transition:
+      opacity 0.18s ease-out,
+      overlay 0.18s allow-discrete,
+      display 0.18s allow-discrete;
+  }
+
+  dialog.modal[open]::backdrop {
+    opacity: 1;
+  }
+
+  @starting-style {
+    dialog.modal[open]::backdrop {
+      opacity: 0;
+    }
+  }
+
+  .menu-pop {
+    transform-origin: var(--menu-origin, top);
+    animation: menu-pop 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .sheet-up {
+    animation: sheet-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes menu-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
 /* Installed app: native-feeling scrolling without visible scrollbars. */
 @media (display-mode: standalone), (display-mode: fullscreen) {
   * {

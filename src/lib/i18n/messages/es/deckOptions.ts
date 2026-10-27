@@ -6,6 +6,8 @@ export const deckOptions: Messages["deckOptions"] = {
   presetDescription: "Los mazos que compartan un preajuste usan las mismas opciones.",
   defaultSuffix: " (predeterminada)",
   deletePreset: "Eliminar preajuste",
+  deletePresetTitle: (name) => `¿Eliminar “${name}”?`,
+  deletePresetDescription: "Los mazos que lo usan pasan al preajuste predeterminado. Tus tarjetas y su progreso no cambian.",
   newPresetPlaceholder: "Nombre del nuevo preajuste",
   cloneAsNew: "Clonar como nuevo",
   newPresetName: "Nueva configuración",

@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition, type ReactNode } from "react";
+import { useActionState, useEffect, useState, type ReactNode } from "react";
 import { Button, type ButtonProps } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import { Input, Textarea } from "@/components/ui/input";
 import { Field, FormError } from "@/components/ui/field";
 import { createDeck, deleteDeck, renameDeck, type ActionState } from "@/lib/decks/actions";
@@ -85,34 +85,20 @@ export function RenameDeckDialog({ deck, onClose }: { deck: DeckNode | null; onC
 
 export function DeleteDeckDialog({ deck, onClose }: { deck: DeckNode | null; onClose: () => void }) {
   const { locale, t } = useI18n();
-  const [pending, startTransition] = useTransition();
+  const [shown, setShown] = useState(deck);
+  if (deck && deck !== shown) setShown(deck);
   return (
-    <Dialog
+    <ConfirmDialog
       open={deck !== null}
       onClose={onClose}
+      onConfirm={async () => {
+        if (!deck) return;
+        await deleteDeck(deck.id);
+        onClose();
+      }}
       title={t.decks.deleteTitle}
-      description={
-        deck ? t.decks.deleteDescription(deck.fullName, deck.counts.total, formatNumber(deck.counts.total, locale)) : undefined
-      }
-    >
-      <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onClose}>
-          {t.common.cancel}
-        </Button>
-        <Button
-          variant="danger"
-          loading={pending}
-          onClick={() => {
-            if (!deck) return;
-            startTransition(async () => {
-              await deleteDeck(deck.id);
-              onClose();
-            });
-          }}
-        >
-          {t.common.delete}
-        </Button>
-      </div>
-    </Dialog>
+      description={shown ? t.decks.deleteDescription(shown.fullName, shown.counts.total, formatNumber(shown.counts.total, locale)) : undefined}
+      confirmLabel={t.common.delete}
+    />
   );
 }

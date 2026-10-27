@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Field, FormError } from "@/components/ui/field";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { changePassword, deleteAccount, updateProfile, type SettingsState } from "@/app/(app)/settings/actions";
 import { logout } from "@/app/(auth)/actions";
 import { forgetOfflineData } from "@/lib/study/offline/sync";
@@ -96,18 +97,36 @@ export function LogoutButton() {
 }
 
 export function DeleteAccountForm({ email }: { email: string }) {
+  const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const t = useMessages().settings;
+  const close = () => {
+    setOpen(false);
+    setValue("");
+  };
   return (
-    <form action={deleteAccount} className="flex flex-col gap-3">
-      <Field label={t.typeToConfirm(email)} htmlFor="confirmation">
-        <Input id="confirmation" name="confirmation" value={value} onChange={(e) => setValue(e.target.value)} autoComplete="off" />
-      </Field>
-      <div>
-        <Button type="submit" variant="danger" disabled={value !== email}>
-          {t.deleteAccount}
-        </Button>
-      </div>
-    </form>
+    <div>
+      <Button variant="danger" onClick={() => setOpen(true)}>
+        {t.deleteAccount}
+      </Button>
+      <ConfirmDialog
+        open={open}
+        onClose={close}
+        onConfirm={async () => {
+          const data = new FormData();
+          data.set("confirmation", value);
+          await forgetOfflineData();
+          await deleteAccount(data);
+        }}
+        title={t.deleteAccountTitle}
+        description={t.deleteAccountDescription}
+        confirmLabel={t.deleteAccountConfirm}
+        disabled={value !== email}
+      >
+        <Field label={t.typeToConfirm(email)} htmlFor="confirmation">
+          <Input id="confirmation" name="confirmation" value={value} onChange={(e) => setValue(e.target.value)} autoComplete="off" autoFocus spellCheck={false} autoCapitalize="none" />
+        </Field>
+      </ConfirmDialog>
+    </div>
   );
 }

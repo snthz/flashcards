@@ -1,22 +1,24 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { useEffect, useId, useRef, useTransition, type ReactNode } from "react";
+import { AlertTriangle, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMessages } from "@/lib/i18n/client";
+import { Button } from "./button";
 
-interface DialogProps {
+interface ModalProps {
   open: boolean;
   onClose: () => void;
-  title: string;
-  description?: string;
   children: ReactNode;
   className?: string;
+  role?: "dialog" | "alertdialog";
+  labelledBy?: string;
+  describedBy?: string;
+  locked?: boolean;
 }
 
-export function Dialog({ open, onClose, title, description, children, className }: DialogProps) {
+export function Modal({ open, onClose, children, className, role, labelledBy, describedBy, locked = false }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
-  const t = useMessages();
 
   useEffect(() => {
     const dialog = ref.current;
@@ -28,20 +30,48 @@ export function Dialog({ open, onClose, title, description, children, className 
   return (
     <dialog
       ref={ref}
+      role={role === "alertdialog" ? "alertdialog" : undefined}
+      aria-labelledby={labelledBy}
+      aria-describedby={describedBy}
+      onCancel={(event) => {
+        if (locked) event.preventDefault();
+      }}
       onClose={onClose}
       onClick={(event) => {
-        if (event.target === ref.current) onClose();
+        if (event.target === ref.current && !locked) onClose();
       }}
-      className={cn(
-        "m-auto w-[calc(100%-2rem)] max-w-md rounded-xl border bg-card p-0 text-foreground shadow-xl backdrop:bg-transparent open:animate-in",
-        className,
-      )}
+      className={cn("modal m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border bg-card p-0 text-foreground shadow-2xl", className)}
     >
+      {children}
+    </dialog>
+  );
+}
+
+interface DialogProps {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  description?: string;
+  children: ReactNode;
+  className?: string;
+}
+
+export function Dialog({ open, onClose, title, description, children, className }: DialogProps) {
+  const t = useMessages();
+  const id = useId();
+  return (
+    <Modal open={open} onClose={onClose} className={className} labelledBy={`${id}-title`} describedBy={description ? `${id}-description` : undefined}>
       <div className="flex flex-col gap-4 p-5" onClick={(event) => event.stopPropagation()}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <h2 className="text-base font-semibold">{title}</h2>
-            {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+            <h2 id={`${id}-title`} className="text-base font-semibold">
+              {title}
+            </h2>
+            {description ? (
+              <p id={`${id}-description`} className="text-sm text-muted-foreground">
+                {description}
+              </p>
+            ) : null}
           </div>
           <button
             type="button"
@@ -54,6 +84,98 @@ export function Dialog({ open, onClose, title, description, children, className 
         </div>
         {children}
       </div>
-    </dialog>
+    </Modal>
+  );
+}
+
+interface ConfirmDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void | Promise<unknown>;
+  title: string;
+  description?: ReactNode;
+  confirmLabel: string;
+  cancelLabel?: string;
+  tone?: "danger" | "default";
+  icon?: ReactNode;
+  children?: ReactNode;
+  disabled?: boolean;
+}
+
+export function ConfirmDialog({
+  open,
+  onClose,
+  onConfirm,
+  title,
+  description,
+  confirmLabel,
+  cancelLabel,
+  tone = "danger",
+  icon,
+  children,
+  disabled = false,
+}: ConfirmDialogProps) {
+  const t = useMessages();
+  const id = useId();
+  const [pending, startTransition] = useTransition();
+
+  const confirm = () => {
+    if (disabled) return;
+    startTransition(async () => {
+      await onConfirm();
+    });
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={() => !pending && onClose()}
+      locked={pending}
+      role="alertdialog"
+      labelledBy={`${id}-title`}
+      describedBy={description ? `${id}-description` : undefined}
+      className="max-w-[27rem]"
+    >
+      <div
+        className="flex flex-col gap-6 p-5 sm:p-6"
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" || !(event.target instanceof HTMLInputElement)) return;
+          event.preventDefault();
+          confirm();
+        }}
+      >
+        <div className="flex items-start gap-4">
+          <span
+            aria-hidden
+            className={cn(
+              "flex size-10 shrink-0 items-center justify-center rounded-full [&>svg]:size-[18px]",
+              tone === "danger" ? "bg-danger-soft text-danger" : "bg-muted text-foreground",
+            )}
+          >
+            {icon ?? (tone === "danger" ? <Trash2 /> : <AlertTriangle />)}
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5 pt-1">
+            <h2 id={`${id}-title`} className="text-base font-semibold leading-snug">
+              {title}
+            </h2>
+            {description ? (
+              <div id={`${id}-description`} className="text-sm leading-relaxed text-muted-foreground">
+                {description}
+              </div>
+            ) : null}
+            {children ? <div className="mt-2">{children}</div> : null}
+          </div>
+        </div>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" autoFocus onClick={onClose} disabled={pending}>
+            {cancelLabel ?? t.common.cancel}
+          </Button>
+          <Button variant={tone === "danger" ? "danger" : "primary"} loading={pending} disabled={disabled} onClick={confirm}>
+            {confirmLabel}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }

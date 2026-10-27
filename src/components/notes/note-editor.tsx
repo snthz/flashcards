@@ -6,6 +6,7 @@ import { ImagePlus, Loader2, Music, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Field, FormError } from "@/components/ui/field";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { CardFrame } from "@/components/study/card-frame";
 import { createNote, deleteNoteAndRedirect, updateNote, type NoteActionState } from "@/lib/notes/actions";
 import { clozeOrdinals, fieldMap, plainText, renderCard } from "@/lib/anki/render";
@@ -93,6 +94,7 @@ export function NoteEditor({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [side, setSide] = useState<"question" | "answer">("question");
   const [templateIndex, setTemplateIndex] = useState(0);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const fieldRefs = useRef<Array<HTMLTextAreaElement | null>>([]);
   const fileInputs = useRef<Array<HTMLInputElement | null>>([]);
   const lastSuccess = useRef<string | undefined>(undefined);
@@ -324,11 +326,7 @@ export function NoteEditor({
             type="button"
             variant="ghost"
             className="text-danger"
-            onClick={() => {
-              if (window.confirm(t.notes.deleteConfirm)) {
-                void deleteNoteAndRedirect(noteId, returnTo ?? "/browse");
-              }
-            }}
+            onClick={() => setConfirmingDelete(true)}
           >
             {t.notes.deleteNote}
           </Button>
@@ -346,6 +344,16 @@ export function NoteEditor({
           </Button>
         </div>
       </div>
+      {mode === "edit" && noteId ? (
+        <ConfirmDialog
+          open={confirmingDelete}
+          onClose={() => setConfirmingDelete(false)}
+          onConfirm={() => deleteNoteAndRedirect(noteId, returnTo ?? "/browse")}
+          title={t.notes.deleteTitle}
+          description={t.notes.deleteDescription}
+          confirmLabel={t.notes.deleteNote}
+        />
+      ) : null}
     </form>
   );
 }

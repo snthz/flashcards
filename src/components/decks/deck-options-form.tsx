@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Field, FormError } from "@/components/ui/field";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { createDeckConfig, deleteDeckConfig, optimizeFsrs, saveDeckConfig, setDeckConfig, type ActionState } from "@/lib/decks/actions";
 import { useI18n } from "@/lib/i18n/client";
 import { formatNumber } from "@/lib/utils";
@@ -59,6 +60,7 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
   const [algorithm, setAlgorithm] = useState(config.algorithm);
   const [switching, startSwitch] = useTransition();
   const [newName, setNewName] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [weights, setWeights] = useState(config.fsrsWeights.join(", "));
   const [optimizing, startOptimize] = useTransition();
   const [optimizeMessage, setOptimizeMessage] = useState<{ tone: "success" | "info" | "danger"; text: string } | null>(null);
@@ -97,14 +99,21 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
               ))}
             </Select>
             {!config.isDefault ? (
-              <Button
-                variant="outline"
-                onClick={() => startSwitch(() => deleteDeckConfig(deckId, config.id))}
-                disabled={switching}
-              >
+              <Button variant="outline" onClick={() => setConfirmingDelete(true)} disabled={switching}>
                 {o.deletePreset}
               </Button>
             ) : null}
+            <ConfirmDialog
+              open={confirmingDelete}
+              onClose={() => setConfirmingDelete(false)}
+              onConfirm={async () => {
+                await deleteDeckConfig(deckId, config.id);
+                setConfirmingDelete(false);
+              }}
+              title={o.deletePresetTitle(config.name)}
+              description={o.deletePresetDescription}
+              confirmLabel={o.deletePreset}
+            />
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input

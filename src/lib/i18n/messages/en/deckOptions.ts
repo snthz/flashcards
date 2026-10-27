@@ -4,6 +4,8 @@ export const deckOptions = {
   presetDescription: "Decks that share a preset use the same options.",
   defaultSuffix: " (default)",
   deletePreset: "Delete preset",
+  deletePresetTitle: (name: string) => `Delete “${name}”?`,
+  deletePresetDescription: "Decks that use this preset switch to the default one. Your cards and their progress stay as they are.",
   newPresetPlaceholder: "New preset name",
   cloneAsNew: "Clone as new",
   newPresetName: "New preset",

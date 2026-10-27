@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Flag, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flag, Info, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox, Select } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { deleteNotes, moveCards, resetCards, setCardsSuspended } from "@/lib/notes/actions";
 import type { BrowseRow } from "@/lib/notes/queries";
 import { formatInterval } from "@/lib/scheduler/format";
@@ -41,6 +42,8 @@ export function BrowseTable({ rows, total, page, pages, decks }: Props) {
   const [pending, startTransition] = useTransition();
   const [infoCard, setInfoCard] = useState<string | null>(null);
   const [moveTo, setMoveTo] = useState("");
+  const [confirming, setConfirming] = useState<"delete" | "reset" | null>(null);
+  const [confirmCount, setConfirmCount] = useState(0);
 
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
   const selectedRows = rows.filter((r) => selected.has(r.id));
@@ -52,6 +55,18 @@ export function BrowseTable({ rows, total, page, pages, decks }: Props) {
       setSelected(new Set());
       router.refresh();
     });
+
+  const ask = (kind: "delete" | "reset") => {
+    setConfirmCount(ids.length);
+    setConfirming(kind);
+  };
+
+  const runConfirmed = async (work: () => Promise<void>) => {
+    await work();
+    setSelected(new Set());
+    setConfirming(null);
+    router.refresh();
+  };
 
   const goTo = (target: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -75,7 +90,7 @@ export function BrowseTable({ rows, total, page, pages, decks }: Props) {
           <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => setCardsSuspended(ids, !selectedRows.every((r) => r.suspended)))}>
             {selectedRows.every((r) => r.suspended) ? t.browse.unsuspend : t.browse.suspend}
           </Button>
-          <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => resetCards(ids))}>
+          <Button size="sm" variant="outline" disabled={pending} onClick={() => ask("reset")}>
             {t.browse.resetProgress}
           </Button>
           <div className="flex items-center gap-1">
@@ -95,16 +110,31 @@ export function BrowseTable({ rows, total, page, pages, decks }: Props) {
             size="sm"
             variant="danger"
             disabled={pending}
-            onClick={() => {
-              if (window.confirm(t.browse.deleteConfirm(ids.length, formatNumber(ids.length, locale)))) {
-                run(() => deleteNotes(Array.from(new Set(selectedRows.map((r) => r.noteId)))));
-              }
-            }}
+            onClick={() => ask("delete")}
           >
             {t.common.delete}
           </Button>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={confirming === "delete"}
+        onClose={() => setConfirming(null)}
+        onConfirm={() => runConfirmed(() => deleteNotes(Array.from(new Set(selectedRows.map((r) => r.noteId)))))}
+        title={t.browse.deleteTitle(confirmCount, formatNumber(confirmCount, locale))}
+        description={t.browse.deleteDescription}
+        confirmLabel={t.common.delete}
+      />
+      <ConfirmDialog
+        open={confirming === "reset"}
+        onClose={() => setConfirming(null)}
+        onConfirm={() => runConfirmed(() => resetCards(ids))}
+        title={t.browse.resetTitle(confirmCount, formatNumber(confirmCount, locale))}
+        description={t.browse.resetDescription}
+        confirmLabel={t.browse.resetConfirm}
+        tone="default"
+        icon={<RotateCcw />}
+      />
 
       <div className="overflow-hidden rounded-xl border bg-card">
         <table className="w-full text-sm">

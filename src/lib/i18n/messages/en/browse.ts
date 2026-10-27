@@ -32,8 +32,11 @@ export const browse = {
   moveTo: "Move to",
   moveToPlaceholder: "Move to…",
   move: "Move",
-  deleteConfirm: (count: number, formatted: string) =>
-    count === 1 ? "Delete 1 card and its note?" : `Delete ${formatted} cards and their notes?`,
+  deleteTitle: (count: number, formatted: string) => (count === 1 ? "Delete 1 card and its note?" : `Delete ${formatted} cards and their notes?`),
+  deleteDescription: "Every card of those notes is deleted too, with its review history. This can't be undone.",
+  resetTitle: (count: number, formatted: string) => (count === 1 ? "Reset 1 card?" : `Reset ${formatted} cards?`),
+  resetDescription: "They go back to new and their review history is cleared, so the scheduler starts over. This can't be undone.",
+  resetConfirm: "Reset progress",
   selectAll: "Select all",
   select: "Select",
   columns: {
