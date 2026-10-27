@@ -3,10 +3,14 @@ import { fieldMap, renderCard } from "@/lib/anki/render";
 import { PREMADE_DECKS } from "./catalog";
 import { KIND_LABELS, WORD_BANDS } from "./english-words";
 import { FALSE_FRIEND_GROUPS } from "./false-friends";
-import { blankOut } from "./chunks";
+import { blankOut, type ChunkGroup } from "./chunks";
+import { MISTAKE_GROUPS } from "./common-mistakes";
 import { GET_GROUPS } from "./get";
+import { IDIOM_GROUPS } from "./idioms";
 import { PATTERN_GROUPS, SPOKEN_FORMS, spokenForms } from "./irregular-verbs";
+import { COLLOCATION_GROUPS } from "./make-do";
 import { PHRASAL_GROUPS } from "./phrasal-verbs";
+import { PREPOSITION_GROUPS } from "./prepositions";
 import { PHRASE_GROUPS } from "./remote-work";
 
 describe("phrasal verbs deck", () => {
@@ -254,6 +258,57 @@ describe("uses of get deck", () => {
     expect(meaning.audio.question).toEqual(["tts:en-US:get%20married"]);
     expect(meaning.audio.answer).toHaveLength(2);
     expect([typed.answer, meaning.answer].join("")).not.toContain("{{");
+  });
+});
+
+describe.each([
+  ["make-do-take-have", COLLOCATION_GROUPS, 150],
+  ["prepositions", PREPOSITION_GROUPS, 120],
+  ["idioms", IDIOM_GROUPS, 100],
+] as Array<[string, ChunkGroup[], number]>)("%s deck", (slug, groups, minimum) => {
+  const entries = groups.flatMap((group) => group.entries);
+
+  it("has unique entries whose answer appears once in the example", () => {
+    expect(entries.length).toBeGreaterThanOrEqual(minimum);
+    expect(new Set(entries.map((e) => e[0].toLowerCase())).size).toBe(entries.length);
+    for (const [expression, meaning, example, answer, exampleTranslation, note] of entries) {
+      expect([expression, meaning, example, answer, exampleTranslation].every((v) => v.trim() === v && v.length > 0), expression).toBe(true);
+      expect(note === undefined || (note.trim() === note && note.length > 0), expression).toBe(true);
+      expect(example.split(answer).length - 1, expression).toBe(1);
+    }
+  });
+
+  it("builds a typed card and a meaning card per entry", () => {
+    const collection = PREMADE_DECKS.find((d) => d.slug === slug)!.build("es");
+    expect(collection.cards).toHaveLength(entries.length * 2);
+    expect(new Set(collection.notes.map((n) => n.guid)).size).toBe(entries.length);
+    const [typed, meaning] = renderBoth(slug, collection.notes[0].guid);
+    expect(typed.question).toContain("typeans");
+    expect(typed.question).toContain(blankOut(entries[0][2], entries[0][3]));
+    expect(meaning.audio.answer).toHaveLength(2);
+  });
+});
+
+describe("common mistakes deck", () => {
+  const mistakes = MISTAKE_GROUPS.flatMap((group) => group.mistakes);
+
+  it("has unique entries that really change the sentence", () => {
+    expect(mistakes.length).toBeGreaterThanOrEqual(120);
+    expect(new Set(mistakes.map((m) => m[0])).size).toBe(mistakes.length);
+    for (const [wrong, correct, translation, explanation] of mistakes) {
+      expect([wrong, correct, translation, explanation].every((v) => v.trim() === v && v.length > 0), wrong).toBe(true);
+      expect(wrong).not.toBe(correct);
+    }
+  });
+
+  it("asks to type the corrected sentence", () => {
+    const collection = PREMADE_DECKS.find((d) => d.slug === "common-mistakes")!.build("es");
+    expect(collection.cards).toHaveLength(mistakes.length);
+    const [card] = renderBoth("common-mistakes", collection.notes[0].guid);
+    expect(card.question).toContain("typeans");
+    expect(card.audio.question).toEqual([]);
+    expect(card.answer).toContain("data-expected");
+    expect(card.audio.answer).toHaveLength(1);
   });
 });
 
