@@ -62,6 +62,8 @@ model User {
   cards       Card[]
   reviews     ReviewLog[]
   media       Media[]
+  agendaNotes AgendaNote[]
+  agendaTasks AgendaTask[]
 }
 
 model Session {
@@ -286,4 +288,39 @@ model Media {
   createdAt DateTime @default(now())
 
   @@unique([userId, name])
+}
+
+model AgendaNote {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day       String
+  title     String   @default("")
+  body      String   @default("")
+  links     String[]
+  images    String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, day])
+}
+
+model AgendaTask {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  notes         String    @default("")
+  day           String
+  time          String?
+  dueAt         DateTime
+  remindMinutes Int?
+  remindAt      DateTime?
+  remindedAt    DateTime?
+  doneAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId, day])
+  @@index([remindAt, remindedAt])
 }

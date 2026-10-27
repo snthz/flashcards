@@ -9,6 +9,8 @@ export const nav: Messages["nav"] = {
   settings: "Ajustes",
   translate: "Traductor",
   dictionary: "Diccionario",
+  agenda: "Agenda",
+  agendaHint: "Calendario, notas de clase y tareas con recordatorio",
   grammar: "Gramática",
   grammarHint: "Gramática del inglés por nivel, con quizzes",
   practice: "Práctica",

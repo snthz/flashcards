@@ -1,3 +1,4 @@
+import { agenda } from "./agenda";
 import { assistant } from "./assistant";
 import { auth } from "./auth";
 import { browse } from "./browse";
@@ -27,6 +28,7 @@ import { translate } from "./translate";
 import { validation } from "./validation";
 
 export const en = {
+  agenda,
   assistant,
   auth,
   browse,

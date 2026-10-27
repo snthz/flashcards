@@ -7,6 +7,8 @@ export const nav = {
   settings: "Settings",
   translate: "Translator",
   dictionary: "Dictionary",
+  agenda: "Agenda",
+  agendaHint: "Calendar, class notes and tasks with reminders",
   grammar: "Grammar",
   grammarHint: "English grammar by level, with quizzes",
   practice: "Practice",

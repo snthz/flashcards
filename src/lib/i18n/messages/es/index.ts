@@ -1,4 +1,5 @@
 import type { Messages } from "../types";
+import { agenda } from "./agenda";
 import { assistant } from "./assistant";
 import { auth } from "./auth";
 import { browse } from "./browse";
@@ -28,6 +29,7 @@ import { translate } from "./translate";
 import { validation } from "./validation";
 
 export const es: Messages = {
+  agenda,
   assistant,
   auth,
   browse,

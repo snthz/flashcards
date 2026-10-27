@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, BookOpen, ChevronDown, Compass, Dumbbell, GraduationCap, Languages, Layers, LayoutGrid, LogOut, Search, Settings, Upload, X, type LucideIcon } from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, ChevronDown, Compass, Dumbbell, GraduationCap, Languages, Layers, LayoutGrid, LogOut, Search, Settings, Upload, X, type LucideIcon } from "lucide-react";
 import { Menu, MenuLabel, MenuLink, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { logout } from "@/app/(auth)/actions";
@@ -35,6 +35,7 @@ function moreSections(t: Messages["nav"]): Array<{ label: string; items: MoreIte
     {
       label: t.sectionStudy,
       items: [
+        { href: "/agenda", label: t.agenda, hint: t.agendaHint, icon: CalendarDays },
         { href: "/practice", label: t.practice, hint: t.practiceHint, icon: Dumbbell },
         { href: "/browse", label: t.browse, hint: t.browseHint, icon: Search },
         { href: "/import", label: t.import, hint: t.importHint, icon: Upload },
