@@ -50,6 +50,8 @@ export function parseFree(body: MyMemoryResponse, input: TranslateInput): Transl
     text: input.text,
     translation,
     literal: null,
+    kind: null,
+    synonyms: [],
     alternatives,
     notes: [],
     examples: [],

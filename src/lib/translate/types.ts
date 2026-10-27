@@ -25,6 +25,8 @@ export interface TranslationResult {
   text: string;
   translation: string;
   literal: string | null;
+  kind: string | null;
+  synonyms: string[];
   alternatives: Array<{ text: string; note: string }>;
   notes: string[];
   examples: Array<{ source: string; translation: string }>;
@@ -41,6 +43,7 @@ export interface DictionaryEntry {
   languageName: string;
   partOfSpeech: string;
   senses: DictionarySense[];
+  synonyms: string[];
 }
 
 export interface DictionaryResult {

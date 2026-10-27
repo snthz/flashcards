@@ -13,7 +13,8 @@ import { LruCache } from "./cache";
 import { InvalidKeyError, RefusedError, translateWithClaude, verifyKey } from "./claude";
 import { lookupWord, NotFoundError } from "./dictionary";
 import { QuotaError, translateFree } from "./free";
-import { ensureBasicNoteType, textToField } from "./notes";
+import { ensureVocabularyNoteType } from "./notes";
+import { vocabularyFields } from "./vocabulary";
 import {
   CLAUDE_MODELS,
   DEFAULT_CLAUDE_MODEL,
@@ -138,25 +139,32 @@ export async function removeTranslatorKey(): Promise<KeyState> {
   return { status: "removed" };
 }
 
+const line = (max: number) => z.string().trim().max(max).default("");
+
 const cardSchema = z.object({
   deckId: z.string().uuid(),
-  front: z.string().trim().min(1).max(MAX_TEXT * 2),
-  back: z.string().trim().min(1).max(MAX_TEXT * 4),
-  reversed: z.boolean(),
-  tags: z.string().max(200).optional(),
+  term: z.string().trim().min(1).max(MAX_TEXT),
+  meaning: z.string().trim().min(1).max(MAX_TEXT * 2),
+  termLang: z.enum(LANGUAGES),
+  kind: line(80),
+  synonyms: line(400),
+  example: line(MAX_TEXT),
+  exampleTranslation: line(MAX_TEXT),
+  notes: line(MAX_TEXT),
+  direction: z.enum(["forward", "reverse", "both"]),
 });
 
 export async function saveTranslationCard(raw: unknown): Promise<NoteActionState> {
   const [user, { locale, t }] = await Promise.all([requireUser(), getI18n()]);
   const parsed = cardSchema.safeParse(raw);
   if (!parsed.success) return { error: t.translate.cardInvalid };
-  const noteTypeId = await ensureBasicNoteType(user.id, locale, parsed.data.reversed);
+  const card = parsed.data;
+  const noteTypeId = await ensureVocabularyNoteType(user.id, card.termLang, locale);
   const form = new FormData();
-  form.set("deckId", parsed.data.deckId);
+  form.set("deckId", card.deckId);
   form.set("noteTypeId", noteTypeId);
-  form.set("field-0", textToField(parsed.data.front));
-  form.set("field-1", textToField(parsed.data.back));
-  form.set("tags", parsed.data.tags ?? "");
+  vocabularyFields(card).forEach((value, index) => form.set(`field-${index}`, value));
+  form.set("tags", "translator");
   return createNote({}, form);
 }
 

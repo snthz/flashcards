@@ -11,7 +11,7 @@ import { intlLocale } from "@/lib/i18n/config";
 import { lookupDictionary, translateText } from "@/lib/translate/actions";
 import { isLanguage, LANGUAGES, MAX_CONTEXT, MAX_TEXT, type DictionaryResult, type LanguageCode, type TranslateError, type TranslationResult } from "@/lib/translate/types";
 import { cn } from "@/lib/utils";
-import { SaveCardDialog, type CardDraft } from "./save-card-dialog";
+import { SaveCardDialog, swapDraft, type CardDraft } from "./save-card-dialog";
 
 export type TranslatorTab = "translate" | "dictionary";
 
@@ -104,11 +104,50 @@ function requestLookup(word: string, language: LanguageCode | "auto") {
   return lookupDictionary({ word, language }).catch(failure);
 }
 
-function backFor(result: TranslationResult, translation = result.translation) {
-  return [translation, result.literal && translation === result.translation ? `(${result.literal})` : null].filter(Boolean).join("\n");
+function translationDraft(result: TranslationResult, uiLocale: string, sourceFallback: LanguageCode | null, literalLabel: string, chosen = result.translation): CardDraft {
+  const source: LanguageCode = isLanguage(result.source) ? result.source : (sourceFallback ?? (result.target === "en" ? "es" : "en"));
+  const others = [result.translation, ...result.alternatives.map((alt) => alt.text)].filter((text) => text !== chosen);
+  const example = result.examples[0];
+  const draft: CardDraft = {
+    term: result.text,
+    termLang: source,
+    meaning: chosen,
+    meaningLang: result.target,
+    kind: result.kind ?? "",
+    synonyms: { [result.target]: others.join(", "), [source]: result.synonyms.join(", ") },
+    example: example?.source ?? "",
+    exampleTranslation: example?.translation ?? "",
+    notes: [result.literal && chosen === result.translation ? `${literalLabel}: ${result.literal}` : null, ...result.notes].filter(Boolean).join("\n"),
+  };
+  return source === uiLocale && result.target !== uiLocale ? swapDraft(draft) : draft;
 }
 
-function TranslationView({ result, compact, onSave, languageName }: { result: TranslationResult; compact: boolean; onSave: (draft: CardDraft) => void; languageName: (code: string) => string }) {
+function dictionaryDraft(word: string, entry: DictionaryResult["entries"][number], sense: DictionaryResult["entries"][number]["senses"][number]): CardDraft {
+  const language: LanguageCode = isLanguage(entry.language) ? entry.language : "en";
+  return {
+    term: word,
+    termLang: language,
+    meaning: sense.definition,
+    meaningLang: language,
+    kind: entry.partOfSpeech.toLowerCase(),
+    synonyms: { [language]: entry.synonyms.join(", ") },
+    example: sense.examples[0] ?? "",
+    exampleTranslation: "",
+    notes: "",
+  };
+}
+
+function TranslationView({
+  result,
+  compact,
+  onSave,
+  languageName,
+}: {
+  result: TranslationResult;
+  compact: boolean;
+  onSave: (chosen?: string) => void;
+  languageName: (code: string) => string;
+}) {
   const t = useI18n().t.translate;
   const [copied, setCopied] = useState(false);
 
@@ -151,6 +190,16 @@ function TranslationView({ result, compact, onSave, languageName }: { result: Tr
           <span className="font-medium text-foreground">{t.literal}:</span> {result.literal}
         </p>
       ) : null}
+      {result.kind || result.synonyms.length > 0 ? (
+        <p className="flex flex-wrap items-baseline gap-x-2 text-sm text-muted-foreground">
+          {result.kind ? <span className="text-xs font-semibold uppercase tracking-wide">{result.kind}</span> : null}
+          {result.synonyms.length > 0 ? (
+            <span>
+              <span className="font-medium text-foreground">{t.synonyms}:</span> {result.synonyms.join(", ")}
+            </span>
+          ) : null}
+        </p>
+      ) : null}
       {result.warning ? <p className="text-xs text-muted-foreground">{t.claudeUnavailable}</p> : null}
       {result.alternatives.length > 0 ? (
         <section className="flex flex-col gap-1.5">
@@ -164,7 +213,7 @@ function TranslationView({ result, compact, onSave, languageName }: { result: Tr
                   </span>
                   {alt.note ? <span className="text-xs text-muted-foreground">{alt.note}</span> : null}
                 </div>
-                <IconButton label={t.saveAlternative(alt.text)} onClick={() => onSave({ front: result.text, back: backFor(result, alt.text) })}>
+                <IconButton label={t.saveAlternative(alt.text)} onClick={() => onSave(alt.text)}>
                   <Plus className="size-4" />
                 </IconButton>
               </li>
@@ -203,15 +252,7 @@ function TranslationView({ result, compact, onSave, languageName }: { result: Tr
           </Link>
         </p>
       ) : null}
-      <Button
-        variant="secondary"
-        onClick={() =>
-          onSave({
-            front: result.text,
-            back: [backFor(result), ...result.examples.slice(0, 1).map((example) => `${example.source}\n${example.translation}`)].join("\n\n"),
-          })
-        }
-      >
+      <Button variant="secondary" onClick={() => onSave()}>
         <Plus className="size-4" />
         {t.saveCard}
       </Button>
@@ -265,12 +306,7 @@ function DictionaryView({ result, onSave, onTranslate }: { result: DictionaryRes
                 </div>
                 <IconButton
                   label={t.saveSense}
-                  onClick={() =>
-                    onSave({
-                      front: result.word,
-                      back: [`${entry.partOfSpeech ? `(${entry.partOfSpeech.toLowerCase()}) ` : ""}${sense.definition}`, ...sense.examples.slice(0, 1)].join("\n"),
-                    })
-                  }
+                  onClick={() => onSave(dictionaryDraft(result.word, entry, sense))}
                 >
                   <Plus className="size-4" />
                 </IconButton>
@@ -546,7 +582,14 @@ export function Translator({ compact = false, autoFocus = !compact, initialTab =
 
       <FormError message={error ? (error === "offline" ? tr.offline : tr.errors[error]) : null} />
 
-      {tab === "translate" && result ? <TranslationView result={result} compact={compact} onSave={setDraft} languageName={languageName} /> : null}
+      {tab === "translate" && result ? (
+        <TranslationView
+          result={result}
+          compact={compact}
+          languageName={languageName}
+          onSave={(chosen) => setDraft(translationDraft(result, locale, languages.source === "auto" ? null : languages.source, tr.literal, chosen))}
+        />
+      ) : null}
       {tab === "dictionary" && entry ? (
         <DictionaryView
           result={entry}
@@ -560,7 +603,7 @@ export function Translator({ compact = false, autoFocus = !compact, initialTab =
         />
       ) : null}
 
-      <SaveCardDialog draft={draft} deckId={deckId} onClose={() => setDraft(null)} />
+      <SaveCardDialog draft={draft} deckId={deckId} languageName={languageName} onClose={() => setDraft(null)} />
     </div>
   );
 }

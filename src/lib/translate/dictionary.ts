@@ -19,7 +19,11 @@ type WiktionaryResponse = Record<string, Array<{ partOfSpeech?: string; language
 interface PhoneticResponse {
   phonetic?: string;
   phonetics?: Array<{ text?: string; audio?: string }>;
+  meanings?: Array<{ partOfSpeech?: string; synonyms?: string[]; definitions?: Array<{ synonyms?: string[] }> }>;
 }
+
+const MAX_SYNONYMS = 6;
+const EMPTY_SOUND = { phonetic: null, audio: null, synonyms: {} as Record<string, string[]> };
 
 function clean(html: string) {
   return htmlToText(html).replace(/\s*\n\s*/g, " ").trim();
@@ -41,7 +45,7 @@ export function parseWiktionary(body: WiktionaryResponse, language: LanguageCode
         .filter((sense) => sense.definition.length > 0)
         .slice(0, MAX_SENSES);
       if (senses.length === 0) continue;
-      entries.push({ language: code, languageName: section.language ?? code, partOfSpeech: section.partOfSpeech ?? "", senses });
+      entries.push({ language: code, languageName: section.language ?? code, partOfSpeech: section.partOfSpeech ?? "", senses, synonyms: [] });
     }
   }
   const useful = entries.some((entry) => !NOISE.has(entry.partOfSpeech)) ? entries.filter((entry) => !NOISE.has(entry.partOfSpeech)) : entries;
@@ -50,11 +54,19 @@ export function parseWiktionary(body: WiktionaryResponse, language: LanguageCode
 }
 
 export function parsePhonetics(body: PhoneticResponse[] | unknown) {
-  if (!Array.isArray(body)) return { phonetic: null, audio: null };
-  const items = (body as PhoneticResponse[]).flatMap((entry) => [{ text: entry.phonetic, audio: undefined }, ...(entry.phonetics ?? [])]);
+  if (!Array.isArray(body)) return EMPTY_SOUND;
+  const responses = body as PhoneticResponse[];
+  const items = responses.flatMap((entry) => [{ text: entry.phonetic, audio: undefined }, ...(entry.phonetics ?? [])]);
   const phonetic = items.find((item) => item.text)?.text ?? null;
   const audios = items.map((item) => item.audio).filter((audio): audio is string => Boolean(audio && /^https:\/\//.test(audio)));
-  return { phonetic, audio: audios.find((audio) => /-us\.mp3$/.test(audio)) ?? audios[0] ?? null };
+  const synonyms: Record<string, string[]> = {};
+  for (const meaning of responses.flatMap((entry) => entry.meanings ?? [])) {
+    const kind = meaning.partOfSpeech?.toLowerCase();
+    if (!kind) continue;
+    const words = [...(meaning.synonyms ?? []), ...(meaning.definitions ?? []).flatMap((definition) => definition.synonyms ?? [])];
+    synonyms[kind] = Array.from(new Set([...(synonyms[kind] ?? []), ...words.map((word) => word.trim()).filter(Boolean)])).slice(0, MAX_SYNONYMS);
+  }
+  return { phonetic, audio: audios.find((audio) => /-us\.mp3$/.test(audio)) ?? audios[0] ?? null, synonyms };
 }
 
 async function fetchWiktionary(word: string) {
@@ -74,27 +86,27 @@ async function fetchPhonetics(word: string) {
       signal: AbortSignal.timeout(6_000),
       cache: "no-store",
     });
-    return response.ok ? parsePhonetics(await response.json()) : { phonetic: null, audio: null };
+    return response.ok ? parsePhonetics(await response.json()) : EMPTY_SOUND;
   } catch {
-    return { phonetic: null, audio: null };
+    return EMPTY_SOUND;
   }
 }
 
 export async function lookupWord(word: string, language: LanguageCode | "auto"): Promise<DictionaryResult> {
   const candidates = Array.from(new Set([word, word.toLocaleLowerCase()]));
   const english = language === "en" || language === "auto";
-  const phonetics = english ? fetchPhonetics(word.toLocaleLowerCase()) : Promise.resolve({ phonetic: null, audio: null });
+  const phonetics = english ? fetchPhonetics(word.toLocaleLowerCase()) : Promise.resolve(EMPTY_SOUND);
   for (const candidate of candidates) {
     const body = await fetchWiktionary(candidate);
     if (!body) continue;
     const entries = parseWiktionary(body, language);
     if (entries.length === 0) continue;
-    const sound = entries.some((entry) => entry.language === "en") ? await phonetics : { phonetic: null, audio: null };
+    const sound = entries.some((entry) => entry.language === "en") ? await phonetics : EMPTY_SOUND;
     return {
       word: candidate,
       phonetic: sound.phonetic,
       audio: sound.audio,
-      entries,
+      entries: entries.map((entry) => (entry.language === "en" ? { ...entry, synonyms: sound.synonyms[entry.partOfSpeech.toLowerCase()] ?? [] } : entry)),
       sourceUrl: `https://en.wiktionary.org/wiki/${encodeURIComponent(candidate.replace(/ /g, "_"))}`,
     };
   }
