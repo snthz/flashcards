@@ -21,6 +21,7 @@ export const importer = {
     updatedNotes: "Updated notes",
     cards: "Cards",
     media: "Media files",
+    reviews: "Past reviews",
     skippedCards: "Cards already present",
   },
   viewDecks: "View decks",

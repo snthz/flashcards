@@ -95,6 +95,7 @@ export function ImportForm() {
           <Stat label={t.importer.summary.updatedNotes} value={summary.updatedNotes} />
           <Stat label={t.importer.summary.cards} value={summary.cards} />
           <Stat label={t.importer.summary.media} value={summary.media} />
+          {summary.reviews > 0 ? <Stat label={t.importer.summary.reviews} value={summary.reviews} /> : null}
           {summary.skippedCards > 0 ? <Stat label={t.importer.summary.skippedCards} value={summary.skippedCards} /> : null}
         </dl>
         <div className="flex gap-2">

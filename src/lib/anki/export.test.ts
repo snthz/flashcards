@@ -204,6 +204,9 @@ describe("writeAnkiCollection", () => {
     expect(fresh.state).toBe("NEW");
     expect(fresh.newPosition).toBe(42);
     expect(fresh.suspended).toBe(true);
+    expect(parsed.reviews).toEqual([
+      { id: 1700000003000n, cardAnkiId: 1700000002000n, ease: 3, interval: 12, lastInterval: 5, factor: 2350, timeMs: 4200, type: 1 },
+    ]);
   });
 
   it("keeps deck options, including the algorithm and FSRS parameters", async () => {

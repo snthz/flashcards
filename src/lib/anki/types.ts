@@ -78,6 +78,17 @@ export interface ParsedCard {
   flag: number;
 }
 
+export interface ParsedReview {
+  id: bigint;
+  cardAnkiId: bigint;
+  ease: number;
+  interval: number;
+  lastInterval: number;
+  factor: number;
+  timeMs: number;
+  type: number;
+}
+
 export interface ParsedMedia {
   name: string;
   data: Uint8Array;
@@ -90,4 +101,5 @@ export interface ParsedCollection {
   notes: ParsedNote[];
   cards: ParsedCard[];
   media: ParsedMedia[];
+  reviews?: ParsedReview[];
 }

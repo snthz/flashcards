@@ -10,6 +10,7 @@ import type {
   ParsedMedia,
   ParsedNote,
   ParsedNoteType,
+  ParsedReview,
 } from "./types";
 
 const FIELD_SEPARATOR = "\x1f";
@@ -371,6 +372,20 @@ function parseCards(db: Database, crtSeconds: number, now: Date): ParsedCard[] {
   });
 }
 
+function parseReviews(db: Database): ParsedReview[] {
+  if (!tableExists(db, "revlog")) return [];
+  return query(db, "SELECT id, cid, ease, ivl, lastIvl, factor, time, type FROM revlog").map((row) => ({
+    id: asBigInt(row.id),
+    cardAnkiId: asBigInt(row.cid),
+    ease: asNumber(row.ease),
+    interval: asNumber(row.ivl),
+    lastInterval: asNumber(row.lastIvl),
+    factor: asNumber(row.factor),
+    timeMs: asNumber(row.time),
+    type: asNumber(row.type),
+  }));
+}
+
 function parseMediaMap(files: Record<string, Uint8Array>, zstd: boolean): Map<string, string> {
   const map = new Map<string, string>();
   const raw = files.media;
@@ -460,6 +475,7 @@ export async function parseApkg(buffer: Uint8Array, options: ParseOptions = {}):
       : parseLegacyDeckConfigs(asString(col.dconf), deckConfigName, legacyFsrsEnabled(asString(col.conf)));
     const notes = parseNotes(db);
     const cards = parseCards(db, crt, now);
+    const reviews = parseReviews(db);
 
     const media: ParsedMedia[] = [];
     if (options.includeMedia !== false) {
@@ -472,7 +488,7 @@ export async function parseApkg(buffer: Uint8Array, options: ParseOptions = {}):
       }
     }
 
-    return { noteTypes, decks, deckConfigs, notes, cards, media };
+    return { noteTypes, decks, deckConfigs, notes, cards, media, reviews };
   } finally {
     db.close();
   }

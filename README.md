@@ -21,7 +21,7 @@ An Anki-compatible spaced repetition app, built as an installable Progressive We
 
 ## Features
 
-- **Anki import** — Reads `.apkg` packages in both the legacy format and the zstd-compressed format introduced in Anki 2.1.50+, including note types, templates, CSS, media, deck options, and each card's scheduling state.
+- **Anki import** — Reads `.apkg` packages in both the legacy format and the zstd-compressed format introduced in Anki 2.1.50+, including note types, templates, CSS, media, deck options, each card's scheduling state, and the full review history, so statistics, streaks and the FSRS optimizer work from day one. Re-importing never duplicates past reviews.
 - **Scheduling** — An Anki-style SM-2 scheduler (learning steps, ease, intervals, lapses, leeches) and FSRS via [`ts-fsrs`](https://github.com/open-spaced-repetition/ts-fsrs), selectable per deck preset. FSRS parameters can be optimized from your own review history with the official [fsrs-rs](https://github.com/open-spaced-repetition/fsrs-rs) optimizer, and are only replaced when the fit improves.
 - **Deck management** — Hierarchical decks with subdecks, daily limits, option presets, and descriptions.
 - **Study sessions** — Four answer buttons with predicted intervals, undo, bury, suspend, flag, audio playback, and keyboard shortcuts. Answers are scheduled on the device and synced in the background, so the next card appears instantly.

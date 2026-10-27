@@ -23,6 +23,7 @@ export const importer: Messages["importer"] = {
     updatedNotes: "Notas actualizadas",
     cards: "Tarjetas",
     media: "Archivos multimedia",
+    reviews: "Repasos anteriores",
     skippedCards: "Tarjetas ya existentes",
   },
   viewDecks: "Ver mazos",

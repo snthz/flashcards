@@ -7,6 +7,7 @@ import { defaultConfigName } from "@/lib/defaults";
 import { defaultLocale, type Locale } from "@/lib/i18n/config";
 import { dictionaries } from "@/lib/i18n/messages";
 import { plainText } from "./render";
+import { convertRevlog, lastReviewByCard } from "./revlog";
 import type { ParsedCollection, ParsedDeckConfig } from "./types";
 
 export interface ImportSummary {
@@ -17,6 +18,7 @@ export interface ImportSummary {
   cards: number;
   media: number;
   skippedCards: number;
+  reviews: number;
 }
 
 const BATCH = 500;
@@ -104,7 +106,9 @@ async function ensureDeckPath(userId: string, fullName: string, configId: string
 
 export async function importCollection(userId: string, parsed: ParsedCollection, locale: Locale = defaultLocale): Promise<ImportSummary> {
   const fallbackDeckName = dictionaries[locale].importer.defaults.deck;
-  const summary: ImportSummary = { decks: 0, noteTypes: 0, notes: 0, updatedNotes: 0, cards: 0, media: 0, skippedCards: 0 };
+  const summary: ImportSummary = { decks: 0, noteTypes: 0, notes: 0, updatedNotes: 0, cards: 0, media: 0, skippedCards: 0, reviews: 0 };
+  const history = convertRevlog(userId, parsed.reviews ?? []);
+  const lastReviews = lastReviewByCard(history);
   const defaultConfig =
     (await prisma.deckConfig.findFirst({ where: { userId, isDefault: true }, select: { id: true } })) ??
     (await prisma.deckConfig.create({ data: { userId, name: defaultConfigName(locale), isDefault: true }, select: { id: true } }));
@@ -285,7 +289,10 @@ export async function importCollection(userId: string, parsed: ParsedCollection,
       step: card.step,
       stability: card.stability,
       difficulty: card.difficulty,
-      lastReview: card.reps > 0 && card.state !== "NEW" ? new Date(Math.min(now.getTime(), card.due.getTime() - card.interval * 86_400_000)) : null,
+      lastReview:
+        card.reps > 0 && card.state !== "NEW"
+          ? (lastReviews.get(card.ankiId.toString()) ?? new Date(Math.min(now.getTime(), card.due.getTime() - card.interval * 86_400_000)))
+          : null,
       suspended: card.suspended,
       buriedUntil: null,
       flag: card.flag,
@@ -296,6 +303,39 @@ export async function importCollection(userId: string, parsed: ParsedCollection,
     await prisma.card.createMany({ data: batch });
   }
   summary.cards = cardCreates.length;
+
+  if (history.length > 0) {
+    const cardIds = new Map<string, { id: string; deckId: string }>();
+    const ankiIds = [...new Set(history.map((review) => review.cardAnkiId.toString()))].map((id) => BigInt(id));
+    for (const batch of chunk(ankiIds, 2000)) {
+      const rows = await prisma.card.findMany({ where: { userId, ankiId: { in: batch } }, select: { id: true, deckId: true, ankiId: true } });
+      for (const row of rows) if (row.ankiId != null) cardIds.set(row.ankiId.toString(), { id: row.id, deckId: row.deckId });
+    }
+    const rows: Prisma.ReviewLogCreateManyInput[] = [];
+    for (const review of history) {
+      const card = cardIds.get(review.cardAnkiId.toString());
+      if (!card) continue;
+      rows.push({
+        id: review.id,
+        userId,
+        cardId: card.id,
+        deckId: card.deckId,
+        rating: review.rating,
+        prevState: review.prevState,
+        newState: review.newState,
+        prevInterval: review.prevInterval,
+        newInterval: review.newInterval,
+        elapsedDays: review.elapsedDays,
+        durationMs: review.durationMs,
+        reviewedAt: review.reviewedAt,
+        snapshot: { imported: true },
+      });
+    }
+    for (const batch of chunk(rows, 1000)) {
+      const created = await prisma.reviewLog.createMany({ data: batch, skipDuplicates: true });
+      summary.reviews += created.count;
+    }
+  }
 
   for (const file of parsed.media) {
     const name = safeMediaName(file.name);

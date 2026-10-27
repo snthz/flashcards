@@ -32,29 +32,31 @@ export async function undoLatestReview(deckId: string): Promise<UndoResult> {
     where: { userId: user.id },
     orderBy: { reviewedAt: "desc" },
   });
-  if (log) {
-    const snapshot = log.snapshot as unknown as Snapshot;
-    await prisma.$transaction([
-      prisma.card.update({
-        where: { id: log.cardId },
-        data: {
-          state: snapshot.state,
-          due: new Date(snapshot.due),
-          interval: snapshot.interval,
-          ease: snapshot.ease,
-          reps: snapshot.reps,
-          lapses: snapshot.lapses,
-          step: snapshot.step,
-          stability: snapshot.stability,
-          difficulty: snapshot.difficulty,
-          lastReview: snapshot.lastReview ? new Date(snapshot.lastReview) : null,
-          suspended: snapshot.suspended,
-          buriedUntil: null,
-        },
-      }),
-      prisma.reviewLog.delete({ where: { id: log.id } }),
-    ]);
+  const snapshot = log?.snapshot as unknown as Snapshot | null;
+  if (!log || !snapshot?.state) {
+    const pack = await buildStudyPack(user, deckId, await getLocale());
+    return { undoneId: null, cardId: null, pack };
   }
+  await prisma.$transaction([
+    prisma.card.update({
+      where: { id: log.cardId },
+      data: {
+        state: snapshot.state,
+        due: new Date(snapshot.due),
+        interval: snapshot.interval,
+        ease: snapshot.ease,
+        reps: snapshot.reps,
+        lapses: snapshot.lapses,
+        step: snapshot.step,
+        stability: snapshot.stability,
+        difficulty: snapshot.difficulty,
+        lastReview: snapshot.lastReview ? new Date(snapshot.lastReview) : null,
+        suspended: snapshot.suspended,
+        buriedUntil: null,
+      },
+    }),
+    prisma.reviewLog.delete({ where: { id: log.id } }),
+  ]);
   const pack = await buildStudyPack(user, deckId, await getLocale());
-  return { undoneId: log?.id ?? null, cardId: log?.cardId ?? null, pack };
+  return { undoneId: log.id, cardId: log.cardId, pack };
 }

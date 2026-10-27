@@ -160,7 +160,7 @@ export async function buildStudyPack(user: CurrentUser, deckId: string, locale: 
     prisma.reviewLog.findFirst({
       where: { userId: user.id, reviewedAt: { gte: new Date(window.now.getTime() - UNDO_WINDOW_MS) } },
       orderBy: { reviewedAt: "desc" },
-      select: { id: true },
+      select: { snapshot: true },
     }),
   ]);
 
@@ -186,7 +186,7 @@ export async function buildStudyPack(user: CurrentUser, deckId: string, locale: 
     reviewLimit: reviews.length,
     truncated: reviewTake < node.counts.review || freshTake < node.counts.fresh,
     newCardOrder: config?.newCardOrder ?? "SEQUENTIAL",
-    serverUndo: Boolean(lastLog),
+    serverUndo: Boolean((lastLog?.snapshot as { state?: string } | null)?.state),
     configs,
     styles,
     cards: cards.map((card) => toPackCard(card, node.fullName, locale)),
