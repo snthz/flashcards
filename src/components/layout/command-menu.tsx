@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BarChart3, Compass, CornerDownLeft, Layers, Search, Settings, Upload, type LucideIcon } from "lucide-react";
+import { ArrowRight, BarChart3, Compass, CornerDownLeft, Languages, Layers, Search, Settings, Upload, type LucideIcon } from "lucide-react";
 import { useMessages } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +35,7 @@ export function CommandMenu({ open, onClose }: { open: boolean; onClose: () => v
       { id: "discover", label: t.discover, href: "/discover", icon: Compass },
       { id: "browse", label: t.browse, href: "/browse", icon: Search },
       { id: "stats", label: t.stats, href: "/stats", icon: BarChart3 },
+      { id: "translate", label: t.translate, href: "/translate", icon: Languages },
       { id: "import", label: t.import, href: "/import", icon: Upload },
       { id: "settings", label: t.settings, href: "/settings", icon: Settings },
     ],

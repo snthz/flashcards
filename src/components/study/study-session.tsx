@@ -24,6 +24,7 @@ import { CardFrame } from "./card-frame";
 import { markSwipeHintSeen, shouldShowSwipeHint, SwipeHint, SwipeTint, useSwipe, type SwipeDirection } from "./swipe";
 import { CardInfoDialog } from "@/components/browse/card-info-dialog";
 import { StudyTimerButton, TimerBreak, TimerNotice, useStudyTimer } from "./study-timer";
+import { StudyTranslator } from "@/components/translate/study-translator";
 
 const RATING_META: Record<Rating, { label: "again" | "hard" | "good" | "easy"; tone: string }> = {
   1: { label: "again", tone: "text-danger border-danger/40 hover:bg-danger-soft" },
@@ -85,6 +86,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
   const [swipeHint, setSwipeHint] = useState(false);
   const [infoCard, setInfoCard] = useState<string | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const [translating, setTranslating] = useState(false);
   const timer = useStudyTimer();
   const onBreak = timer.state?.phase === "break";
 
@@ -308,6 +310,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
       if (onBreak) return;
       const target = (event.composedPath()[0] ?? event.target) as HTMLElement | null;
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      if (target?.closest?.("[data-translator]")) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
         undo();
@@ -338,7 +341,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
   const statusLabel = !online ? `${t.study.offline} · ${t.study.offlineHint}` : syncFailed && pendingOps > 0 ? t.study.pendingSync(pendingOps) : null;
 
   return (
-    <div className="relative -mb-24 flex h-[calc(100dvh_-_1rem_-_var(--safe-top))] flex-col md:mb-0 md:h-auto">
+    <div className={cn("relative -mb-24 flex h-[calc(100dvh_-_1rem_-_var(--safe-top))] flex-col md:mb-0 md:h-auto", translating && card && "translator-docked")}>
       <TimerNotice timer={timer} onFinish={() => router.push(`/decks/${deckId}`)} />
       <header className="flex items-center justify-between gap-3 pb-3">
         <div className="flex min-w-0 items-center gap-2">
@@ -453,6 +456,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
               />
             </section>
             {swipeHint && revealed ? <SwipeHint target={sectionRef} text={t.study.swipeHint} onDone={endSwipeHint} /> : null}
+            <StudyTranslator cardHtml={revealed ? card.answer : card.question} cardRef={sectionRef} deckId={deckId} open={translating} onOpenChange={setTranslating} />
           </div>
 
           <footer className="safe-bottom pt-3">

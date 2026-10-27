@@ -811,3 +811,9 @@ body {
     background-position: -200% 0;
   }
 }
+
+@media (min-width: 768px) {
+  .translator-docked {
+    margin-right: max(0px, calc(440px - max(24px, calc((100vw - 1024px) / 2 + 24px))));
+  }
+}

@@ -7,6 +7,7 @@ export const nav: Messages["nav"] = {
   stats: "Estadísticas",
   statsShort: "Stats",
   settings: "Ajustes",
+  translate: "Traducir",
   import: "Importar",
   account: "Cuenta",
   logout: "Cerrar sesión",

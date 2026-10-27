@@ -5,6 +5,7 @@ export const nav = {
   stats: "Statistics",
   statsShort: "Stats",
   settings: "Settings",
+  translate: "Translate",
   import: "Import",
   account: "Account",
   logout: "Log out",

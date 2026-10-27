@@ -9,6 +9,8 @@ import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ExportButton } from "@/components/export/export-dialog";
 import { ReminderSettings } from "@/components/settings/reminder-settings";
 import { FocusSettings } from "@/components/settings/focus-settings";
+import { TranslatorSettings } from "@/components/settings/translator-settings";
+import { translatorStatus } from "@/lib/translate/queries";
 import { vapidPublicKey } from "@/lib/reminders/push";
 import { prisma } from "@/lib/db";
 import { Download } from "lucide-react";
@@ -22,7 +24,10 @@ export default async function SettingsPage() {
   const user = await requireUser();
   const messages = await getMessages();
   const t = messages.settings;
-  const reminder = await prisma.user.findUnique({ where: { id: user.id }, select: { reminderHour: true, reminderNudges: true } });
+  const [reminder, translator] = await Promise.all([
+    prisma.user.findUnique({ where: { id: user.id }, select: { reminderHour: true, reminderNudges: true } }),
+    translatorStatus(user.id),
+  ]);
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t.title} description={user.email} actions={<LogoutButton />} />
@@ -46,6 +51,7 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
       <FocusSettings />
+      <TranslatorSettings keyHint={translator.keyHint} model={translator.model} />
       <Card>
         <CardHeader>
           <CardTitle>{t.languageTitle}</CardTitle>

@@ -20,6 +20,7 @@ import { stats } from "./stats";
 import { study } from "./study";
 import { time } from "./time";
 import { timer } from "./timer";
+import { translate } from "./translate";
 import { validation } from "./validation";
 
 export const en = {
@@ -45,5 +46,6 @@ export const en = {
   study,
   time,
   timer,
+  translate,
   validation,
 };

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Compass, Layers, LogOut, Search, Settings, Upload } from "lucide-react";
+import { BarChart3, Compass, Languages, Layers, LogOut, Search, Settings, Upload } from "lucide-react";
 import { Menu, MenuLink, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { logout } from "@/app/(auth)/actions";
@@ -19,6 +19,7 @@ function navItems(t: Messages["nav"]) {
     { href: "/discover", label: t.discover, short: t.discover, icon: Compass },
     { href: "/browse", label: t.browse, short: t.browse, icon: Search },
     { href: "/stats", label: t.stats, short: t.statsShort, icon: BarChart3 },
+    { href: "/translate", label: t.translate, short: t.translate, icon: Languages },
     { href: "/settings", label: t.settings, short: t.settings, icon: Settings },
   ];
 }
@@ -70,7 +71,7 @@ function Brand() {
 
 function Links({ pathname }: { pathname: string }) {
   const { locale, t } = useI18n();
-  const links = navItems(t.nav).slice(0, 4);
+  const links = navItems(t.nav).slice(0, 5);
   const list = useRef<HTMLDivElement>(null);
   const underline = useRef<HTMLSpanElement>(null);
   const hover = useRef<HTMLSpanElement>(null);
@@ -261,14 +262,14 @@ export function BottomNav() {
   const index = items.findIndex((item) => isActive(pathname, item.href));
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/85 backdrop-blur-xl safe-bottom md:hidden">
-      <div className="relative mx-auto grid max-w-md grid-cols-5">
+      <div className="relative mx-auto grid max-w-md grid-cols-6">
         {index >= 0 ? (
           <span
             aria-hidden
-            className="absolute left-0 top-2 flex h-7 w-1/5 justify-center transition-transform duration-300 ease-out"
+            className="absolute left-0 top-2 flex h-7 w-1/6 justify-center transition-transform duration-300 ease-out"
             style={{ transform: `translateX(${index * 100}%)` }}
           >
-            <span className="h-full w-12 rounded-full bg-accent-soft" />
+            <span className="h-full w-11 rounded-full bg-accent-soft" />
           </span>
         ) : null}
         {items.map((item) => {
@@ -283,7 +284,7 @@ export function BottomNav() {
             >
               <span
                 className={cn(
-                  "flex h-7 w-12 items-center justify-center transition-colors",
+                  "flex h-7 w-11 items-center justify-center transition-colors",
                   active ? "text-foreground" : "text-muted-foreground",
                 )}
               >
