@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState, useTransition, type ReactNode } from "rea
 import { Check, Volume2 } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input, Select, Textarea } from "@/components/ui/input";
+import { Input, Textarea } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Field, FormError } from "@/components/ui/field";
 import { CardFrame } from "@/components/study/card-frame";
 import { useI18n } from "@/lib/i18n/client";
@@ -194,13 +195,13 @@ export function SaveCardDialog({ draft, deckId, onClose, languageName }: { draft
           }}
         >
           <Field label={tr.deck} htmlFor="save-card-deck">
-            <Select id="save-card-deck" value={deck} onChange={(event) => setDeck(event.target.value)} disabled={!decks}>
-              {(decks ?? []).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </Select>
+            <Select
+              id="save-card-deck"
+              value={deck}
+              onChange={setDeck}
+              disabled={!decks}
+              options={(decks ?? []).map((item) => ({ value: item.id, label: item.name }))}
+            />
           </Field>
 
           {bilingual ? (

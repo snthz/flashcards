@@ -6,7 +6,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Flag, Info, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox, Select } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { deleteNotes, moveCards, resetCards, setCardsSuspended } from "@/lib/notes/actions";
@@ -94,14 +95,15 @@ export function BrowseTable({ rows, total, page, pages, decks }: Props) {
             {t.browse.resetProgress}
           </Button>
           <div className="flex items-center gap-1">
-            <Select value={moveTo} onChange={(e) => setMoveTo(e.target.value)} className="h-8 w-44 text-xs" aria-label={t.browse.moveTo}>
-              <option value="">{t.browse.moveToPlaceholder}</option>
-              {decks.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </Select>
+            <Select
+              variant="compact"
+              value={moveTo}
+              onChange={setMoveTo}
+              label={t.browse.moveTo}
+              placeholder={t.browse.moveToPlaceholder}
+              className="w-44"
+              options={decks.map((d) => ({ value: d.id, label: d.name }))}
+            />
             <Button size="sm" variant="outline" disabled={!moveTo || pending} onClick={() => run(() => moveCards(ids, moveTo))}>
               {t.browse.move}
             </Button>

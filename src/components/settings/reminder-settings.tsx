@@ -3,7 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import { BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox, Select } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { deletePushSubscription, savePushSubscription, saveReminderHour, saveReminderNudges, sendTestReminder } from "@/app/(app)/settings/actions";
 import { useI18n } from "@/lib/i18n/client";
 
@@ -125,16 +126,20 @@ export function ReminderSettings({ publicKey, initialHour, initialNudges }: { pu
           />
           <span className="text-sm font-medium">{s.reminderToggle}</span>
         </label>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">{s.reminderTime}</span>
-          <Select value={String(hour)} onChange={(event) => changeHour(Number(event.target.value))} disabled={pending} className="w-28">
-            {hours.map((value) => (
-              <option key={value} value={value}>
-                {String(value).padStart(2, "0")}:00
-              </option>
-            ))}
-          </Select>
-        </label>
+        <div className="flex items-center gap-2 text-sm">
+          <label htmlFor="reminder-hour" className="text-muted-foreground">
+            {s.reminderTime}
+          </label>
+          <div className="w-28">
+            <Select
+              id="reminder-hour"
+              value={String(hour)}
+              onChange={(value) => changeHour(Number(value))}
+              disabled={pending}
+              options={hours.map((value) => ({ value: String(value), label: `${String(value).padStart(2, "0")}:00` }))}
+            />
+          </div>
+        </div>
       </div>
       <p className="text-sm text-muted-foreground">
         {support === "denied" ? s.pushDenied : subscribed ? s.reminderOn(time) : s.reminderOff}

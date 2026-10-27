@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { Select } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { StatsPeriod } from "@/lib/stats/queries";
 import { useI18n } from "@/lib/i18n/client";
@@ -23,14 +23,13 @@ export function StatsFilters({ deckId, period, decks }: { deckId: string; period
   };
   return (
     <div className={cn("flex flex-col gap-2 sm:flex-row sm:items-center", pending && "opacity-70")}>
-      <Select value={deckId} onChange={(e) => navigate({ deck: e.target.value })} aria-label={t.stats.deck} className="sm:w-64">
-        <option value="">{t.stats.allDecks}</option>
-        {decks.map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.name}
-          </option>
-        ))}
-      </Select>
+      <Select
+        value={deckId}
+        onChange={(deck) => navigate({ deck })}
+        label={t.stats.deck}
+        className="sm:w-64"
+        options={[{ value: "", label: t.stats.allDecks }, ...decks.map((d) => ({ value: d.id, label: d.name }))]}
+      />
       <div className="flex rounded-lg border bg-card p-0.5" role="tablist" aria-label={t.stats.period}>
         {PERIODS.map((value) => (
           <button

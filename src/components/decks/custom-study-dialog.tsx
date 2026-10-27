@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { Select } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { useMessages } from "@/lib/i18n/client";
 import { CUSTOM_DAYS, CUSTOM_NEW_COUNTS, customStudyQuery, type CustomMode, type CustomStudy } from "@/lib/study/custom";
 import { cn } from "@/lib/utils";
@@ -40,13 +40,13 @@ export function CustomStudyButton({ deckId, tags, flags }: { deckId: string; tag
       title: t.forgotten,
       hint: t.forgottenHint,
       control: (
-        <Select value={String(days)} onChange={(event) => setDays(Number(event.target.value))} className="h-8 w-auto text-xs">
-          {CUSTOM_DAYS.map((value) => (
-            <option key={value} value={value}>
-              {t.lastDays(value)}
-            </option>
-          ))}
-        </Select>
+        <Select
+          variant="compact"
+          label={t.forgotten}
+          value={String(days)}
+          onChange={(value) => setDays(Number(value))}
+          options={CUSTOM_DAYS.map((value) => ({ value: String(value), label: t.lastDays(value) }))}
+        />
       ),
     },
     {
@@ -54,13 +54,13 @@ export function CustomStudyButton({ deckId, tags, flags }: { deckId: string; tag
       title: t.ahead,
       hint: t.aheadHint,
       control: (
-        <Select value={String(aheadDays)} onChange={(event) => setAheadDays(Number(event.target.value))} className="h-8 w-auto text-xs">
-          {CUSTOM_DAYS.slice(0, 4).map((value) => (
-            <option key={value} value={value}>
-              {t.nextDays(value)}
-            </option>
-          ))}
-        </Select>
+        <Select
+          variant="compact"
+          label={t.ahead}
+          value={String(aheadDays)}
+          onChange={(value) => setAheadDays(Number(value))}
+          options={CUSTOM_DAYS.slice(0, 4).map((value) => ({ value: String(value), label: t.nextDays(value) }))}
+        />
       ),
     },
     {
@@ -68,13 +68,13 @@ export function CustomStudyButton({ deckId, tags, flags }: { deckId: string; tag
       title: t.extraNew,
       hint: t.extraNewHint,
       control: (
-        <Select value={String(count)} onChange={(event) => setCount(Number(event.target.value))} className="h-8 w-auto text-xs">
-          {CUSTOM_NEW_COUNTS.map((value) => (
-            <option key={value} value={value}>
-              {t.cards(value)}
-            </option>
-          ))}
-        </Select>
+        <Select
+          variant="compact"
+          label={t.extraNew}
+          value={String(count)}
+          onChange={(value) => setCount(Number(value))}
+          options={CUSTOM_NEW_COUNTS.map((value) => ({ value: String(value), label: t.cards(value) }))}
+        />
       ),
     },
     {
@@ -84,13 +84,14 @@ export function CustomStudyButton({ deckId, tags, flags }: { deckId: string; tag
       disabled: tags.length === 0,
       control:
         tags.length > 0 ? (
-          <Select value={tag} onChange={(event) => setTag(event.target.value)} className="h-8 w-auto max-w-40 text-xs">
-            {tags.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </Select>
+          <Select
+            variant="compact"
+            label={t.tag}
+            value={tag}
+            onChange={setTag}
+            options={tags.map((value) => ({ value, label: value }))}
+            className="max-w-40"
+          />
         ) : null,
     },
     {

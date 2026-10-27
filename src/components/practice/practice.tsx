@@ -22,7 +22,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button, buttonStyles } from "@/components/ui/button";
-import { Select } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n/client";
 import { loadPracticeItems } from "@/lib/practice/actions";
@@ -165,14 +165,12 @@ function Setup({
         <div className="grid gap-3">
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
             {p.source}
-            <Select value={prefs.deckId ?? ""} onChange={(event) => onPrefs({ deckId: event.target.value || null })}>
-              <option value="">{p.allDecks}</option>
-              {decks.map((deck) => (
-                <option key={deck.id} value={deck.id}>
-                  {deck.name}
-                </option>
-              ))}
-            </Select>
+            <Select
+              label={p.source}
+              value={prefs.deckId ?? ""}
+              onChange={(deckId) => onPrefs({ deckId: deckId || null })}
+              options={[{ value: "", label: p.allDecks }, ...decks.map((deck) => ({ value: deck.id, label: deck.name }))]}
+            />
           </label>
           <div className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
             {p.period}

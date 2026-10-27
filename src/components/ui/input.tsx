@@ -1,4 +1,4 @@
-import { forwardRef, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { forwardRef, type InputHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const base =
@@ -16,17 +16,6 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
     return <textarea ref={ref} className={cn(base, "min-h-24 py-2 leading-relaxed", className)} {...props} />;
   },
 );
-
-export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function Select(
-  { className, children, ...props },
-  ref,
-) {
-  return (
-    <select ref={ref} className={cn(base, "h-10 appearance-none pr-8", className)} {...props}>
-      {children}
-    </select>
-  );
-});
 
 export function Checkbox({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input type="checkbox" className={cn("size-4 rounded border accent-accent", className)} {...props} />;

@@ -19,4 +19,7 @@ export const common: Messages["common"] = {
   options: "Opciones",
   invalidData: "Datos inválidos",
   notFound: "No encontrado",
+  noResults: "Sin resultados",
+  decrease: "Disminuir",
+  increase: "Aumentar",
 };

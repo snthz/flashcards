@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Search } from "lucide-react";
-import { Input, Select } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import type { BrowseQuery } from "@/lib/validation/note";
 import { useI18n } from "@/lib/i18n/client";
 
@@ -38,22 +39,20 @@ export function BrowseFilters({ query, decks }: { query: BrowseQuery; decks: Arr
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input name="q" defaultValue={query.q} placeholder={t.browse.searchPlaceholder} className="pl-9" enterKeyHint="search" />
       </div>
-      <Select value={query.deck} onChange={(e) => navigate({ deck: e.target.value })} aria-label={t.browse.deck} className="sm:w-56">
-        <option value="">{t.browse.allDecks}</option>
-        {decks.map((deck) => (
-          <option key={deck.id} value={deck.id}>
-            {deck.name}
-          </option>
-        ))}
-      </Select>
-      <Select value={query.state} onChange={(e) => navigate({ state: e.target.value as BrowseQuery["state"] })} aria-label={t.browse.state} className="sm:w-44">
-        <option value="">{t.browse.filters.all}</option>
-        {STATES.map((state) => (
-          <option key={state} value={state}>
-            {t.browse.filters[state]}
-          </option>
-        ))}
-      </Select>
+      <Select
+        value={query.deck}
+        onChange={(deck) => navigate({ deck })}
+        label={t.browse.deck}
+        className="sm:w-56"
+        options={[{ value: "", label: t.browse.allDecks }, ...decks.map((deck) => ({ value: deck.id, label: deck.name }))]}
+      />
+      <Select<BrowseQuery["state"]>
+        value={query.state}
+        onChange={(state) => navigate({ state })}
+        label={t.browse.state}
+        className="sm:w-44"
+        options={[{ value: "", label: t.browse.filters.all }, ...STATES.map((state) => ({ value: state, label: t.browse.filters[state] }))]}
+      />
     </form>
   );
 }

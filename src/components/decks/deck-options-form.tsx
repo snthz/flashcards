@@ -3,7 +3,9 @@
 import { useActionState, useState, useTransition } from "react";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
+import { Select } from "@/components/ui/select";
 import { Field, FormError } from "@/components/ui/field";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/dialog";
@@ -88,16 +90,10 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
             <Select
               value={config.id}
               disabled={switching}
-              onChange={(event) => startSwitch(() => setDeckConfig(deckId, event.target.value))}
-              aria-label={o.preset}
-            >
-              {configs.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                  {c.isDefault ? o.defaultSuffix : ""}
-                </option>
-              ))}
-            </Select>
+              onChange={(id) => startSwitch(() => setDeckConfig(deckId, id))}
+              label={o.preset}
+              options={configs.map((c) => ({ value: c.id, label: `${c.name}${c.isDefault ? o.defaultSuffix : ""}` }))}
+            />
             {!config.isDefault ? (
               <Button variant="outline" onClick={() => setConfirmingDelete(true)} disabled={switching}>
                 {o.deletePreset}
@@ -149,22 +145,33 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
               <Input id="name" name="name" defaultValue={config.name} required maxLength={80} />
             </Field>
             <Field label={l.newPerDay} htmlFor="newPerDay">
-              <Input id="newPerDay" name="newPerDay" type="number" min={0} max={9999} defaultValue={config.newPerDay} inputMode="numeric" />
+              <NumberInput id="newPerDay" name="newPerDay" min={0} max={9999} defaultValue={config.newPerDay} />
             </Field>
             <Field label={l.reviewsPerDay} htmlFor="reviewsPerDay">
-              <Input id="reviewsPerDay" name="reviewsPerDay" type="number" min={0} max={99999} defaultValue={config.reviewsPerDay} inputMode="numeric" />
+              <NumberInput id="reviewsPerDay" name="reviewsPerDay" min={0} max={99999} defaultValue={config.reviewsPerDay} />
             </Field>
             <Field label={l.newCardOrder} htmlFor="newCardOrder">
-              <Select id="newCardOrder" name="newCardOrder" defaultValue={config.newCardOrder}>
-                <option value="SEQUENTIAL">{o.orderSequential}</option>
-                <option value="RANDOM">{o.orderRandom}</option>
-              </Select>
+              <Select
+                id="newCardOrder"
+                name="newCardOrder"
+                defaultValue={config.newCardOrder}
+                options={[
+                  { value: "SEQUENTIAL", label: o.orderSequential },
+                  { value: "RANDOM", label: o.orderRandom },
+                ]}
+              />
             </Field>
             <Field label={l.algorithm} htmlFor="algorithm" hint={o.algorithmHint}>
-              <Select id="algorithm" name="algorithm" value={algorithm} onChange={(e) => setAlgorithm(e.target.value as "SM2" | "FSRS")}>
-                <option value="SM2">{o.algorithmSm2}</option>
-                <option value="FSRS">FSRS</option>
-              </Select>
+              <Select
+                id="algorithm"
+                name="algorithm"
+                value={algorithm}
+                onChange={setAlgorithm}
+                options={[
+                  { value: "SM2", label: o.algorithmSm2 },
+                  { value: "FSRS", label: "FSRS" },
+                ]}
+              />
             </Field>
           </CardContent>
         </Card>
@@ -179,13 +186,13 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
               <Input id="learningSteps" name="learningSteps" defaultValue={stepsToText(config.learningSteps)} />
             </Field>
             <Field label={l.graduatingInterval} htmlFor="graduatingInterval">
-              <Input id="graduatingInterval" name="graduatingInterval" type="number" min={1} defaultValue={config.graduatingInterval} />
+              <NumberInput id="graduatingInterval" name="graduatingInterval" min={1} defaultValue={config.graduatingInterval} />
             </Field>
             <Field label={l.easyInterval} htmlFor="easyInterval">
-              <Input id="easyInterval" name="easyInterval" type="number" min={1} defaultValue={config.easyInterval} />
+              <NumberInput id="easyInterval" name="easyInterval" min={1} defaultValue={config.easyInterval} />
             </Field>
             <Field label={l.startingEase} htmlFor="startingEase">
-              <Input id="startingEase" name="startingEase" type="number" min={130} max={500} defaultValue={config.startingEase / 10} disabled={algorithm === "FSRS"} />
+              <NumberInput id="startingEase" name="startingEase" min={130} max={500} defaultValue={config.startingEase / 10} disabled={algorithm === "FSRS"} />
             </Field>
           </CardContent>
         </Card>
@@ -199,19 +206,24 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
               <Input id="relearningSteps" name="relearningSteps" defaultValue={stepsToText(config.relearningSteps)} />
             </Field>
             <Field label={l.minLapseInterval} htmlFor="minLapseInterval">
-              <Input id="minLapseInterval" name="minLapseInterval" type="number" min={1} defaultValue={config.minLapseInterval} />
+              <NumberInput id="minLapseInterval" name="minLapseInterval" min={1} defaultValue={config.minLapseInterval} />
             </Field>
             <Field label={l.lapseMultiplier} htmlFor="lapseMultiplier">
-              <Input id="lapseMultiplier" name="lapseMultiplier" type="number" step="0.05" min={0} max={1} defaultValue={config.lapseMultiplier} disabled={algorithm === "FSRS"} />
+              <NumberInput id="lapseMultiplier" name="lapseMultiplier" step="0.05" min={0} max={1} defaultValue={config.lapseMultiplier} disabled={algorithm === "FSRS"} />
             </Field>
             <Field label={l.leechThreshold} htmlFor="leechThreshold">
-              <Input id="leechThreshold" name="leechThreshold" type="number" min={0} defaultValue={config.leechThreshold} />
+              <NumberInput id="leechThreshold" name="leechThreshold" min={0} defaultValue={config.leechThreshold} />
             </Field>
             <Field label={l.leechAction} htmlFor="leechAction">
-              <Select id="leechAction" name="leechAction" defaultValue={config.leechAction}>
-                <option value="TAG">{o.leechTagOnly}</option>
-                <option value="SUSPEND">{o.leechSuspend}</option>
-              </Select>
+              <Select
+                id="leechAction"
+                name="leechAction"
+                defaultValue={config.leechAction}
+                options={[
+                  { value: "TAG", label: o.leechTagOnly },
+                  { value: "SUSPEND", label: o.leechSuspend },
+                ]}
+              />
             </Field>
           </CardContent>
         </Card>
@@ -222,12 +234,12 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <Field label={l.maxInterval} htmlFor="maxInterval">
-              <Input id="maxInterval" name="maxInterval" type="number" min={1} max={36500} defaultValue={config.maxInterval} />
+              <NumberInput id="maxInterval" name="maxInterval" min={1} max={36500} defaultValue={config.maxInterval} />
             </Field>
             {algorithm === "FSRS" ? (
               <>
                 <Field label={l.desiredRetention} htmlFor="desiredRetention">
-                  <Input id="desiredRetention" name="desiredRetention" type="number" step="0.01" min={0.7} max={0.99} defaultValue={config.desiredRetention} />
+                  <NumberInput id="desiredRetention" name="desiredRetention" step="0.01" min={0.7} max={0.99} defaultValue={config.desiredRetention} />
                 </Field>
                 <Field label={l.fsrsWeights} htmlFor="fsrsWeights" hint={o.fsrsWeightsHint} className="sm:col-span-2">
                   <Input id="fsrsWeights" name="fsrsWeights" value={weights} onChange={(event) => setWeights(event.target.value)} />
@@ -259,13 +271,13 @@ export function DeckOptionsForm({ deckId, config, configs }: Props) {
             ) : (
               <>
                 <Field label={l.easyBonus} htmlFor="easyBonus">
-                  <Input id="easyBonus" name="easyBonus" type="number" step="0.05" min={1} max={3} defaultValue={config.easyBonus} />
+                  <NumberInput id="easyBonus" name="easyBonus" step="0.05" min={1} max={3} defaultValue={config.easyBonus} />
                 </Field>
                 <Field label={l.hardMultiplier} htmlFor="hardMultiplier">
-                  <Input id="hardMultiplier" name="hardMultiplier" type="number" step="0.05" min={1} max={2} defaultValue={config.hardMultiplier} />
+                  <NumberInput id="hardMultiplier" name="hardMultiplier" step="0.05" min={1} max={2} defaultValue={config.hardMultiplier} />
                 </Field>
                 <Field label={l.intervalModifier} htmlFor="intervalModifier">
-                  <Input id="intervalModifier" name="intervalModifier" type="number" step="0.05" min={0.1} max={3} defaultValue={config.intervalModifier} />
+                  <NumberInput id="intervalModifier" name="intervalModifier" step="0.05" min={0.1} max={3} defaultValue={config.intervalModifier} />
                 </Field>
                 <input type="hidden" name="desiredRetention" value={config.desiredRetention} />
                 <input type="hidden" name="fsrsWeights" value={weights} />

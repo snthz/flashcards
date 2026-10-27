@@ -17,4 +17,7 @@ export const common = {
   options: "Options",
   invalidData: "Invalid data",
   notFound: "Not found",
+  noResults: "No results",
+  decrease: "Decrease",
+  increase: "Increase",
 };

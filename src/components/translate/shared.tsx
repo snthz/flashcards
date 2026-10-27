@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import { Select } from "@/components/ui/select";
 import { useI18n } from "@/lib/i18n/client";
 import { intlLocale } from "@/lib/i18n/config";
 import { lookupDictionary, translateText } from "@/lib/translate/actions";
@@ -177,25 +177,10 @@ export function LanguagePicker({
   align?: "left" | "right";
 }) {
   const languageName = useLanguageName();
+  const options = [...(auto ? [{ value: "auto", label: auto }] : []), ...LANGUAGES.map((code) => ({ value: code, label: languageName(code) }))];
   return (
-    <div className={cn("relative flex min-w-0", align === "right" && "justify-end")}>
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={cn(
-          "h-9 min-w-0 max-w-full cursor-pointer appearance-none truncate rounded-lg bg-transparent pl-3 pr-8 text-sm font-medium text-foreground transition-colors hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          align === "right" && "text-right",
-        )}
-      >
-        {auto ? <option value="auto">{auto}</option> : null}
-        {LANGUAGES.map((code) => (
-          <option key={code} value={code}>
-            {languageName(code)}
-          </option>
-        ))}
-      </select>
-      <ChevronDown aria-hidden className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+    <div className={cn("flex min-w-0", align === "right" && "justify-end")}>
+      <Select variant="ghost" label={label} value={value} onChange={onChange} align={align} options={options} />
     </div>
   );
 }

@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Field, FormError } from "@/components/ui/field";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { changePassword, deleteAccount, updateProfile, updateStudyDay, type SettingsState } from "@/app/(app)/settings/actions";
@@ -48,23 +49,20 @@ export function StudyDayForm({ timezone, dayStartHour }: { timezone: string; day
       <SuccessMessage message={state.success} />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t.timezone} htmlFor="timezone" error={state.fieldErrors?.timezone}>
-          <Select id="timezone" name="timezone" defaultValue={timezone}>
-            {zones.includes(timezone) ? null : <option value={timezone}>{timezone}</option>}
-            {zones.map((zone) => (
-              <option key={zone} value={zone}>
-                {zone}
-              </option>
-            ))}
-          </Select>
+          <Select
+            id="timezone"
+            name="timezone"
+            defaultValue={timezone}
+            options={(zones.includes(timezone) ? zones : [timezone, ...zones]).map((zone) => ({ value: zone, label: zone }))}
+          />
         </Field>
         <Field label={t.dayStart} htmlFor="dayStartHour" hint={t.dayStartHint}>
-          <Select id="dayStartHour" name="dayStartHour" defaultValue={String(dayStartHour)}>
-            {hours.map((hour) => (
-              <option key={hour} value={hour}>
-                {String(hour).padStart(2, "0")}:00
-              </option>
-            ))}
-          </Select>
+          <Select
+            id="dayStartHour"
+            name="dayStartHour"
+            defaultValue={String(dayStartHour)}
+            options={hours.map((hour) => ({ value: String(hour), label: `${String(hour).padStart(2, "0")}:00` }))}
+          />
         </Field>
       </div>
       <div>

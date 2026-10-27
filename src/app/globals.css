@@ -368,6 +368,80 @@ body {
   background: var(--foreground);
 }
 
+.select-pop {
+  position: fixed;
+  inset: var(--select-top, auto) var(--select-right, auto) var(--select-bottom, auto) var(--select-left, auto);
+  width: max-content;
+  min-width: var(--select-width, 10rem);
+  max-width: var(--select-max-width, calc(100vw - 1rem));
+  max-height: var(--select-max-height, 20rem);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  background: transparent;
+  color: inherit;
+}
+
+.select-pop:popover-open {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 47.99rem) {
+  .select-pop {
+    inset: var(--select-viewport-top, 0px) 0 auto;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: var(--select-viewport-height, 100%);
+    max-height: none;
+    justify-content: flex-end;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .select-panel {
+    transform-origin: var(--select-origin, top);
+    animation: menu-pop 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @media (max-width: 47.99rem) {
+    .select-panel {
+      animation: sheet-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+  }
+}
+
+input:is(:autofill, :-webkit-autofill) {
+  -webkit-text-fill-color: var(--foreground);
+  caret-color: var(--foreground);
+  transition:
+    background-color 0s 600000s,
+    color 0s 600000s,
+    box-shadow 0.15s;
+}
+
+@media (any-pointer: coarse) {
+  input,
+  textarea,
+  select,
+  [contenteditable] {
+    --text-xs: 1rem;
+    --text-sm: 1rem;
+  }
+}
+
+@layer base {
+  @media (any-pointer: coarse) {
+    input,
+    textarea,
+    select {
+      font-size: max(1rem, 1em);
+    }
+  }
+}
+
 @layer components {
   .landing-header {
     background-color: color-mix(in oklch, var(--background) 78%, transparent);

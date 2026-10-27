@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { ExternalLink, KeyRound, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { ConfirmDialog } from "@/components/ui/dialog";
@@ -121,13 +122,13 @@ export function TranslatorSettings({ keyHint, model }: { keyHint: string | null;
           </form>
         )}
         <Field label={t.modelLabel} htmlFor="anthropic-model">
-          <Select id="anthropic-model" value={chosen} onChange={(event) => changeModel(event.target.value as ClaudeModel)} disabled={pending}>
-            {CLAUDE_MODELS.map((value) => (
-              <option key={value} value={value}>
-                {t.models[value]}
-              </option>
-            ))}
-          </Select>
+          <Select
+            id="anthropic-model"
+            value={chosen}
+            onChange={changeModel}
+            disabled={pending}
+            options={CLAUDE_MODELS.map((value) => ({ value, label: t.models[value] }))}
+          />
         </Field>
         {status !== "idle" ? (
           <p role="status" className={cn("text-sm", ok ? "text-success" : "text-danger")}>

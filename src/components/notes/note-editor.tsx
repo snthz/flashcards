@@ -4,7 +4,8 @@ import { useActionState, useEffect, useMemo, useRef, useState, type ClipboardEve
 import { useRouter } from "next/navigation";
 import { ImagePlus, Loader2, Music, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input, Select, Textarea } from "@/components/ui/input";
+import { Input, Textarea } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Field, FormError } from "@/components/ui/field";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { CardFrame } from "@/components/study/card-frame";
@@ -203,22 +204,21 @@ export function NoteEditor({
       {mode === "create" ? (
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t.notes.deck} htmlFor="deckId">
-            <Select id="deckId" name="deckId" defaultValue={initialDeckId ?? decks[0]?.id ?? ""} required>
-              {decks.map((deck) => (
-                <option key={deck.id} value={deck.id}>
-                  {deck.name}
-                </option>
-              ))}
-            </Select>
+            <Select
+              id="deckId"
+              name="deckId"
+              defaultValue={initialDeckId ?? decks[0]?.id ?? ""}
+              options={decks.map((deck) => ({ value: deck.id, label: deck.name }))}
+            />
           </Field>
           <Field label={t.notes.noteType} htmlFor="noteTypeId">
-            <Select id="noteTypeId" name="noteTypeId" value={noteTypeId} onChange={(e) => changeNoteType(e.target.value)}>
-              {noteTypes.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </Select>
+            <Select
+              id="noteTypeId"
+              name="noteTypeId"
+              value={noteTypeId}
+              onChange={changeNoteType}
+              options={noteTypes.map((type) => ({ value: type.id, label: type.name }))}
+            />
           </Field>
         </div>
       ) : null}
@@ -281,13 +281,13 @@ export function NoteEditor({
           <p className="text-sm font-medium">{t.notes.preview}</p>
           <div className="flex items-center gap-2">
             {noteType.kind === "STANDARD" && noteType.templates.length > 1 ? (
-              <Select value={String(templateIndex)} onChange={(event) => setTemplateIndex(Number(event.target.value))} className="h-8 w-auto text-xs" aria-label={t.notes.noteType}>
-                {noteType.templates.map((template, index) => (
-                  <option key={template.name + index} value={index}>
-                    {template.name}
-                  </option>
-                ))}
-              </Select>
+              <Select
+                variant="compact"
+                value={String(templateIndex)}
+                onChange={(value) => setTemplateIndex(Number(value))}
+                label={t.notes.noteType}
+                options={noteType.templates.map((template, index) => ({ value: String(index), label: template.name }))}
+              />
             ) : null}
             <div className="flex rounded-lg border bg-muted/60 p-0.5 text-xs">
               {(["question", "answer"] as const).map((value) => (
