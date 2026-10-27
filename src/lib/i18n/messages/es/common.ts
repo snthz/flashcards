@@ -22,4 +22,9 @@ export const common: Messages["common"] = {
   noResults: "Sin resultados",
   decrease: "Disminuir",
   increase: "Aumentar",
+  today: "Hoy",
+  previousMonth: "Mes anterior",
+  nextMonth: "Mes siguiente",
+  hours: "Horas",
+  minutes: "Minutos",
 };

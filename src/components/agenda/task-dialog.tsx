@@ -5,14 +5,16 @@ import Link from "next/link";
 import { BellOff, Trash2 } from "lucide-react";
 import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input, Textarea } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
+import { TimePicker } from "@/components/ui/time-picker";
+import { Switch } from "@/components/ui/switch";
 import { Field, FormError } from "@/components/ui/field";
 import { useMessages } from "@/lib/i18n/client";
 import { deleteAgendaTask, saveAgendaTask } from "@/lib/agenda/actions";
 import { MAX_REMIND_MINUTES, REMINDER_PRESETS, type AgendaTaskData } from "@/lib/agenda/types";
-import { cn } from "@/lib/utils";
 
 export interface TaskDraft {
   id: string | null;
@@ -51,7 +53,7 @@ export function TaskDialog({
 }) {
   const t = useMessages().agenda;
   return (
-    <Dialog open={draft !== null} onClose={onClose} title={draft?.id ? t.task.editTitle : t.task.newTitle} className="max-h-[92dvh] max-w-md overflow-y-auto">
+    <Dialog sheet open={draft !== null} onClose={onClose} title={draft?.id ? t.task.editTitle : t.task.newTitle} className="max-h-[92dvh] max-w-md overflow-y-auto">
       {draft ? <TaskForm key={draft.id ?? `new-${draft.day}`} draft={draft} pushReady={pushReady} onClose={onClose} onSaved={onSaved} onDeleted={onDeleted} /> : null}
     </Dialog>
   );
@@ -114,24 +116,18 @@ function TaskForm({
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label={t.task.date} htmlFor="agenda-task-day">
-          <Input id="agenda-task-day" type="date" value={day} onChange={(event) => event.target.value && setDay(event.target.value)} required />
+          <DatePicker id="agenda-task-day" value={day} onChange={setDay} />
         </Field>
         <Field label={t.task.time} htmlFor="agenda-task-time">
-          <Input id="agenda-task-time" type="time" value={allDay ? "" : time} disabled={allDay} onChange={(event) => event.target.value && setTime(event.target.value)} />
+          <TimePicker id="agenda-task-time" value={allDay ? "" : time} disabled={allDay} onChange={setTime} />
         </Field>
       </div>
-      <label className="-mt-1 flex w-fit cursor-pointer items-center gap-2.5 text-sm">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={allDay}
-          onClick={() => setAllDay((value) => !value)}
-          className={cn("relative h-5 w-9 shrink-0 rounded-full transition-colors", allDay ? "bg-foreground" : "bg-border")}
-        >
-          <span className={cn("absolute top-0.5 size-4 rounded-full bg-background shadow-sm transition-transform", allDay ? "translate-x-[18px]" : "translate-x-0.5")} />
-        </button>
-        {t.task.allDay}
-      </label>
+      <div className="-mt-1 flex items-center gap-2.5 text-sm">
+        <Switch id="agenda-task-all-day" checked={allDay} onChange={setAllDay} />
+        <label htmlFor="agenda-task-all-day" className="cursor-pointer select-none">
+          {t.task.allDay}
+        </label>
+      </div>
 
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium">{t.task.remind}</span>

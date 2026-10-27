@@ -20,4 +20,9 @@ export const common = {
   noResults: "No results",
   decrease: "Decrease",
   increase: "Increase",
+  today: "Today",
+  previousMonth: "Previous month",
+  nextMonth: "Next month",
+  hours: "Hours",
+  minutes: "Minutes",
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useTransition, type ReactNode } from "react";
+import { useEffect, useId, useRef, useTransition, type PointerEvent, type ReactNode, type RefObject } from "react";
 import { AlertTriangle, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMessages } from "@/lib/i18n/client";
@@ -15,10 +15,51 @@ interface ModalProps {
   labelledBy?: string;
   describedBy?: string;
   locked?: boolean;
+  sheet?: boolean;
+  onDismiss?: () => void;
 }
 
-export function Modal({ open, onClose, children, className, role, labelledBy, describedBy, locked = false }: ModalProps) {
+const DISMISS_DISTANCE = 110;
+
+function useSheetDrag(ref: RefObject<HTMLDialogElement | null>, enabled: boolean, onDismiss: () => void) {
+  const drag = useRef<{ start: number; delta: number; pointer: number } | null>(null);
+  const onPointerDown = (event: PointerEvent<HTMLDialogElement>) => {
+    if (!enabled || !(event.target as HTMLElement).closest("[data-sheet-handle]")) return;
+    if (!window.matchMedia("(max-width: 47.99rem)").matches) return;
+    drag.current = { start: event.clientY, delta: 0, pointer: event.pointerId };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.currentTarget.style.transition = "none";
+  };
+  const onPointerMove = (event: PointerEvent<HTMLDialogElement>) => {
+    if (!drag.current || drag.current.pointer !== event.pointerId) return;
+    drag.current.delta = Math.max(0, event.clientY - drag.current.start);
+    event.currentTarget.style.transform = `translateY(${drag.current.delta}px)`;
+  };
+  const onPointerEnd = () => {
+    if (!drag.current) return;
+    const { delta } = drag.current;
+    drag.current = null;
+    const dialog = ref.current;
+    if (!dialog) return;
+    dialog.style.transition = "";
+    dialog.style.transform = "";
+    if (delta > DISMISS_DISTANCE) onDismiss();
+  };
+  return { onPointerDown, onPointerMove, onPointerUp: onPointerEnd, onPointerCancel: onPointerEnd };
+}
+
+export function SheetHandle({ className }: { className?: string }) {
+  return (
+    <div data-sheet-handle aria-hidden className={cn("flex cursor-grab touch-none justify-center pb-1 pt-2.5 md:hidden", className)}>
+      <span className="h-1 w-10 rounded-full bg-border" />
+    </div>
+  );
+}
+
+export function Modal({ open, onClose, children, className, role, labelledBy, describedBy, locked = false, sheet = false, onDismiss }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
+  const dismiss = onDismiss ?? onClose;
+  const drag = useSheetDrag(ref, sheet && !locked, dismiss);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -34,13 +75,21 @@ export function Modal({ open, onClose, children, className, role, labelledBy, de
       aria-labelledby={labelledBy}
       aria-describedby={describedBy}
       onCancel={(event) => {
-        if (locked) event.preventDefault();
+        if (!locked && !onDismiss) return;
+        event.preventDefault();
+        if (!locked) dismiss();
       }}
       onClose={onClose}
       onClick={(event) => {
-        if (event.target === ref.current && !locked) onClose();
+        if (event.target === ref.current && !locked) dismiss();
       }}
-      className={cn("modal m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border bg-card p-0 text-foreground shadow-2xl", className)}
+      {...drag}
+      className={cn(
+        "modal m-auto w-[calc(100%-2rem)] rounded-2xl border bg-card p-0 text-foreground shadow-2xl",
+        !/(^|\s)max-w-/.test(className ?? "") && "max-w-md",
+        sheet && "modal-sheet",
+        className,
+      )}
     >
       {children}
     </dialog>
@@ -54,14 +103,16 @@ interface DialogProps {
   description?: string;
   children: ReactNode;
   className?: string;
+  sheet?: boolean;
 }
 
-export function Dialog({ open, onClose, title, description, children, className }: DialogProps) {
+export function Dialog({ open, onClose, title, description, children, className, sheet = false }: DialogProps) {
   const t = useMessages();
   const id = useId();
   return (
-    <Modal open={open} onClose={onClose} className={className} labelledBy={`${id}-title`} describedBy={description ? `${id}-description` : undefined}>
-      <div className="flex flex-col gap-4 p-5" onClick={(event) => event.stopPropagation()}>
+    <Modal open={open} onClose={onClose} sheet={sheet} className={className} labelledBy={`${id}-title`} describedBy={description ? `${id}-description` : undefined}>
+      {sheet ? <SheetHandle /> : null}
+      <div className={cn("flex flex-col gap-4 p-5", sheet && "max-md:pt-2")} onClick={(event) => event.stopPropagation()}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h2 id={`${id}-title`} className="text-base font-semibold">
