@@ -1,4 +1,5 @@
 import type { CardState, Rating, SchedulerConfig } from "@/lib/scheduler";
+import type { CustomStudy } from "./custom";
 
 export interface StudyCounts {
   fresh: number;
@@ -51,6 +52,7 @@ export interface StudyPack {
   configs: Record<string, PackConfig>;
   styles: Record<string, string>;
   cards: PackCard[];
+  custom?: CustomStudy | null;
 }
 
 interface OpBase {

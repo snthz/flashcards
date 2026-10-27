@@ -167,7 +167,46 @@ function isLearning(card: EngineCard) {
   return card.state === "LEARNING" || card.state === "RELEARNING";
 }
 
+function answeredInSession(card: EngineCard, engine: Engine) {
+  return card.lastReview != null && card.lastReview >= Date.parse(engine.pack.fetchedAt);
+}
+
+function customCounts(engine: Engine, now: Date): StudyCounts {
+  const end = windowAt(engine.pack, now).end.getTime();
+  let fresh = 0;
+  let learning = 0;
+  let review = 0;
+  for (const card of activeCards(engine, now.getTime())) {
+    if (answeredInSession(card, engine)) {
+      if (isLearning(card) && card.due < end) learning += 1;
+    } else if (card.state === "NEW") fresh += 1;
+    else if (isLearning(card)) learning += 1;
+    else review += 1;
+  }
+  return { fresh, learning, review };
+}
+
+function pickCustom(engine: Engine, now: Date, preferId: string | null | undefined): CardChoice {
+  const nowMs = now.getTime();
+  const end = windowAt(engine.pack, now).end.getTime();
+  const cards = activeCards(engine, nowMs);
+  const pending = (card: EngineCard) => !answeredInSession(card, engine);
+  if (preferId) {
+    const preferred = cards.find((card) => card.id === preferId);
+    if (preferred && (pending(preferred) || (isLearning(preferred) && preferred.due < end))) return { cardId: preferred.id, learnAheadAt: null };
+  }
+  const relearn = cards.filter((card) => !pending(card) && isLearning(card));
+  const due = relearn.filter((card) => card.due <= nowMs).sort(byDue)[0];
+  if (due) return { cardId: due.id, learnAheadAt: null };
+  const next = cards.filter(pending).sort((a, b) => a.order - b.order)[0];
+  if (next) return { cardId: next.id, learnAheadAt: null };
+  const ahead = relearn.filter((card) => card.due < end).sort(byDue)[0];
+  if (ahead && ahead.due - nowMs <= LEARN_AHEAD_MS) return { cardId: ahead.id, learnAheadAt: null };
+  return { cardId: null, learnAheadAt: ahead ? new Date(ahead.due) : null };
+}
+
 export function engineCounts(engine: Engine, now: Date): StudyCounts {
+  if (engine.pack.custom) return customCounts(engine, now);
   const end = windowAt(engine.pack, now).end.getTime();
   let fresh = 0;
   let learning = 0;
@@ -196,6 +235,7 @@ function studyable(card: EngineCard, engine: Engine, now: number, end: number) {
 }
 
 export function pickCard(engine: Engine, now: Date, options: { random?: () => number; preferId?: string | null } = {}): CardChoice {
+  if (engine.pack.custom) return pickCustom(engine, now, options.preferId);
   const random = options.random ?? Math.random;
   const nowMs = now.getTime();
   const end = windowAt(engine.pack, now).end.getTime();

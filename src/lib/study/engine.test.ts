@@ -180,3 +180,31 @@ describe("reviewOutcome", () => {
     expect(reviewOutcome(memory, 3, fsrs, now, dayStart, "x").card.due.getTime()).toBe(reviewOutcome(memory, 3, fsrs, now, dayStart, "y").card.due.getTime());
   });
 });
+
+describe("custom study", () => {
+  const custom = { mode: "ahead" as const, days: 3 };
+  const later = (days: number) => new Date(now.getTime() + days * DAY).toISOString();
+
+  it("walks the custom list in order even when cards aren't due yet", () => {
+    const engine = createEngine(
+      pack([card("b", { state: "REVIEW", due: later(2), interval: 10 }), card("a", { state: "REVIEW", due: later(1), interval: 10 })], { custom }),
+      [],
+    );
+    expect(engineCounts(engine, now)).toEqual({ fresh: 0, learning: 0, review: 2 });
+    expect(pickCard(engine, now).cardId).toBe("b");
+    applyOp(engine, review("b", 3, now));
+    expect(pickCard(engine, now).cardId).toBe("a");
+    applyOp(engine, review("a", 3, now));
+    expect(pickCard(engine, now)).toEqual({ cardId: null, learnAheadAt: null });
+  });
+
+  it("brings back cards answered Again in the same session", () => {
+    const engine = createEngine(pack([card("x", { state: "REVIEW", due: later(1), interval: 5 }), card("y", { state: "REVIEW", due: later(1), interval: 5 })], { custom }), []);
+    applyOp(engine, review("x", 1, now));
+    expect(engineCounts(engine, now)).toEqual({ fresh: 0, learning: 1, review: 1 });
+    expect(pickCard(engine, now).cardId).toBe("y");
+    applyOp(engine, review("y", 3, now, "00000000-0000-4000-8000-00000000000y"));
+    expect(pickCard(engine, now).cardId).toBe("x");
+    expect(pickCard(engine, new Date(now.getTime() + 11 * 60_000)).cardId).toBe("x");
+  });
+});

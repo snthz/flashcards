@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth/user";
 import { getLocale } from "@/lib/i18n/server";
 import { buildStudyPack } from "./queue";
 import type { StudyPack } from "./types";
+import { customStudyQuery, parseCustomStudy, type CustomStudy } from "./custom";
 
 interface Snapshot {
   state: "NEW" | "LEARNING" | "REVIEW" | "RELEARNING";
@@ -26,15 +27,16 @@ export interface UndoResult {
   pack: StudyPack | null;
 }
 
-export async function undoLatestReview(deckId: string): Promise<UndoResult> {
+export async function undoLatestReview(deckId: string, customInput: CustomStudy | null = null): Promise<UndoResult> {
   const user = await requireUser();
+  const custom = customInput ? parseCustomStudy(new URLSearchParams(customStudyQuery(customInput))) : null;
   const log = await prisma.reviewLog.findFirst({
     where: { userId: user.id },
     orderBy: { reviewedAt: "desc" },
   });
   const snapshot = log?.snapshot as unknown as Snapshot | null;
   if (!log || !snapshot?.state) {
-    const pack = await buildStudyPack(user, deckId, await getLocale());
+    const pack = await buildStudyPack(user, deckId, await getLocale(), custom);
     return { undoneId: null, cardId: null, pack };
   }
   await prisma.$transaction([
@@ -57,6 +59,6 @@ export async function undoLatestReview(deckId: string): Promise<UndoResult> {
     }),
     prisma.reviewLog.delete({ where: { id: log.id } }),
   ]);
-  const pack = await buildStudyPack(user, deckId, await getLocale());
+  const pack = await buildStudyPack(user, deckId, await getLocale(), custom);
   return { undoneId: log.id, cardId: log.cardId, pack };
 }

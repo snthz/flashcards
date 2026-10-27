@@ -19,6 +19,7 @@ import { downloadPack } from "@/lib/study/offline/prefetch";
 import type { StudyCounts, StudyOp, StudyPack } from "@/lib/study/types";
 import type { CardState, Rating } from "@/lib/scheduler";
 import { uuid } from "@/lib/uuid";
+import { customStudyQuery } from "@/lib/study/custom";
 import { CardFrame } from "./card-frame";
 
 const RATING_META: Record<Rating, { label: "again" | "hard" | "good" | "easy"; tone: string }> = {
@@ -65,6 +66,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
   const online = useOnline();
   const userId = initialPack.userId;
   const deckId = initialPack.deckId;
+  const custom = initialPack.custom ?? null;
   const engineRef = useRef<Engine | null>(null);
   const opsRef = useRef<StudyOp[]>([]);
   const nextPackRef = useRef<StudyPack | null>(null);
@@ -156,9 +158,9 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const stored = await loadPack(userId, deckId);
+      const stored = custom ? null : await loadPack(userId, deckId);
       const pack = stored && Date.parse(stored.fetchedAt) > Date.parse(initialPack.fetchedAt) ? stored : initialPack;
-      if (pack === initialPack) await savePack(initialPack);
+      if (pack === initialPack && !custom) await savePack(initialPack);
       await setMeta("userId", userId);
       const ops = await loadOps(userId);
       if (cancelled) return;
@@ -167,12 +169,12 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
       setPendingOps(ops.filter((op) => !op.syncedAt).length);
       advance(preferCardId);
       void sync();
-      if (navigator.onLine && Date.now() - Date.parse(pack.fetchedAt) > PACK_MAX_AGE_MS) void refreshPack(false);
+      if (!custom && navigator.onLine && Date.now() - Date.parse(pack.fetchedAt) > PACK_MAX_AGE_MS) void refreshPack(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [initialPack, userId, deckId, preferCardId, advance, sync, refreshPack]);
+  }, [initialPack, userId, deckId, preferCardId, advance, sync, refreshPack, custom]);
 
   useEffect(() => subscribeSync(() => void refreshPending()), [refreshPending]);
 
@@ -202,10 +204,10 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
   }, [view, advance]);
 
   useEffect(() => {
-    if (!view || view.card || !online) return;
+    if (!view || view.card || !online || custom) return;
     const engine = engineRef.current;
     if (engine && (engine.pack.truncated || Date.now() >= Date.parse(engine.pack.dayEnd))) void refreshPack(true);
-  }, [view, online, refreshPack]);
+  }, [view, online, refreshPack, custom]);
 
   const record = useCallback(
     (op: StudyOp, next: "advance" | "stay") => {
@@ -257,25 +259,25 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
     if (!navigator.onLine) return;
     startUndo(async () => {
       await flushOps(userId);
-      const result = await undoLatestReview(deckId);
+      const result = await undoLatestReview(deckId, custom);
       if (result.undoneId) {
         opsRef.current = opsRef.current.filter((op) => op.id !== result.undoneId);
         await deleteOps([result.undoneId]);
       }
       if (result.pack) {
-        await savePack(result.pack);
+        if (!custom) await savePack(result.pack);
         nextPackRef.current = result.pack;
       }
       advance(result.cardId);
     });
-  }, [view, undoing, userId, deckId, advance]);
+  }, [view, undoing, userId, deckId, advance, custom]);
 
   const editNote = useCallback(() => {
     if (!card || !navigator.onLine) return;
     void flushOps(userId);
-    const back = `/decks/${deckId}/study?card=${card.id}`;
+    const back = `/decks/${deckId}/study?${custom ? `${customStudyQuery(custom)}&` : ""}card=${card.id}`;
     router.push(`/notes/${card.noteId}/edit?from=${encodeURIComponent(back)}`);
-  }, [card, userId, deckId, router]);
+  }, [card, userId, deckId, router, custom]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -318,6 +320,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
             <X className="size-5" />
           </Link>
           <p className="truncate text-sm font-medium">{initialPack.deckName}</p>
+          {custom ? <span className="hidden shrink-0 rounded-full border px-2 py-0.5 text-xs text-muted-foreground sm:inline">{t.custom.badge(custom)}</span> : null}
         </div>
         <div className="flex items-center gap-2">
           {statusLabel ? (
@@ -451,7 +454,7 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
         <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border bg-card p-10 text-center animate-in">
           <CheckCircle2 className="size-12 text-success" />
           <div className="flex flex-col gap-1">
-            <p className="text-lg font-semibold">{t.study.finishedTitle}</p>
+            <p className="text-lg font-semibold">{custom ? t.custom.finished : t.study.finishedTitle}</p>
             <p className="max-w-sm text-sm text-muted-foreground">
               {view.learnAheadAt
                 ? t.study.learnAheadAt(view.learnAheadAt.toLocaleTimeString(intlLocale(locale), { hour: "2-digit", minute: "2-digit" }))

@@ -7,10 +7,13 @@ import { dictionaries } from "@/lib/i18n/messages";
 import type { NoteTypeField, NoteTypeTemplate } from "@/lib/anki/types";
 import type { SchedulableCard, SchedulerConfig } from "@/lib/scheduler";
 import type { PackCard, PackConfig, StudyPack } from "./types";
+import type { CustomStudy } from "./custom";
 
 export const MEDIA_BASE = "/api/media/";
 export const PACK_CARD_LIMIT = 400;
 const UNDO_WINDOW_MS = 6 * 3_600_000;
+const CUSTOM_CARD_LIMIT = 200;
+const DAY_MS = 86_400_000;
 
 const cardInclude = {
   note: { include: { noteType: true } },
@@ -118,29 +121,77 @@ function toPackCard(card: CardWithRelations, deckFullName: string, locale: Local
   };
 }
 
-export async function buildStudyPack(user: CurrentUser, deckId: string, locale: Locale): Promise<StudyPack | null> {
+type CardBase = {
+  userId: string;
+  deckId: { in: string[] };
+  suspended: false;
+  OR: Array<{ buriedUntil: null } | { buriedUntil: { lt: Date } }>;
+};
+
+async function customCards(user: CurrentUser, custom: CustomStudy, base: CardBase, windowEnd: Date, now: Date) {
+  const take = CUSTOM_CARD_LIMIT;
+  if (custom.mode === "forgotten") {
+    const logs = await prisma.reviewLog.findMany({
+      where: { userId: user.id, rating: 1, reviewedAt: { gte: new Date(now.getTime() - (custom.days ?? 1) * DAY_MS) }, card: base },
+      orderBy: { reviewedAt: "desc" },
+      select: { cardId: true },
+      take: take * 5,
+    });
+    const ids = [...new Set(logs.map((log) => log.cardId))].slice(0, take);
+    const cards = await prisma.card.findMany({ where: { ...base, id: { in: ids } }, include: cardInclude });
+    const order = new Map(ids.map((id, index) => [id, index]));
+    return cards.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  }
+  if (custom.mode === "ahead") {
+    return prisma.card.findMany({
+      where: { ...base, state: "REVIEW", due: { gte: windowEnd, lt: new Date(windowEnd.getTime() + (custom.days ?? 1) * DAY_MS) } },
+      orderBy: [{ due: "asc" }, { id: "asc" }],
+      take,
+      include: cardInclude,
+    });
+  }
+  if (custom.mode === "new") {
+    return prisma.card.findMany({
+      where: { ...base, state: "NEW" },
+      orderBy: [{ newPosition: "asc" }, { createdAt: "asc" }],
+      take: Math.min(take, custom.count ?? 10),
+      include: cardInclude,
+    });
+  }
+  const filter = custom.mode === "tag" ? { note: { tags: { has: custom.tag ?? "" } } } : { flag: custom.flag ?? 1 };
+  return prisma.card.findMany({
+    where: { ...base, ...filter },
+    orderBy: [{ due: "asc" }, { id: "asc" }],
+    take,
+    include: cardInclude,
+  });
+}
+
+export async function buildStudyPack(user: CurrentUser, deckId: string, locale: Locale, custom: CustomStudy | null = null): Promise<StudyPack | null> {
   const fetchedAt = new Date();
   const tree = await getDeckTree(user);
   const node = findNode(tree, deckId);
   if (!node) return null;
   const window = dayWindow(user, fetchedAt);
   const deckIds = subtreeIds(node);
-  const base = {
+  const base: CardBase = {
     userId: user.id,
     deckId: { in: deckIds },
     suspended: false,
     OR: [{ buriedUntil: null }, { buriedUntil: { lt: window.now } }],
   };
-  const reviewTake = Math.min(node.counts.review, PACK_CARD_LIMIT);
-  const freshTake = Math.min(node.counts.fresh, Math.max(0, PACK_CARD_LIMIT - reviewTake));
+  const reviewTake = custom ? 0 : Math.min(node.counts.review, PACK_CARD_LIMIT);
+  const freshTake = custom ? 0 : Math.min(node.counts.fresh, Math.max(0, PACK_CARD_LIMIT - reviewTake));
 
   const [config, learning, reviews, fresh, lastLog] = await Promise.all([
     prisma.deckConfig.findFirst({ where: { id: node.configId }, select: { newCardOrder: true } }),
-    prisma.card.findMany({
-      where: { ...base, state: { in: ["LEARNING", "RELEARNING"] }, due: { lt: window.end } },
-      orderBy: [{ due: "asc" }, { id: "asc" }],
-      include: cardInclude,
-    }),
+    custom
+      ? customCards(user, custom, base, window.end, fetchedAt)
+      : prisma.card.findMany({
+          where: { ...base, state: { in: ["LEARNING", "RELEARNING"] }, due: { lt: window.end } },
+          orderBy: [{ due: "asc" }, { id: "asc" }],
+          include: cardInclude,
+        }),
     reviewTake > 0
       ? prisma.card.findMany({
           where: { ...base, state: "REVIEW", due: { lt: window.end } },
@@ -182,14 +233,15 @@ export async function buildStudyPack(user: CurrentUser, deckId: string, locale: 
     dayStartHour: user.dayStartHour,
     dayStart: window.start.toISOString(),
     dayEnd: window.end.toISOString(),
-    newLimit: fresh.length,
-    reviewLimit: reviews.length,
+    newLimit: custom ? cards.filter((card) => card.state === "NEW").length : fresh.length,
+    reviewLimit: custom ? cards.filter((card) => card.state === "REVIEW").length : reviews.length,
     truncated: reviewTake < node.counts.review || freshTake < node.counts.fresh,
     newCardOrder: config?.newCardOrder ?? "SEQUENTIAL",
     serverUndo: Boolean((lastLog?.snapshot as { state?: string } | null)?.state),
     configs,
     styles,
     cards: cards.map((card) => toPackCard(card, node.fullName, locale)),
+    custom,
   };
 }
 

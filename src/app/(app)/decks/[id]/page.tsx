@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Download, Play, Plus, Search, Settings2 } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
-import { findNode, getDeckTree } from "@/lib/decks/queries";
+import { findNode, getDeckTree, subtreeIds } from "@/lib/decks/queries";
+import { prisma } from "@/lib/db";
+import { CustomStudyButton } from "@/components/decks/custom-study-dialog";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonStyles } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -36,6 +38,17 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
   const deck = findNode(tree, id);
   if (!deck) notFound();
   const pending = deck.counts.fresh + deck.counts.learning + deck.counts.review;
+  const deckIds = subtreeIds(deck);
+  const [taggedNotes, flagged] = await Promise.all([
+    prisma.note.findMany({
+      where: { userId: user.id, tags: { isEmpty: false }, cards: { some: { deckId: { in: deckIds } } } },
+      select: { tags: true },
+      take: 5000,
+    }),
+    prisma.card.groupBy({ by: ["flag"], where: { userId: user.id, deckId: { in: deckIds }, flag: { gt: 0 } } }),
+  ]);
+  const tags = [...new Set(taggedNotes.flatMap((note) => note.tags))].sort((a, b) => a.localeCompare(b)).slice(0, 200);
+  const flags = flagged.map((row) => row.flag).sort((a, b) => a - b);
 
   return (
     <div className="flex flex-col gap-6">
@@ -78,6 +91,7 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
           <Plus className="size-5" />
           {t.decks.addCard}
         </Link>
+        <CustomStudyButton deckId={deck.id} tags={tags} flags={flags} />
       </div>
       <Card>
         <CardHeader className="flex-row items-center justify-between gap-3 p-6 pb-4">

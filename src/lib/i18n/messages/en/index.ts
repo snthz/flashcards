@@ -1,6 +1,7 @@
 import { auth } from "./auth";
 import { browse } from "./browse";
 import { common } from "./common";
+import { custom } from "./custom";
 import { deckOptions } from "./deckOptions";
 import { decks } from "./decks";
 import { discover } from "./discover";
@@ -23,6 +24,7 @@ export const en = {
   auth,
   browse,
   common,
+  custom,
   deckOptions,
   decks,
   discover,
