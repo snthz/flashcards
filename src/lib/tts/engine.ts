@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { mediaRoot } from "@/lib/media";
-import { MAX_SPEECH_CHARS, naturalVoice } from "./voices";
+import { MAX_SPEECH_CHARS, NATURAL_VOICES, naturalVoice } from "./voices";
 import { toWav } from "./wav";
 
 const MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX";
@@ -50,12 +50,28 @@ function cachePath(key: string, voice: string) {
   return path.join(mediaRoot(), ".speech", voice, `${key}.wav`);
 }
 
+async function withKokoroDirectory<T>(work: () => Promise<T>) {
+  const scope = globalThis as unknown as { __dirname?: string };
+  const previous = scope.__dirname;
+  scope.__dirname = path.join(process.cwd(), "node_modules", "kokoro-js", "dist");
+  try {
+    return await work();
+  } finally {
+    if (previous === undefined) delete scope.__dirname;
+    else scope.__dirname = previous;
+  }
+}
+
 async function loadModel(): Promise<Model> {
   const transformers = await import("@huggingface/transformers");
   if (process.env.TTS_MODEL_DIR) transformers.env.cacheDir = process.env.TTS_MODEL_DIR;
   if (process.env.TTS_OFFLINE === "1") transformers.env.allowRemoteModels = false;
   const { KokoroTTS } = await import("kokoro-js");
-  return (await KokoroTTS.from_pretrained(MODEL_ID, { dtype: "q8", device: "cpu" })) as unknown as Model;
+  const model = (await KokoroTTS.from_pretrained(MODEL_ID, { dtype: "q8", device: "cpu" })) as unknown as Model;
+  await withKokoroDirectory(async () => {
+    for (const voice of NATURAL_VOICES) await model.generate("Hi.", { voice });
+  });
+  return model;
 }
 
 function scheduleUnload() {

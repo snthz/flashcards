@@ -37,6 +37,7 @@ export const study: Messages["study"] = {
   play: "Reproducir",
   pause: "Pausar",
   deviceVoice: "Voz del dispositivo",
+  naturalVoice: "Voz natural",
   speed: (rate: string) => `Velocidad ${rate}`,
   changeSpeed: "Cambiar velocidad",
   skipBack: (seconds: number) => `Retroceder ${seconds} segundos`,

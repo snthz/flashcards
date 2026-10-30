@@ -12,6 +12,7 @@ import { grade } from "@/lib/practice/grade";
 import { shuffle } from "@/lib/practice/session";
 import type { Exercise, Grade, PendingGrade, PracticeItem, SentenceAttempt } from "@/lib/practice/types";
 import { speechLocale } from "@/lib/translate/vocabulary";
+import { speakText, type SpeechClip } from "@/components/study/speech-clip";
 import { cn } from "@/lib/utils";
 
 export interface Outcome {
@@ -31,13 +32,16 @@ export function canSpeak() {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
 
+let speaking: SpeechClip | null = null;
+
 export function say(text: string, language: PracticeItem["language"], rate = 1) {
   if (!canSpeak() || !language) return;
-  speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = speechLocale(language);
-  utterance.rate = rate;
-  speechSynthesis.speak(utterance);
+  speaking = speakText(text, speechLocale(language), rate);
+}
+
+export function stopSaying() {
+  speaking?.pause();
+  speaking = null;
 }
 
 function useLanguageLabel() {
@@ -315,7 +319,7 @@ export function ListenExercise({ exercise, done, onDone }: ExerciseProps<"listen
     const timer = window.setTimeout(() => say(text, item.language), 250);
     return () => {
       window.clearTimeout(timer);
-      if (canSpeak()) speechSynthesis.cancel();
+      stopSaying();
     };
   }, [text, item.language]);
 

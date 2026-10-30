@@ -35,6 +35,7 @@ export const study = {
   play: "Play",
   pause: "Pause",
   deviceVoice: "Device voice",
+  naturalVoice: "Natural voice",
   speed: (rate: string) => `Speed ${rate}`,
   changeSpeed: "Change speed",
   skipBack: (seconds: number) => `Skip back ${seconds} seconds`,

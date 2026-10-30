@@ -25,6 +25,8 @@ import { markSwipeHintSeen, shouldShowSwipeHint, SwipeHint, SwipeTint, useSwipe,
 import { CardInfoDialog } from "@/components/browse/card-info-dialog";
 import { StudyTimerButton, TimerBreak, TimerNotice, useStudyTimer } from "./study-timer";
 import { StudyTranslator, type StudyTranslatorHandle } from "@/components/translate/study-translator";
+import { isSpeechSrc, parseSpeechSrc } from "./speech-clip";
+import { prefetchSpeech } from "@/lib/tts/client";
 
 const RATING_META: Record<Rating, { label: "again" | "hard" | "good" | "easy"; tone: string }> = {
   1: { label: "again", tone: "text-danger border-danger/40 hover:bg-danger-soft" },
@@ -33,6 +35,7 @@ const RATING_META: Record<Rating, { label: "again" | "hard" | "good" | "easy"; t
   4: { label: "easy", tone: "text-info border-info/40 hover:bg-info-soft" },
 };
 
+const SPEECH_PREFETCH = 40;
 const FLAG_COLORS = ["", "#ef4444", "#f97316", "#22c55e", "#3b82f6", "#ec4899", "#14b8a6", "#a855f7"];
 const EMPTY: string[] = [];
 const SYNC_DELAY_MS = 800;
@@ -177,6 +180,13 @@ export function StudySession({ initialPack, preferCardId = null }: { initialPack
       if (cancelled) return;
       opsRef.current = ops;
       engineRef.current = createEngine(pack, ops);
+      prefetchSpeech(
+        pack.cards
+          .slice(0, SPEECH_PREFETCH)
+          .flatMap((card) => [...card.audio.question, ...card.audio.answer])
+          .filter(isSpeechSrc)
+          .map(parseSpeechSrc),
+      );
       setPendingOps(ops.filter((op) => !op.syncedAt).length);
       advance(preferCardId);
       void sync();

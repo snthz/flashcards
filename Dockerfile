@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-alpine AS base
+FROM node:24-slim AS base
 ARG NPM_VERSION=11.6.1
-RUN apk add --no-cache libc6-compat && npm install -g "npm@${NPM_VERSION}"
+RUN npm install -g "npm@${NPM_VERSION}"
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -21,6 +21,8 @@ ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate && npm run build
+ENV TTS_MODEL_DIR=/app/models
+RUN node scripts/fetch-speech-model.mjs
 
 FROM base AS migrator
 WORKDIR /migrator
@@ -37,9 +39,11 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV MEDIA_DIR=/app/data/media
+ENV TTS_MODEL_DIR=/app/models
+ENV TTS_OFFLINE=1
 ENV PRISMA_HIDE_UPDATE_MESSAGE=1
 ENV CHECKPOINT_DISABLE=1
-RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+RUN groupadd --system --gid 1001 nodejs && useradd --system --uid 1001 --gid nodejs --no-create-home nextjs
 COPY --from=migrator --chown=nextjs:nodejs /migrator/node_modules ./migrator/node_modules
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./migrator/prisma
@@ -47,11 +51,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./migrator/prism
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/models ./models
 RUN chmod +x ./docker-entrypoint.sh && install -d -o nextjs -g nodejs /app/data/media
 ARG APP_REVISION=dev
 ENV APP_REVISION=$APP_REVISION
 USER nextjs
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD wget -q -O /dev/null "http://127.0.0.1:${PORT}/api/health" || exit 1
+  CMD node -e "fetch('http://127.0.0.1:' + process.env.PORT + '/api/health').then((response) => process.exit(response.ok ? 0 : 1), () => process.exit(1))"
 ENTRYPOINT ["./docker-entrypoint.sh"]

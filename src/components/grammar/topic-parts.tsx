@@ -8,13 +8,10 @@ import type { GrammarQuestion } from "@/lib/grammar/types";
 import { cn } from "@/lib/utils";
 import { saveTopicProgress, useGrammarProgress } from "./progress";
 import { InlineMarkdown } from "./rich-text";
+import { speakText } from "@/components/study/speech-clip";
 
 function speak(text: string) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "en-US";
-  speechSynthesis.speak(utterance);
+  speakText(text, "en-US");
 }
 
 export function ListenButton({ text }: { text: string }) {

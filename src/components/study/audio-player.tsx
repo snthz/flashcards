@@ -99,13 +99,14 @@ interface AudioControlsProps {
 
 function useAudioState(audio: Clip) {
   const subscribeState = useCallback(
-    (callback: () => void) => subscribeEvents(audio, ["play", "pause", "ended", "durationchange", "loadedmetadata", "ratechange"])(callback),
+    (callback: () => void) => subscribeEvents(audio, ["play", "pause", "ended", "durationchange", "loadedmetadata", "ratechange", "voicechange"])(callback),
     [audio],
   );
   const paused = useAudioValue(subscribeState, () => audio.paused);
   const duration = useAudioValue(subscribeState, () => (Number.isFinite(audio.duration) ? audio.duration : 0));
   const rate = useAudioValue(subscribeState, () => audio.playbackRate);
-  return { paused, duration, rate };
+  const natural = useAudioValue(subscribeState, () => audio instanceof SpeechClip && audio.natural);
+  return { paused, duration, rate, natural };
 }
 
 // Keep clicks from revealing the card, and keep focus off the buttons so Space/Enter still drive the study session.
@@ -141,7 +142,7 @@ const dockButton =
 
 // Full controls for the clip that played last, docked under the card where there is room for touch targets.
 export function AudioDock({ audio, onRateChange }: AudioControlsProps & { onRateChange: (rate: number) => void }) {
-  const { paused, duration, rate } = useAudioState(audio);
+  const { paused, duration, rate, natural } = useAudioState(audio);
   const { locale, t } = useI18n();
 
   const cycleRate = () => {
@@ -161,7 +162,7 @@ export function AudioDock({ audio, onRateChange }: AudioControlsProps & { onRate
         {paused ? <Play className="size-5 fill-current" /> : <Pause className="size-5 fill-current" />}
       </button>
       {audio instanceof SpeechClip ? (
-        <span className="min-w-0 flex-1 truncate px-2 text-xs text-muted-foreground">{t.study.deviceVoice}</span>
+        <span className="min-w-0 flex-1 truncate px-2 text-xs text-muted-foreground">{natural ? t.study.naturalVoice : t.study.deviceVoice}</span>
       ) : (
         <SeekControls audio={audio} duration={duration} />
       )}
