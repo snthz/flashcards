@@ -65,9 +65,8 @@ export function applicableKinds(item: PracticeItem, pool: PracticeItem[], option
   });
 }
 
-export function buildSession(pool: PracticeItem[], settings: SessionOptions, random: Random = Math.random, focus?: PracticeItem[]): Exercise[] {
-  if (pool.length === 0 || settings.kinds.length === 0) return [];
-  const order = shuffle(focus && focus.length > 0 ? focus : pool, random);
+export function buildSession(pool: PracticeItem[], settings: SessionOptions, random: Random = Math.random, order: PracticeItem[] = shuffle(pool, random)): Exercise[] {
+  if (pool.length === 0 || order.length === 0 || settings.kinds.length === 0) return [];
   const exercises: Exercise[] = [];
   const used = new Map<ExerciseKind, number>();
   let cursor = 0;
@@ -115,14 +114,15 @@ export function buildSession(pool: PracticeItem[], settings: SessionOptions, ran
 
 export type Unavailable = "few-words" | "no-examples" | "no-language" | "no-speech" | "no-verbs";
 
-export function kindAvailability(pool: PracticeItem[], canSpeak: boolean): Record<ExerciseKind, Unavailable | null> {
+export function kindAvailability(pool: PracticeItem[], canSpeak: boolean, enrichable = false): Record<ExerciseKind, Unavailable | null> {
   const settings = (kind: ExerciseKind): SessionOptions => ({ kinds: [kind], length: 1, canSpeak });
   const fits = (kind: ExerciseKind) => pool.some((item) => applicableKinds(item, pool, settings(kind)).length > 0);
+  const preparable = (kind: ExerciseKind) => (enrichable && pool.length > 0) || fits(kind);
   return {
-    choice: fits("choice") ? null : "few-words",
+    choice: preparable("choice") ? null : "few-words",
     type: pool.length > 0 ? null : "few-words",
-    cloze: fits("cloze") ? null : "no-examples",
-    listen: !canSpeak ? "no-speech" : fits("listen") ? null : "no-language",
+    cloze: preparable("cloze") ? null : "no-examples",
+    listen: !canSpeak ? "no-speech" : preparable("listen") ? null : "no-language",
     sentence: pool.length > 0 ? null : "few-words",
     forms: fits("forms") ? null : "no-verbs",
     match: fits("match") ? null : "few-words",

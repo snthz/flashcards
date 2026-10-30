@@ -29,7 +29,7 @@ import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n/client";
 import { loadPracticeItems, preparePractice, reviewSentenceBatch } from "@/lib/practice/actions";
-import { buildSession, kindAvailability } from "@/lib/practice/session";
+import { buildSession, kindAvailability, shuffle } from "@/lib/practice/session";
 import {
   EXERCISE_KINDS,
   PRACTICE_PERIODS,
@@ -147,6 +147,16 @@ export function effectiveKinds(selected: ExerciseKind[], availability: Record<Ex
   return chosen.length > 0 ? chosen : available;
 }
 
+function Preparing({ count }: { count: number }) {
+  const t = useI18n().t.practice;
+  return (
+    <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground" role="status">
+      <Sparkles className="size-3.5 animate-pulse" />
+      {t.preparing(count)}
+    </p>
+  );
+}
+
 function Setup({
   decks,
   prefs,
@@ -161,14 +171,15 @@ function Setup({
   onPrefs: (patch: Partial<Prefs>) => void;
   data: PracticeData | null;
   loading: boolean;
-  preparing: boolean;
+  preparing: number | null;
   onStart: (kinds: ExerciseKind[]) => void;
 }) {
   const { locale, t } = useI18n();
   const p = t.practice;
   const items = data?.items ?? null;
   const speech = canSpeak();
-  const availability = useMemo(() => kindAvailability(items ?? [], speech), [items, speech]);
+  const enrichable = Boolean(data?.hasKey && data.pending > 0);
+  const availability = useMemo(() => kindAvailability(items ?? [], speech, enrichable), [items, speech, enrichable]);
   const kinds = effectiveKinds(prefs.kinds, availability);
   const ready = kinds.length > 0;
   const terms = useMemo(() => [...new Map((items ?? []).map((item) => [item.term.toLowerCase(), item.term])).values()], [items]);
@@ -176,111 +187,108 @@ function Setup({
 
   return (
     <div className="flex flex-col gap-5">
-      <section className="flex flex-col gap-4 rounded-2xl border bg-card p-5">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold">{p.words}</h2>
-          {loading ? <Skeleton className="h-5 w-28" /> : <span className="text-sm text-muted-foreground">{p.available(count, formatNumber(count, locale))}</span>}
-        </div>
-        <div className="grid gap-3">
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            {p.source}
-            <Select
-              label={p.source}
-              value={prefs.deckId ?? ""}
-              onChange={(deckId) => onPrefs({ deckId: deckId || null })}
-              options={[{ value: "", label: p.allDecks }, ...decks.map((deck) => ({ value: deck.id, label: deck.name }))]}
-            />
-          </label>
-          <div className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            {p.period}
-            <Segmented label={p.period} value={prefs.period} onChange={(period) => onPrefs({ period })} options={PRACTICE_PERIODS.map((value) => ({ value, label: p.periods[value] }))} />
+      <fieldset disabled={preparing !== null} className="flex min-w-0 flex-col gap-5 transition-opacity disabled:opacity-60">
+        <section className="flex flex-col gap-4 rounded-2xl border bg-card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold">{p.words}</h2>
+            {loading ? <Skeleton className="h-5 w-28" /> : <span className="text-sm text-muted-foreground">{p.available(count, formatNumber(count, locale))}</span>}
           </div>
-        </div>
-        {terms.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {terms.slice(0, 12).map((term) => (
-              <span key={term} className="rounded-full border px-2.5 py-0.5 text-xs text-muted-foreground">
-                {term}
-              </span>
-            ))}
-            {terms.length > 12 ? <span className="px-1 py-0.5 text-xs text-muted-foreground">+{formatNumber(terms.length - 12, locale)}</span> : null}
+          <div className="grid gap-3">
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+              {p.source}
+              <Select
+                label={p.source}
+                value={prefs.deckId ?? ""}
+                onChange={(deckId) => onPrefs({ deckId: deckId || null })}
+                options={[{ value: "", label: p.allDecks }, ...decks.map((deck) => ({ value: deck.id, label: deck.name }))]}
+              />
+            </label>
+            <div className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+              {p.period}
+              <Segmented label={p.period} value={prefs.period} onChange={(period) => onPrefs({ period })} options={PRACTICE_PERIODS.map((value) => ({ value, label: p.periods[value] }))} />
+            </div>
           </div>
-        ) : null}
-        {preparing ? (
-          <p className="flex items-center gap-2 text-xs text-muted-foreground" role="status">
-            <Sparkles className="size-3.5 animate-pulse" />
-            {p.preparing(data?.pending ?? 0)}
-          </p>
-        ) : data && !data.hasKey && items && items.length > 0 ? (
-          <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-            <Sparkles className="size-3.5" />
-            {p.aiHint}
-            <Link href="/settings?tab=translator" className="font-medium text-foreground underline underline-offset-2">
-              {p.aiHintAction}
-            </Link>
-          </p>
-        ) : null}
-      </section>
+          {terms.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {terms.slice(0, 12).map((term) => (
+                <span key={term} className="rounded-full border px-2.5 py-0.5 text-xs text-muted-foreground">
+                  {term}
+                </span>
+              ))}
+              {terms.length > 12 ? <span className="px-1 py-0.5 text-xs text-muted-foreground">+{formatNumber(terms.length - 12, locale)}</span> : null}
+            </div>
+          ) : null}
+          {data && !data.hasKey && items && items.length > 0 ? (
+            <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+              <Sparkles className="size-3.5" />
+              {p.aiHint}
+              <Link href="/settings?tab=translator" className="font-medium text-foreground underline underline-offset-2">
+                {p.aiHintAction}
+              </Link>
+            </p>
+          ) : null}
+        </section>
 
-      <section className="flex flex-col gap-4 rounded-2xl border bg-card p-5">
-        <h2 className="text-sm font-semibold">{p.exercises}</h2>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {EXERCISE_KINDS.map((kind) => {
-            const Icon = KIND_ICONS[kind];
-            const reason = loading ? null : availability[kind];
-            const on = !reason && kinds.includes(kind);
-            return (
-              <button
-                key={kind}
-                type="button"
-                role="checkbox"
-                aria-checked={on}
-                aria-disabled={Boolean(reason)}
-                disabled={Boolean(reason)}
-                onClick={() => {
-                  const next = on ? kinds.filter((value) => value !== kind) : [...kinds, kind];
-                  onPrefs({ kinds: next.length > 0 ? next : kinds });
-                }}
-                className={cn(
-                  "flex items-start gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors",
-                  reason ? "cursor-not-allowed border-dashed bg-transparent" : on ? "border-foreground/40 bg-muted/60" : "hover:border-foreground/20",
-                )}
-              >
-                <span
+        <section className="flex flex-col gap-4 rounded-2xl border bg-card p-5">
+          <h2 className="text-sm font-semibold">{p.exercises}</h2>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {EXERCISE_KINDS.map((kind) => {
+              const Icon = KIND_ICONS[kind];
+              const reason = loading ? null : availability[kind];
+              const on = !reason && kinds.includes(kind);
+              return (
+                <button
+                  key={kind}
+                  type="button"
+                  role="checkbox"
+                  aria-checked={on}
+                  aria-disabled={Boolean(reason)}
+                  disabled={Boolean(reason)}
+                  onClick={() => {
+                    const next = on ? kinds.filter((value) => value !== kind) : [...kinds, kind];
+                    onPrefs({ kinds: next.length > 0 ? next : kinds });
+                  }}
                   className={cn(
-                    "flex size-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
-                    reason ? "border-dashed text-muted-foreground/50" : on ? "border-transparent bg-accent text-accent-foreground" : "bg-background text-muted-foreground",
+                    "flex items-start gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors",
+                    reason ? "cursor-not-allowed border-dashed bg-transparent" : on ? "border-foreground/40 bg-muted/60" : "hover:border-foreground/20",
                   )}
                 >
-                  <Icon className="size-[18px]" strokeWidth={1.9} />
-                </span>
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className={cn("text-sm font-medium", reason && "text-muted-foreground")}>{p.kinds[kind].label}</span>
-                  <span className="text-xs text-muted-foreground">{reason ? p.reasons[reason] : p.kinds[kind].hint}</span>
-                </span>
-                {reason ? (
-                  <Lock aria-hidden className="mt-1 size-3.5 shrink-0 text-muted-foreground/60" />
-                ) : (
-                  <span aria-hidden className={cn("mt-1 flex size-4 shrink-0 items-center justify-center rounded border", on && "border-foreground bg-foreground text-background")}>
-                    {on ? <Check className="size-3" strokeWidth={3} /> : null}
+                  <span
+                    className={cn(
+                      "flex size-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
+                      reason ? "border-dashed text-muted-foreground/50" : on ? "border-transparent bg-accent text-accent-foreground" : "bg-background text-muted-foreground",
+                    )}
+                  >
+                    <Icon className="size-[18px]" strokeWidth={1.9} />
                   </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground sm:max-w-xs">
-          {p.length}
-          <Segmented label={p.length} value={prefs.length} onChange={(length) => onPrefs({ length })} options={LENGTHS.map((value) => ({ value, label: String(value) }))} />
-        </div>
-      </section>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className={cn("text-sm font-medium", reason && "text-muted-foreground")}>{p.kinds[kind].label}</span>
+                    <span className="text-xs text-muted-foreground">{reason ? p.reasons[reason] : p.kinds[kind].hint}</span>
+                  </span>
+                  {reason ? (
+                    <Lock aria-hidden className="mt-1 size-3.5 shrink-0 text-muted-foreground/60" />
+                  ) : (
+                    <span aria-hidden className={cn("mt-1 flex size-4 shrink-0 items-center justify-center rounded border", on && "border-foreground bg-foreground text-background")}>
+                      {on ? <Check className="size-3" strokeWidth={3} /> : null}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground sm:max-w-xs">
+            {p.length}
+            <Segmented label={p.length} value={prefs.length} onChange={(length) => onPrefs({ length })} options={LENGTHS.map((value) => ({ value, label: String(value) }))} />
+          </div>
+        </section>
+      </fieldset>
 
       <div className="flex flex-col items-center gap-2">
-        <Button size="lg" className="w-full sm:w-auto sm:min-w-56" disabled={loading || !ready || count === 0} onClick={() => onStart(kinds)}>
-          <Dumbbell className="size-4" />
+        <Button size="lg" className="w-full sm:w-auto sm:min-w-56" loading={preparing !== null} disabled={loading || !ready || count === 0} onClick={() => onStart(kinds)}>
+          {preparing === null ? <Dumbbell className="size-4" /> : null}
           {p.start}
         </Button>
-        <p className="text-xs text-muted-foreground">{p.notScheduled}</p>
+        {preparing !== null ? <Preparing count={preparing} /> : <p className="text-xs text-muted-foreground">{p.notScheduled}</p>}
       </div>
     </div>
   );
@@ -421,7 +429,19 @@ function SentenceReviews({ results, reviews, status }: { results: Result[]; revi
   );
 }
 
-function Results({ results: initial, onRetry, onAgain, onSettings }: { results: Result[]; onRetry: (missed: PracticeItem[]) => void; onAgain: () => void; onSettings: () => void }) {
+function Results({
+  results: initial,
+  preparing,
+  onRetry,
+  onAgain,
+  onSettings,
+}: {
+  results: Result[];
+  preparing: number | null;
+  onRetry: (missed: PracticeItem[]) => void;
+  onAgain: () => void;
+  onSettings: () => void;
+}) {
   const t = useI18n().t.practice;
   const [reviews, setReviews] = useState<Record<string, SentenceReview> | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "failed">(() => (initial.some((result) => result.grade === "pending") ? "loading" : "idle"));
@@ -517,20 +537,21 @@ function Results({ results: initial, onRetry, onAgain, onSettings }: { results: 
 
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
         {missed.length > 0 ? (
-          <Button onClick={() => onRetry(unique(missed).map((result) => result.exercise.item))}>
+          <Button disabled={preparing !== null} onClick={() => onRetry(unique(missed).map((result) => result.exercise.item))}>
             <RotateCcw className="size-4" />
             {t.retryMissed}
           </Button>
         ) : null}
-        <Button variant={missed.length > 0 ? "outline" : "primary"} onClick={onAgain}>
+        <Button variant={missed.length > 0 ? "outline" : "primary"} disabled={preparing !== null} onClick={onAgain}>
           <Dumbbell className="size-4" />
           {t.again}
         </Button>
-        <Button variant="ghost" onClick={onSettings}>
+        <Button variant="ghost" disabled={preparing !== null} onClick={onSettings}>
           <Settings2 className="size-4" />
           {t.settings}
         </Button>
       </div>
+      {preparing !== null ? <Preparing count={preparing} /> : null}
     </div>
   );
 }
@@ -540,7 +561,7 @@ export function Practice({ decks, initialDeck }: { decks: Array<{ id: string; na
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [data, setData] = useState<PracticeData | null>(null);
   const [loading, startLoading] = useTransition();
-  const [preparing, setPreparing] = useState(false);
+  const [preparing, setPreparing] = useState<number | null>(null);
   const [stage, setStage] = useState<"setup" | "session" | "results">("setup");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [results, setResults] = useState<Result[]>([]);
@@ -559,17 +580,7 @@ export function Practice({ decks, initialDeck }: { decks: Array<{ id: string; na
     let cancelled = false;
     startLoading(async () => {
       const loaded = await loadPracticeItems({ deckId, period }).catch(() => null);
-      if (cancelled) return;
-      setData(loaded ?? { items: [], hasKey: false, pending: 0 });
-      if (!loaded?.hasKey || loaded.pending === 0) return;
-      setPreparing(true);
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        const result = await preparePractice({ deckId, period }).catch(() => null);
-        if (cancelled || result?.status !== "ok") break;
-        setData(result.data);
-        if (result.data.pending === 0) break;
-      }
-      if (!cancelled) setPreparing(false);
+      if (!cancelled) setData(loaded ?? { items: [], hasKey: false, pending: 0 });
     });
     return () => {
       cancelled = true;
@@ -584,10 +595,26 @@ export function Practice({ decks, initialDeck }: { decks: Array<{ id: string; na
     });
   };
 
-  const start = (chosen: ExerciseKind[], focus?: PracticeItem[]) => {
-    if (!prefs || !data) return;
+  const start = async (chosen: ExerciseKind[], focus?: PracticeItem[]) => {
+    if (!prefs || !data || preparing !== null) return;
     const length = focus ? Math.min(prefs.length, Math.max(focus.length, 3)) : prefs.length;
-    const built = buildSession(data.items, { kinds: chosen, length, canSpeak: canSpeak() }, Math.random, focus);
+    let pool = data.items;
+    let order = shuffle(focus && focus.length > 0 ? focus : pool);
+    const missing = order.slice(0, length).filter((item) => !item.distractors);
+    if (data.hasKey && missing.length > 0) {
+      setPreparing(missing.length);
+      const result = await preparePractice({ deckId: prefs.deckId, period: prefs.period, ids: missing.map((item) => item.id) }).catch(() => null);
+      setPreparing(null);
+      if (result?.status === "ok") {
+        pool = result.data.items;
+        const byId = new Map(pool.map((item) => [item.id, item]));
+        order = order.map((item) => byId.get(item.id) ?? item);
+        setData(result.data);
+      }
+    }
+    const speech = canSpeak();
+    const kinds = effectiveKinds(chosen, kindAvailability(pool, speech));
+    const built = buildSession(pool, { kinds, length, canSpeak: speech }, Math.random, order);
     if (built.length === 0) return;
     setKinds(chosen);
     setExercises(built);
@@ -623,7 +650,7 @@ export function Practice({ decks, initialDeck }: { decks: Array<{ id: string; na
   }
 
   if (stage === "results") {
-    return <Results key={round} results={results} onRetry={(missed) => start(kinds, missed)} onAgain={() => start(kinds)} onSettings={() => setStage("setup")} />;
+    return <Results key={round} results={results} preparing={preparing} onRetry={(missed) => start(kinds, missed)} onAgain={() => start(kinds)} onSettings={() => setStage("setup")} />;
   }
 
   if (data.items.length === 0 && !loading && !prefs.deckId && prefs.period === "all") {

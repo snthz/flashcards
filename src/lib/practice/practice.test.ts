@@ -132,6 +132,14 @@ describe("buildSession", () => {
     expect(exercises.every((exercise) => exercise.kind === "type")).toBe(true);
     expect(buildSession(pool, { kinds: [], length: 5, canSpeak: true })).toEqual([]);
   });
+
+  it("follows the given order and moves past words that do not fit", () => {
+    const order = [pool[3], pool[1], pool[4], pool[0], pool[2]];
+    const exercises = buildSession(pool, { kinds: ["type"], length: 3, canSpeak: false }, seeded(), order);
+    expect(exercises.map((exercise) => exercise.item.term)).toEqual(["thrive", "put", "meet"]);
+    const forms = buildSession(pool, { kinds: ["forms"], length: 1, canSpeak: false }, seeded(), order);
+    expect(forms.map((exercise) => exercise.item.term)).toEqual(["put"]);
+  });
 });
 
 describe("generated distractors", () => {
@@ -157,6 +165,14 @@ describe("generated distractors", () => {
     expect(availability.cloze).toBe("no-examples");
     expect(availability.listen).toBe("no-speech");
     expect(availability.forms).toBe("no-verbs");
+  });
+
+  it("counts on Claude for the kinds it can prepare", () => {
+    const plain = [item("craving", "antojo", { language: null }), item("thrive", "prosperar", { language: null })];
+    expect(kindAvailability(plain, true)).toMatchObject({ choice: "few-words", cloze: "no-examples", listen: "no-language" });
+    expect(kindAvailability(plain, true, true)).toMatchObject({ choice: null, cloze: null, listen: null, forms: "no-verbs", match: "few-words" });
+    expect(kindAvailability(plain, false, true).listen).toBe("no-speech");
+    expect(kindAvailability([], true, true).cloze).toBe("no-examples");
   });
 });
 

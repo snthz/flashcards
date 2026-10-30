@@ -14,11 +14,14 @@ import { PRACTICE_PERIODS, type PracticeData, type PracticeItem, type SentenceRe
 
 const CLAUDE_LIMIT = { max: 300, windowMs: 3_600_000 };
 const BATCH = 25;
-const PER_REQUEST = 50;
 
 const loadSchema = z.object({
   deckId: z.string().uuid().nullable(),
   period: z.enum(PRACTICE_PERIODS),
+});
+
+const prepareSchema = loadSchema.extend({
+  ids: z.array(z.string().uuid()).min(1).max(BATCH),
 });
 
 const sentencesSchema = z
@@ -65,37 +68,38 @@ export type PrepareResult = { status: "ok"; data: PracticeData } | { status: "no
 
 export async function preparePractice(raw: unknown): Promise<PrepareResult> {
   const user = await requireUser();
-  const parsed = loadSchema.safeParse(raw);
+  const parsed = prepareSchema.safeParse(raw);
   if (!parsed.success) return { status: "invalid" };
   const claude = await claudeSettings(user.id);
   if (!claude) return { status: "no-key" };
   const items = await practiceItems(user.id, parsed.data.deckId, parsed.data.period);
-  const cached = await cachedEnrichments(user.id, items);
-  const missing = items.filter((item) => !cached.has(item.id)).slice(0, PER_REQUEST);
-  const batches = Array.from({ length: Math.ceil(missing.length / BATCH) }, (_, index) => missing.slice(index * BATCH, (index + 1) * BATCH));
-  const key = `claude:${user.id}`;
-  if ((await blockedFor([{ key, ...CLAUDE_LIMIT }])) > 0) return { status: "rate-limited" };
-  try {
-    const results = await Promise.all(
-      batches.map(async (batch) => {
-        await recordAttempt([key]);
-        const words = await enrichWords(
-          claude.apiKey,
-          claude.model,
-          batch.map((item, index) => ({ id: String(index + 1), term: item.term, meaning: item.meaning, example: item.example })),
-        );
-        const byId = new Map(words.map((word) => [word.id, word]));
-        return batch.flatMap((item, index) => {
+  const ids = new Set(parsed.data.ids);
+  const targets = items.filter((item) => ids.has(item.id));
+  const cached = await cachedEnrichments(user.id, targets);
+  const missing = targets.filter((item) => !cached.has(item.id));
+  if (missing.length > 0) {
+    const key = `claude:${user.id}`;
+    if ((await blockedFor([{ key, ...CLAUDE_LIMIT }])) > 0) return { status: "rate-limited" };
+    await recordAttempt([key]);
+    try {
+      const words = await enrichWords(
+        claude.apiKey,
+        claude.model,
+        missing.map((item, index) => ({ id: String(index + 1), term: item.term, meaning: item.meaning, example: item.example })),
+      );
+      const byId = new Map(words.map((word) => [word.id, word]));
+      await saveEnrichments(
+        user.id,
+        missing.flatMap((item, index) => {
           const output = byId.get(String(index + 1));
           return output ? [{ item, data: toEnrichment(output, item) }] : [];
-        });
-      }),
-    );
-    await saveEnrichments(user.id, results.flat());
-  } catch (error) {
-    if (error instanceof InvalidKeyError) return { status: "invalid-key" };
-    console.error("[practice] enrichment failed", error);
-    return { status: "unavailable" };
+        }),
+      );
+    } catch (error) {
+      if (error instanceof InvalidKeyError) return { status: "invalid-key" };
+      console.error("[practice] enrichment failed", error);
+      return { status: "unavailable" };
+    }
   }
   return { status: "ok", data: await withCache(user.id, items, true) };
 }
